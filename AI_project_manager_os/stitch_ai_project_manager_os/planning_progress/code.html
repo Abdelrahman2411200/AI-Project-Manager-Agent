@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Planning Progress - Project Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#656e84",
+                        "outline": "#747686",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#4d566b",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-container": "#977cff",
+                        "on-secondary-container": "#2d0086",
+                        "surface": "#f8f9ff",
+                        "background": "#f8f9ff",
+                        "primary": "#0848d0",
+                        "primary-fixed": "#dce1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ab1",
+                        "on-primary-fixed": "#00164f",
+                        "on-secondary-fixed": "#1e0060",
+                        "tertiary-fixed-dim": "#bdc6e0",
+                        "on-tertiary-fixed": "#121b2e",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#1d52d8",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed-dim": "#ccbeff",
+                        "on-tertiary-container": "#eff1ff",
+                        "inverse-surface": "#213145",
+                        "surface-variant": "#d3e4fe",
+                        "outline-variant": "#c4c5d7",
+                        "on-surface-variant": "#434654",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "secondary": "#6346c7",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#3563e9",
+                        "inverse-primary": "#b6c4ff",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#f0f1ff",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e7deff",
+                        "on-secondary-fixed-variant": "#4b2aae",
+                        "on-tertiary-fixed-variant": "#3e475b",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#d9e2fc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "2xl": "48px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "display-lg-mobile": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .workflow-line::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            bottom: -24px;
+            left: 20px;
+            width: 2px;
+            background-color: theme('colors.surface-container-high');
+            z-index: 0;
+        }
+        .workflow-line:last-child::before {
+            display: none;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(99, 70, 199, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(99, 70, 199, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(99, 70, 199, 0); }
+        }
+        
+        .pulse-active {
+            animation: pulse-ring 2s infinite;
+        }
+
+        .spin-slow {
+            animation: spin 3s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-full flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-inverse-surface dark:bg-inverse-surface h-screen w-64 flex-shrink-0 flex flex-col h-full py-md px-md hidden md:flex">
+<div class="mb-lg px-sm">
+<h1 class="font-headline-sm text-headline-sm font-bold text-surface-container-lowest">AI Project Manager</h1>
+<p class="font-label-sm text-label-sm text-tertiary-fixed-dim mt-xs">Enterprise Intelligence</p>
+</div>
+<button class="bg-primary hover:bg-primary-fixed text-on-primary font-label-md text-label-md rounded-lg py-sm px-md flex items-center justify-center gap-sm mb-lg transition-colors w-full">
+<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+            New Project
+        </button>
+<div class="flex-1 overflow-y-auto">
+<ul class="space-y-sm">
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">folder_managed</span>
+                        Projects
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-primary-fixed-dim font-bold bg-white/10 rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+                        Planning Runs
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                        Reports
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">history</span>
+                        Activity
+                    </a>
+</li>
+</ul>
+</div>
+<div class="mt-auto pt-md border-t border-white/10">
+<ul class="space-y-sm">
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                        Settings
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                        Support
+                    </a>
+</li>
+</ul>
+<div class="mt-md px-sm flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden">
+<img alt="Organization Logo" class="w-full h-full object-cover" data-alt="A small, professional headshot of an executive in a minimalist corporate setting, light mode aesthetic, well lit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPGED8pHhln41LYAKhZIyM81ai5qpIF8yuw0tAldAXgTJJRydFDU8ywBXdnqyMzYeVryBPtqwhcHhfZaKHvvxnaVmwjE-lYFvimXTFmwFeiNa7ChvyCcOdMDoug_u2nPqGwhbR2NL3UzpyB0knoNjlzK6YX_2hkslcUWWch40ab8EVpXRmHNIVJXBXY0liUqQ_6lp3PZVyXdPP7Y3P194AssURUFZmCkD8uASW5g_Y_RD4Uuas1T84Yw"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="w-full h-16 sticky top-0 flex justify-between items-center px-lg w-full bg-surface shadow-sm z-10 border-b border-outline-variant hidden md:flex">
+<div class="flex items-center gap-xl">
+<nav>
+<ul class="flex space-x-lg font-label-md text-label-md">
+<li><a class="text-on-surface-variant hover:text-primary transition-colors py-md" href="#">Overview</a></li>
+<li><a class="text-primary border-b-2 border-primary pb-base font-bold py-md" href="#">Plan</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors py-md" href="#">Board</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors py-md" href="#">Timeline</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors py-md" href="#">Health</a></li>
+</ul>
+</nav>
+</div>
+<div class="flex items-center gap-md text-on-surface-variant">
+<button class="hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container"><span class="material-symbols-outlined">help</span></button>
+<button class="hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 overflow-y-auto p-lg md:p-xl relative">
+<!-- Progress Overlay / Container -->
+<div class="max-w-3xl mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+<!-- Header -->
+<div class="p-lg border-b border-outline-variant bg-surface flex justify-between items-start">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">psychiatry</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">AI Planning Sequence</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Synthesizing project structure from requirements document...</p>
+</div>
+<button class="font-label-md text-label-md text-error bg-error-container hover:bg-error-container/80 px-md py-sm rounded-lg transition-colors border border-error/20">
+                        Cancel Run
+                    </button>
+</div>
+<!-- Global Progress -->
+<div class="px-lg pt-lg">
+<div class="flex justify-between items-center mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Overall Progress</span>
+<span class="font-label-md text-label-md text-primary font-bold">45%</span>
+</div>
+<div class="h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" style="width: 45%;"></div>
+</div>
+</div>
+<!-- Workflow Steps -->
+<div class="p-lg flex-1">
+<div class="relative space-y-md">
+<!-- Step 1: Completed -->
+<div class="workflow-line relative flex items-start gap-lg group">
+<div class="w-10 h-10 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center flex-shrink-0 z-10 text-emerald-700 bg-surface-container-lowest">
+<span class="material-symbols-outlined" style="font-size: 20px; font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<h3 class="font-label-md text-label-md text-on-surface mb-xs">Validate request</h3>
+<div class="bg-surface-container p-sm rounded-lg border border-outline-variant/30 flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary-container text-sm" style="font-size: 16px;">verified</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Requirements parsed successfully. Context window: 14k tokens.</span>
+</div>
+</div>
+</div>
+<!-- Step 2: Completed -->
+<div class="workflow-line relative flex items-start gap-lg group">
+<div class="w-10 h-10 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center flex-shrink-0 z-10 text-emerald-700 bg-surface-container-lowest">
+<span class="material-symbols-outlined" style="font-size: 20px; font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<h3 class="font-label-md text-label-md text-on-surface mb-xs">Identify modules</h3>
+<div class="bg-surface-container p-sm rounded-lg border border-outline-variant/30 flex flex-col gap-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">4 core modules identified:</span>
+<div class="flex gap-sm flex-wrap">
+<span class="inline-flex items-center px-2 py-1 rounded bg-surface-container-highest font-label-sm text-label-sm text-on-surface">Frontend</span>
+<span class="inline-flex items-center px-2 py-1 rounded bg-surface-container-highest font-label-sm text-label-sm text-on-surface">Backend API</span>
+<span class="inline-flex items-center px-2 py-1 rounded bg-surface-container-highest font-label-sm text-label-sm text-on-surface">Database schema</span>
+<span class="inline-flex items-center px-2 py-1 rounded bg-surface-container-highest font-label-sm text-label-sm text-on-surface">Auth</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 3: Running -->
+<div class="workflow-line relative flex items-start gap-lg group">
+<div class="w-10 h-10 rounded-full bg-secondary-container border-2 border-secondary flex items-center justify-center flex-shrink-0 z-10 text-on-secondary-container bg-surface-container-lowest pulse-active">
+<span class="material-symbols-outlined spin-slow" style="font-size: 20px;">autorenew</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<div class="flex justify-between items-center mb-xs">
+<h3 class="font-label-md text-label-md text-primary-fixed-variant font-bold">Generate milestones</h3>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-2 py-0.5 rounded-full">Processing...</span>
+</div>
+<div class="bg-surface-container p-sm rounded-lg border border-secondary/30">
+<div class="flex items-center gap-md">
+<div class="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full w-2/3"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Constructing timeline...</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 4: Pending -->
+<div class="workflow-line relative flex items-start gap-lg group opacity-60">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center flex-shrink-0 z-10 text-outline-variant bg-surface-container-lowest">
+<span class="font-label-md text-label-md">4</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-xs">Generate tasks</h3>
+<p class="font-label-sm text-label-sm text-outline">Waiting for milestones...</p>
+</div>
+</div>
+<!-- Step 5: Pending -->
+<div class="workflow-line relative flex items-start gap-lg group opacity-60">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center flex-shrink-0 z-10 text-outline-variant bg-surface-container-lowest">
+<span class="font-label-md text-label-md">5</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-xs">Suggest dependencies</h3>
+<p class="font-label-sm text-label-sm text-outline">Queued</p>
+</div>
+</div>
+<!-- Step 6: Pending -->
+<div class="workflow-line relative flex items-start gap-lg group opacity-60">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center flex-shrink-0 z-10 text-outline-variant bg-surface-container-lowest">
+<span class="font-label-md text-label-md">6</span>
+</div>
+<div class="flex-1 pt-sm pb-lg">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-xs">Check feasibility</h3>
+<p class="font-label-sm text-label-sm text-outline">Queued</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Tech Details -->
+<div class="bg-surface border-t border-outline-variant p-md flex justify-between items-center font-label-sm text-label-sm text-on-surface-variant">
+<div class="flex gap-md">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined" style="font-size: 14px;">memory</span> Model: GPT-4o-Planner</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined" style="font-size: 14px;">speed</span> Latency: 4.2s</span>
+</div>
+<div>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined" style="font-size: 14px;">paid</span> Est. Cost: $0.12</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Project Manager - E-commerce Website</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#656e84",
+                        "outline": "#747686",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#4d566b",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-container": "#977cff",
+                        "on-secondary-container": "#2d0086",
+                        "surface": "#f8f9ff",
+                        "background": "#f8f9ff",
+                        "primary": "#0848d0",
+                        "primary-fixed": "#dce1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ab1",
+                        "on-primary-fixed": "#00164f",
+                        "on-secondary-fixed": "#1e0060",
+                        "tertiary-fixed-dim": "#bdc6e0",
+                        "on-tertiary-fixed": "#121b2e",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#1d52d8",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed-dim": "#ccbeff",
+                        "on-tertiary-container": "#eff1ff",
+                        "inverse-surface": "#213145",
+                        "surface-variant": "#d3e4fe",
+                        "outline-variant": "#c4c5d7",
+                        "on-surface-variant": "#434654",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "secondary": "#6346c7",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#3563e9",
+                        "inverse-primary": "#b6c4ff",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#f0f1ff",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e7deff",
+                        "on-secondary-fixed-variant": "#4b2aae",
+                        "on-tertiary-fixed-variant": "#3e475b",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#d9e2fc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "2xl": "48px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "display-lg-mobile": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #F7F8FA; }
+        .ambient-shadow { box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.05); }
+        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="font-body-md text-on-surface flex h-screen overflow-hidden">
+<!-- SideNavBar (WEB ONLY) -->
+<nav class="hidden md:flex flex-col bg-inverse-surface h-screen w-64 flex-shrink-0 py-md px-md transition-all duration-300">
+<div class="flex items-center gap-sm mb-xl px-sm">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary-container font-bold font-headline-sm">
+<img class="w-full h-full object-cover rounded" data-alt="A minimal geometric logo design suitable for an enterprise software product. The logo should use shades of deep blue and crisp white, featuring sharp lines and a sense of precision and intelligence. Set against a clean, flat background to ensure clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuClGQVZ7IS_1_Y0Kow86bTgi5WRzzZVZOogvlawJINrmg_MjMLqOXhkRHTUrJ_--G1MMZdFjTocnrDZjIWYjlZxiDrv2Je4hG61RjdJ027cNP36jIiRqbl_YvHnkPs1hMcF2hfsUx-ypd9DNF6w4uMgT_ELQY3gfjbGXYn47hzg0eaGAlKFDjpXxf60TMGxV6Iyj0XlHkIKeCwQ2yLdvUf7K9nkbsGofLSDemaShiMN6uG2NRdNnaUbnA"/>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-surface-container-lowest">AI Project Manager</h1>
+<p class="font-label-sm text-label-sm text-outline-variant">Enterprise Intelligence</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary rounded-lg py-sm px-md flex items-center justify-center gap-xs font-label-md hover:bg-on-primary-fixed-variant transition-colors mb-lg shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Project
+        </button>
+<ul class="flex flex-col gap-xs flex-1">
+<li>
+<a class="flex items-center gap-md py-sm px-md text-primary-fixed-dim font-bold bg-white/10 rounded-lg hover:bg-white/5 transition-colors font-body-md scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">folder_managed</span>
+                    Projects
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md py-sm px-md text-outline-variant hover:text-surface-bright hover:bg-white/5 rounded-lg transition-colors font-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                    Planning Runs
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md py-sm px-md text-outline-variant hover:text-surface-bright hover:bg-white/5 rounded-lg transition-colors font-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                    Reports
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md py-sm px-md text-outline-variant hover:text-surface-bright hover:bg-white/5 rounded-lg transition-colors font-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+                    Activity
+                </a>
+</li>
+</ul>
+<div class="mt-auto pt-md border-t border-white/10">
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md py-sm px-md text-outline-variant hover:text-surface-bright hover:bg-white/5 rounded-lg transition-colors font-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                        Settings
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md py-sm px-md text-outline-variant hover:text-surface-bright hover:bg-white/5 rounded-lg transition-colors font-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+                        Support
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="w-full h-16 sticky top-0 flex justify-between items-center px-lg bg-surface border-b border-outline-variant shadow-sm z-10 flex-shrink-0">
+<!-- Mobile Menu Button & Brand -->
+<div class="flex items-center gap-sm md:hidden">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">AI Project Manager</span>
+</div>
+<!-- Desktop Navigation Links -->
+<nav class="hidden md:flex items-center h-full gap-lg">
+<a class="flex items-center h-full font-label-md text-label-md text-primary border-b-2 border-primary pt-[2px] opacity-80 transition-opacity" href="#">Overview</a>
+<a class="flex items-center h-full font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Plan</a>
+<a class="flex items-center h-full font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Board</a>
+<a class="flex items-center h-full font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Timeline</a>
+<a class="flex items-center h-full font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Health</a>
+</nav>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-sm text-on-surface-variant">
+<button class="p-sm hover:text-primary transition-colors rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-sm hover:text-primary transition-colors rounded-full hover:bg-surface-container hidden sm:block">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-sm hover:text-primary transition-colors rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 overflow-y-auto p-md md:p-lg xl:p-xl custom-scrollbar">
+<div class="max-w-[1440px] mx-auto flex flex-col gap-lg">
+<!-- Header Section -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-sm">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<h2 class="font-display-lg text-display-lg text-on-surface">E-commerce Website</h2>
+<span class="bg-[#FFF8E6] text-[#B45309] font-label-sm text-label-sm px-2 py-0.5 rounded-full border border-[#FDE68A] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
+                                At risk
+                            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-error">warning</span>
+<span class="text-error font-medium">Blocked critical task</span>
+</p>
+</div>
+<div class="flex gap-sm">
+<button class="h-10 px-md rounded border border-outline-variant bg-surface-container-lowest text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Edit Project
+                        </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg auto-rows-[minmax(180px,auto)]">
+<!-- Stats Card (Large) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant ambient-shadow p-lg flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Project Velocity</h3>
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="grid grid-cols-3 gap-md mb-lg">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Weighted Progress</span>
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface">18%</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant pl-md">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Forecast Completion</span>
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface">Sep 3</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant pl-md">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-xs">Buffer</span>
+<span class="font-display-lg-mobile text-display-lg-mobile text-amber-600">2 days</span>
+</div>
+</div>
+<!-- Milestone Progress Chart Placeholder (CSS Visual) -->
+<div class="w-full h-12 bg-surface-container rounded-lg overflow-hidden relative border border-outline-variant/50">
+<!-- Target Line -->
+<div class="absolute left-[30%] top-0 bottom-0 border-l border-dashed border-outline-variant z-10" title="Target: 30%"></div>
+<!-- Actual Progress -->
+<div class="h-full bg-primary/20 absolute left-0 top-0 w-[18%] border-r-2 border-primary"></div>
+<div class="absolute inset-0 flex items-center justify-between px-sm font-label-sm text-label-sm text-on-surface-variant pointer-events-none">
+<span>Kickoff</span>
+<span>Design</span>
+<span>Dev</span>
+<span>Launch</span>
+</div>
+</div>
+</div>
+<!-- AI Recommendation Widget (Important) -->
+<div class="md:col-span-4 bg-[#F5F3FF] rounded-xl border-l-4 border-l-secondary border border-outline-variant ambient-shadow p-lg flex flex-col relative overflow-hidden">
+<!-- Subtle background texture -->
+<div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#6346c7 1px, transparent 1px); background-size: 16px 16px;"></div>
+<div class="flex justify-between items-start mb-sm relative z-10">
+<div class="flex items-center gap-xs text-secondary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+                                AI Insight
+                            </div>
+<span class="bg-surface-container-lowest text-secondary font-label-sm text-label-sm px-2 py-0.5 rounded border border-secondary-container">94% Confidence</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-sm relative z-10 leading-tight">Resolve checkout contract blocker</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md relative z-10 flex-1">
+                            Legal review for payment gateway terms is stalling development. Escalate to legal team immediately to protect Sep 3 forecast.
+                        </p>
+<button class="w-full bg-secondary text-on-secondary rounded h-10 font-label-md text-label-md hover:bg-secondary-container hover:text-on-secondary-container transition-colors relative z-10 flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+                            Draft Escalation Email
+                        </button>
+</div>
+<!-- Blocked Tasks Widget -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-xl border border-error-container ambient-shadow p-md flex flex-col">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-error text-[20px]">block</span>
+                                Blocked Tasks
+                            </h3>
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm w-6 h-6 rounded-full flex items-center justify-center">1</span>
+</div>
+<div class="flex flex-col gap-sm flex-1">
+<!-- Task Card -->
+<div class="border border-outline-variant rounded-lg p-sm flex flex-col gap-sm hover:border-outline transition-colors cursor-pointer bg-surface-container-low">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-xs">
+<span class="font-label-md text-label-md text-on-surface-variant font-mono">TASK-014</span>
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm px-1.5 py-0.5 rounded">High Prio</span>
+</div>
+<img class="w-6 h-6 rounded-full bg-outline-variant object-cover" data-alt="A very small, professional avatar image of a corporate legal team member, featuring a person in a neat dark suit against a neutral grey studio background. The image should be cropped tightly to the face and shoulders, conveying a sense of focus and reliability." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1PfvbjPJwFw5UfihWl_Ego5SHw1VEuddMWxMIJcJA8m2mZQ6nuA28utj5x_rO4IwsJBXVF-hw6OLP7B_EXdFpvAOdjX3aaT1RvNBcnguJ30cZ6krtWt7kJ0nsXyz1J0RSW4oKqojY-Q05IknS-EPhHOQrtnv5QuS__25O8IjnpWNT3Bap3aFKjZtLR96aWjXSkN4ftQxfbuPBvh2Su_dSoxIxXbSAk8-Dd-G77bZR9u03NMlRvwMLUA"/>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium leading-tight">Approve Payment Gateway TOS</p>
+<div class="flex justify-between items-center mt-auto pt-xs border-t border-outline-variant/30">
+<span class="font-label-sm text-label-sm text-error flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+                                        Overdue by 3 days
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Current Sprint Summary -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-xl border border-outline-variant ambient-shadow p-md flex flex-col">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-tertiary text-[20px]">sprint</span>
+                                Sprint 4 Summary
+                            </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Ends in 4 days</span>
+</div>
+<div class="flex flex-col gap-md">
+<!-- Sprint Progress Bar -->
+<div>
+<div class="flex justify-between font-label-sm text-label-sm mb-xs">
+<span class="text-on-surface-variant">Completion</span>
+<span class="text-on-surface font-medium">65% (13/20 pts)</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[65%]"></div>
+</div>
+</div>
+<!-- Mini Task List -->
+<div class="flex flex-col gap-xs mt-sm">
+<div class="flex items-center gap-sm font-body-md text-body-md">
+<span class="material-symbols-outlined text-[18px] text-tertiary-container">check_circle</span>
+<span class="text-on-surface line-through text-outline">Design Product Page</span>
+</div>
+<div class="flex items-center gap-sm font-body-md text-body-md">
+<span class="material-symbols-outlined text-[18px] text-primary">radio_button_unchecked</span>
+<span class="text-on-surface">Implement Cart Logic</span>
+</div>
+<div class="flex items-center gap-sm font-body-md text-body-md">
+<span class="material-symbols-outlined text-[18px] text-primary">radio_button_unchecked</span>
+<span class="text-on-surface">API Integration</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Project - AI Project Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#656e84",
+                    "outline": "#747686",
+                    "surface-container-high": "#dce9ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#4d566b",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-container": "#977cff",
+                    "on-secondary-container": "#2d0086",
+                    "surface": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "primary": "#0848d0",
+                    "primary-fixed": "#dce1ff",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#003ab1",
+                    "on-primary-fixed": "#00164f",
+                    "on-secondary-fixed": "#1e0060",
+                    "tertiary-fixed-dim": "#bdc6e0",
+                    "on-tertiary-fixed": "#121b2e",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#1d52d8",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed-dim": "#ccbeff",
+                    "on-tertiary-container": "#eff1ff",
+                    "inverse-surface": "#213145",
+                    "surface-variant": "#d3e4fe",
+                    "outline-variant": "#c4c5d7",
+                    "on-surface-variant": "#434654",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#b6c4ff",
+                    "secondary": "#6346c7",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#3563e9",
+                    "inverse-primary": "#b6c4ff",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#f0f1ff",
+                    "surface-dim": "#cbdbf5",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e7deff",
+                    "on-secondary-fixed-variant": "#4b2aae",
+                    "on-tertiary-fixed-variant": "#3e475b",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "tertiary-fixed": "#d9e2fc"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "2xl": "48px",
+                    "xs": "4px",
+                    "container-max": "1440px",
+                    "gutter": "24px",
+                    "sm": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Manrope"],
+                    "display-lg-mobile": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { background-color: #f8f9ff; color: #0b1c30; font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-fill { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden bg-surface">
+<!-- SideNavBar (Shared Component) -->
+<nav class="hidden md:flex flex-col h-full py-md px-md w-64 flex-shrink-0 bg-inverse-surface border-r border-transparent">
+<div class="mb-xl flex items-center gap-sm px-base">
+<span class="material-symbols-outlined text-surface-container-lowest icon-fill text-[32px]">hexagon</span>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-surface-container-lowest">AI Project Manager</h1>
+<p class="font-label-sm text-label-sm text-tertiary-fixed-dim">Enterprise Intelligence</p>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-sm bg-primary text-on-primary font-label-md text-label-md py-base px-md rounded-DEFAULT hover:bg-primary-container transition-colors mb-xl shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Project
+        </button>
+<ul class="flex flex-col gap-xs flex-1">
+<!-- Active Tab -->
+<li>
+<a class="flex items-center gap-md px-md py-base text-primary-fixed-dim font-bold bg-white/10 rounded-lg hover:bg-white/15 transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px] icon-fill">folder_managed</span>
+                    Projects
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-base text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                    Planning Runs
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-base text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                    Reports
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-base text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+                    Activity
+                </a>
+</li>
+</ul>
+<ul class="flex flex-col gap-xs mt-auto pt-lg border-t border-white/10">
+<li>
+<a class="flex items-center gap-md px-md py-base text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                    Settings
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-base text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+                    Support
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0 bg-surface">
+<!-- TopAppBar (Simplified for Focus Mode) -->
+<header class="flex justify-between items-center px-lg w-full bg-surface h-16 sticky top-0 border-b border-outline-variant shadow-sm z-10 flex-shrink-0">
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-sm rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Create Project</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">New Initiative</h2>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Form Canvas -->
+<main class="flex-1 overflow-y-auto p-lg md:p-xl custom-scrollbar">
+<div class="max-w-container-max mx-auto flex flex-col xl:flex-row gap-xl items-start">
+<!-- Left Column: Stepper & Form -->
+<div class="flex-1 w-full max-w-4xl flex flex-col gap-xl">
+<!-- Horizontal Stepper -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
+<ol class="flex items-center w-full">
+<li class="flex w-full items-center text-primary after:content-[''] after:w-full after:h-1 after:border-b after:border-primary after:border-2 after:inline-block">
+<span class="flex items-center justify-center w-8 h-8 bg-primary-fixed rounded-full lg:h-10 lg:w-10 shrink-0">
+<span class="font-label-md text-label-md text-on-primary-fixed font-bold">1</span>
+</span>
+<span class="ml-sm font-label-md text-label-md text-on-surface font-semibold hidden md:block whitespace-nowrap">Identity</span>
+</li>
+<li class="flex w-full items-center text-on-surface-variant after:content-[''] after:w-full after:h-1 after:border-b after:border-outline-variant after:border-2 after:inline-block">
+<span class="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-full lg:h-10 lg:w-10 shrink-0 ml-md">
+<span class="font-label-md text-label-md text-on-surface-variant">2</span>
+</span>
+<span class="ml-sm font-label-md text-label-md text-on-surface-variant hidden md:block whitespace-nowrap">Schedule</span>
+</li>
+<li class="flex w-full items-center text-on-surface-variant after:content-[''] after:w-full after:h-1 after:border-b after:border-outline-variant after:border-2 after:inline-block">
+<span class="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-full lg:h-10 lg:w-10 shrink-0 ml-md">
+<span class="font-label-md text-label-md text-on-surface-variant">3</span>
+</span>
+<span class="ml-sm font-label-md text-label-md text-on-surface-variant hidden md:block whitespace-nowrap">Team</span>
+</li>
+<li class="flex w-full items-center text-on-surface-variant after:content-[''] after:w-full after:h-1 after:border-b after:border-outline-variant after:border-2 after:inline-block">
+<span class="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-full lg:h-10 lg:w-10 shrink-0 ml-md">
+<span class="font-label-md text-label-md text-on-surface-variant">4</span>
+</span>
+<span class="ml-sm font-label-md text-label-md text-on-surface-variant hidden md:block whitespace-nowrap">Scope</span>
+</li>
+<li class="flex items-center text-on-surface-variant">
+<span class="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-full lg:h-10 lg:w-10 shrink-0 ml-md">
+<span class="font-label-md text-label-md text-on-surface-variant">5</span>
+</span>
+<span class="ml-sm font-label-md text-label-md text-on-surface-variant hidden md:block whitespace-nowrap">Constraints</span>
+</li>
+</ol>
+</div>
+<!-- Form Sections Container -->
+<div class="flex flex-col gap-lg">
+<!-- Section: Identity -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-lg border-b border-outline-variant bg-surface/50">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">badge</span>
+                                    Project Identity
+                                </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Define the core metadata and objectives for this initiative.</p>
+</div>
+<div class="p-lg flex flex-col gap-lg">
+<!-- Field: Name -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="projectName">Project Name <span class="text-error">*</span></label>
+<input class="h-10 px-md py-base border border-outline-variant rounded-DEFAULT bg-surface-container-lowest font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-fixed shadow-sm transition-shadow" id="projectName" placeholder="e.g., Q3 Cloud Migration" type="text"/>
+</div>
+<!-- Field: Description -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="projectDesc">Description</label>
+<textarea class="p-md border border-outline-variant rounded-DEFAULT bg-surface-container-lowest font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-fixed shadow-sm transition-shadow resize-y" id="projectDesc" placeholder="Briefly describe the purpose and context of this project..." rows="3"></textarea>
+</div>
+<!-- Field: Desired Outcome -->
+<div class="flex flex-col gap-xs relative">
+<label class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-xs" for="desiredOutcome">
+                                        Desired Outcome
+                                        <span class="material-symbols-outlined text-[16px] text-secondary cursor-help" title="AI will use this to evaluate plan health">auto_awesome</span>
+</label>
+<textarea class="p-md border border-outline-variant border-l-2 border-l-secondary rounded-DEFAULT bg-surface-container-lowest font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary-fixed-dim shadow-sm transition-shadow resize-y" id="desiredOutcome" placeholder="What does success look like? Quantifiable metrics are highly recommended." rows="4"></textarea>
+<div class="absolute top-8 right-2 flex items-center gap-xs bg-surface-container-high px-sm py-xs rounded-full border border-outline-variant/50">
+<span class="material-symbols-outlined text-[14px] text-tertiary">bolt</span>
+<span class="font-label-sm text-label-sm text-tertiary">AI Assisted</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Schedule -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-lg border-b border-outline-variant bg-surface/50 flex justify-between items-center cursor-pointer hover:bg-surface transition-colors">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline">calendar_month</span>
+                                        Schedule Parameters
+                                    </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Establish the timeline boundaries.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant transition-transform transform rotate-180">expand_more</span>
+</div>
+<div class="p-lg flex flex-col sm:flex-row gap-lg">
+<!-- Field: Start Date -->
+<div class="flex flex-col gap-xs flex-1">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="startDate">Target Start Date</label>
+<div class="relative">
+<input class="w-full h-10 pl-md pr-xl py-base border border-outline-variant rounded-DEFAULT bg-surface-container-lowest font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-fixed shadow-sm transition-shadow appearance-none" id="startDate" type="date"/>
+<span class="material-symbols-outlined absolute right-sm top-2 text-outline-variant pointer-events-none">event</span>
+</div>
+</div>
+<!-- Field: End Date -->
+<div class="flex flex-col gap-xs flex-1">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="endDate">Target End Date</label>
+<div class="relative">
+<input class="w-full h-10 pl-md pr-xl py-base border border-outline-variant rounded-DEFAULT bg-surface-container-lowest font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-fixed shadow-sm transition-shadow appearance-none" id="endDate" type="date"/>
+<span class="material-symbols-outlined absolute right-sm top-2 text-outline-variant pointer-events-none">event</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Next Step Action -->
+<div class="flex justify-end pt-md">
+<button class="flex items-center gap-sm bg-surface-container-lowest border border-outline text-on-surface font-label-md text-label-md py-base px-lg rounded-DEFAULT hover:bg-surface-container transition-colors shadow-sm">
+                                Continue to Team
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Sidebar Summary & Actions -->
+<aside class="w-full xl:w-80 flex-shrink-0 xl:sticky xl:top-24 flex flex-col gap-lg">
+<!-- Summary Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-on-surface font-bold uppercase tracking-wider">Draft Summary</h4>
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant font-label-sm rounded-full">Unsaved</span>
+</div>
+<div class="p-md flex flex-col gap-md">
+<!-- Summary Items -->
+<div>
+<span class="block font-label-sm text-label-sm text-outline mb-xs">Name</span>
+<span class="font-body-md text-body-md text-on-surface italic text-on-surface-variant">Not entered</span>
+</div>
+<div class="h-px w-full bg-outline-variant/30"></div>
+<div>
+<span class="block font-label-sm text-label-sm text-outline mb-xs">Schedule</span>
+<div class="flex items-center gap-sm text-on-surface font-body-md text-body-md">
+<span class="material-symbols-outlined text-[16px] text-outline-variant">calendar_today</span>
+<span class="italic text-on-surface-variant">TBD</span>
+<span class="text-outline-variant px-1">-</span>
+<span class="italic text-on-surface-variant">TBD</span>
+</div>
+</div>
+<div class="h-px w-full bg-outline-variant/30"></div>
+<!-- AI Readiness Indicator -->
+<div class="bg-surface-container p-sm rounded-lg border border-outline-variant/50">
+<div class="flex justify-between items-center mb-xs">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary">analytics</span>
+                                        AI Planning Readiness
+                                    </span>
+<span class="font-label-sm text-label-sm text-error font-bold">Low</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-1.5 overflow-hidden">
+<div class="bg-error h-1.5 rounded-full" style="width: 15%"></div>
+</div>
+<p class="font-label-sm text-[10px] text-on-surface-variant mt-sm leading-tight">Complete required Identity fields to enable AI-assisted planning.</p>
+</div>
+</div>
+</div>
+<!-- Global Actions -->
+<div class="flex flex-col gap-md">
+<button class="w-full flex items-center justify-center gap-sm bg-primary text-on-primary font-label-md text-label-md py-md px-lg rounded-DEFAULT hover:bg-primary-container transition-colors shadow-sm font-semibold opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                            Create &amp; Start Planning
+                        </button>
+<button class="w-full flex items-center justify-center gap-sm bg-surface-container-lowest border border-outline text-on-surface font-label-md text-label-md py-md px-lg rounded-DEFAULT hover:bg-surface-container transition-colors shadow-sm font-semibold">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Save Draft
+                        </button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</body></html>

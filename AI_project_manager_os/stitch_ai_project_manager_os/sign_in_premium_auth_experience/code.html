@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In - AI Project Manager</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed": "#1e0060",
+                        "surface": "#f8f9ff",
+                        "on-surface-variant": "#434654",
+                        "on-secondary-fixed-variant": "#4b2aae",
+                        "on-primary-fixed": "#00164f",
+                        "tertiary": "#4d566b",
+                        "on-tertiary-fixed-variant": "#3e475b",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-container": "#e5eeff",
+                        "on-secondary-container": "#2d0086",
+                        "on-primary-fixed-variant": "#003ab1",
+                        "background": "#f8f9ff",
+                        "tertiary-container": "#656e84",
+                        "tertiary-fixed": "#d9e2fc",
+                        "primary-container": "#3563e9",
+                        "primary-fixed": "#dce1ff",
+                        "on-primary": "#ffffff",
+                        "primary": "#0848d0",
+                        "outline-variant": "#c4c5d7",
+                        "surface-bright": "#f8f9ff",
+                        "surface-tint": "#1d52d8",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-error-container": "#93000a",
+                        "outline": "#747686",
+                        "secondary-container": "#977cff",
+                        "on-tertiary-container": "#eff1ff",
+                        "secondary-fixed": "#e7deff",
+                        "on-background": "#0b1c30",
+                        "secondary": "#6346c7",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "surface-container-high": "#dce9ff",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed-dim": "#bdc6e0",
+                        "secondary-fixed-dim": "#ccbeff",
+                        "on-primary-container": "#f0f1ff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#121b2e",
+                        "surface-container-low": "#eff4ff",
+                        "on-surface": "#0b1c30",
+                        "brand-panel-start": "#172033",
+                        "brand-panel-end": "#3563E9",
+                        "brand-accent": "#7357D8",
+                        "sign-in-bg": "#F7F8FA"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "12px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "gutter": "24px",
+                        "container-max": "1440px",
+                        "base": "8px",
+                        "2xl": "48px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "field": "52px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "display-lg-mobile": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Manrope"],
+                        "headline-sm": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom styles for the animated loading spinner */
+        .spinner {
+            animation: rotate 2s linear infinite;
+            z-index: 2;
+            width: 20px;
+            height: 20px;
+        }
+        .spinner .path {
+            stroke: currentColor;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
+        @keyframes dash {
+            0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+            100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+        }
+        .loading-active .btn-text { display: none; }
+        .loading-active .spinner-container { display: flex; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-sign-in-bg text-on-surface antialiased min-h-screen flex flex-col md:flex-row selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+<!-- Left Pane: Brand Panel -->
+<div class="w-full md:w-[42%] lg:w-[48%] bg-gradient-to-br from-brand-panel-start to-brand-panel-end flex-col relative overflow-hidden hidden md:flex text-white p-xl lg:p-2xl justify-between border-r border-white/10">
+<!-- Accent Glow -->
+<div class="absolute top-1/4 -right-1/4 w-[600px] h-[600px] bg-brand-accent/20 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="absolute bottom-0 -left-1/4 w-[500px] h-[500px] bg-brand-panel-end/40 rounded-full blur-[80px] pointer-events-none"></div>
+<!-- Top: Logo & Text -->
+<div class="flex items-center gap-sm z-10">
+<div class="flex items-center justify-center text-brand-accent">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<span class="font-headline-sm text-headline-sm tracking-tight text-white/90">AI Project Manager</span>
+</div>
+<!-- Center: Headline & Supporting Text & Preview -->
+<div class="z-10 mt-2xl flex-grow flex flex-col justify-center">
+<div class="max-w-xl">
+<h1 class="font-display-lg text-display-lg text-white mb-md leading-tight">Turn complex ideas into approved execution plans.</h1>
+<p class="font-body-lg text-body-lg text-white/70 max-w-lg mb-2xl">Build structured project plans, validate schedules, monitor progress, and act on evidence-backed recommendations.</p>
+</div>
+<!-- Product Preview (UI Cards) -->
+<div class="relative w-full h-[320px] mt-lg hidden lg:block perspective-[1000px]">
+<!-- Background Grid -->
+<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5LjUgMEwxOS41IDIwTTEwIDIwTDEwIDBNMCAxOS41TDIwIDE5LjVNMCAxMEwyMCAxME0wIDAuNUwyMCAwLjUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==')] opacity-50 rounded-xl pointer-events-none"></div>
+<!-- Main Plan Card -->
+<div class="absolute top-4 left-4 right-16 glass-card rounded-xl p-md shadow-2xl transform-gpu rotate-y-[5deg] rotate-x-[2deg] transition-transform duration-700 hover:rotate-0">
+<div class="flex justify-between items-center mb-md border-b border-white/10 pb-sm">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-white/70 text-[18px]">account_tree</span>
+<span class="font-label-md text-label-md text-white/90">Core Migration Strategy</span>
+</div>
+<span class="px-2 py-1 bg-white/10 rounded text-[10px] font-medium text-white/80">Version 2</span>
+</div>
+<!-- Timeline Snippet -->
+<div class="flex flex-col gap-sm relative">
+<!-- Connecting Line -->
+<div class="absolute left-[11px] top-4 bottom-4 w-px bg-white/20"></div>
+<!-- Task 1 -->
+<div class="flex items-start gap-md">
+<div class="w-6 h-6 rounded-full bg-brand-panel-end border-2 border-brand-panel-start flex items-center justify-center z-10 mt-0.5">
+<div class="w-2 h-2 rounded-full bg-white"></div>
+</div>
+<div class="flex-1 bg-white/5 rounded-lg p-sm border border-white/5">
+<div class="text-xs font-medium text-white/90">Data Mapping Verification</div>
+<div class="text-[10px] text-white/50">Approved · Due Today</div>
+</div>
+</div>
+<!-- Task 2 -->
+<div class="flex items-start gap-md">
+<div class="w-6 h-6 rounded-full bg-white/10 border-2 border-brand-panel-start flex items-center justify-center z-10 mt-0.5"></div>
+<div class="flex-1 bg-white/5 rounded-lg p-sm border border-white/5">
+<div class="text-xs font-medium text-white/70">API Integration Beta</div>
+<div class="text-[10px] text-white/50">Pending Dependency</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Health Card -->
+<div class="absolute top-[-20px] right-4 glass-card rounded-xl p-sm flex items-center gap-md shadow-xl border border-white/20 bg-brand-panel-start/80 backdrop-blur-md transform-gpu -rotate-3">
+<div class="relative w-10 h-10 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-white/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"></path>
+<path class="text-brand-accent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="42, 100" stroke-width="3"></path>
+</svg>
+<span class="absolute text-[10px] font-bold text-white">42%</span>
+</div>
+<div>
+<div class="text-xs font-medium text-white/90">Project Progress</div>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="w-2 h-2 rounded-full bg-red-400"></span>
+<span class="text-[10px] text-red-200">At risk</span>
+</div>
+</div>
+</div>
+<!-- Floating Recommendation Card -->
+<div class="absolute bottom-8 right-[-10px] glass-card rounded-xl p-md shadow-2xl border-l-4 border-l-brand-accent transform-gpu rotate-2 w-[240px] bg-brand-panel-start/90">
+<div class="flex items-center gap-sm mb-xs">
+<span class="material-symbols-outlined text-brand-accent text-[16px]">tips_and_updates</span>
+<span class="text-xs font-semibold text-white/90">AI Recommendation</span>
+</div>
+<p class="text-[10px] text-white/70 leading-relaxed">Schedule conflict detected in Sprint 3. Recommend shifting 'API Beta' by 2 days based on current team velocity.</p>
+</div>
+</div>
+</div>
+<!-- Bottom: Trust Points -->
+<div class="z-10 flex gap-md pt-xl border-t border-white/10 mt-auto">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-brand-accent text-[18px]">account_tree</span>
+<span class="font-label-sm text-[12px] text-white/80">Structured planning</span>
+</div>
+<div class="w-px h-4 bg-white/20 self-center"></div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-brand-accent text-[18px]">calendar_month</span>
+<span class="font-label-sm text-[12px] text-white/80">Deterministic scheduling</span>
+</div>
+<div class="w-px h-4 bg-white/20 self-center hidden lg:block"></div>
+<div class="flex items-center gap-xs hidden lg:flex">
+<span class="material-symbols-outlined text-brand-accent text-[18px]">verified_user</span>
+<span class="font-label-sm text-[12px] text-white/80">Human approval required</span>
+</div>
+</div>
+</div>
+<!-- Mobile Header (Hidden on Desktop) -->
+<div class="md:hidden bg-brand-panel-start w-full p-md flex flex-col gap-sm">
+<div class="flex items-center gap-sm">
+<div class="flex items-center justify-center text-brand-accent">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<span class="font-headline-sm text-[18px] tracking-tight text-white/90">AI Project Manager</span>
+</div>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-white leading-tight">Turn complex ideas into approved execution plans.</h1>
+</div>
+<!-- Right Pane: Sign-In Area -->
+<div class="w-full md:w-[58%] lg:w-[52%] flex flex-col h-full min-h-screen justify-between relative bg-sign-in-bg">
+<!-- Main Content Centered -->
+<div class="flex-grow flex items-center justify-center p-md md:p-xl lg:p-2xl w-full">
+<div class="w-full max-w-[420px] flex flex-col">
+<!-- Header -->
+<div class="mb-xl flex flex-col">
+<div class="w-10 h-10 bg-primary-container/10 rounded-lg flex items-center justify-center mb-md border border-primary-container/20 text-primary md:hidden">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<div class="w-10 h-10 text-primary hidden md:flex items-center mb-md">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<h2 class="font-headline-md text-[28px] font-bold text-on-surface mb-xs tracking-tight">Welcome back</h2>
+<p class="font-body-md text-[15px] text-on-surface-variant">Sign in to continue managing your projects.</p>
+</div>
+<!-- Form -->
+<form class="flex flex-col gap-lg" id="signin-form" onsubmit="handleSignIn(event)">
+<!-- Email Field -->
+<div class="flex flex-col gap-xs">
+<label class="block font-label-md text-label-md text-on-surface" for="email">Email address</label>
+<div class="relative">
+<input class="w-full h-field px-md bg-white border border-outline-variant/60 rounded-2xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant shadow-sm" id="email" name="email" placeholder="name@company.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-xs">
+<label class="block font-label-md text-label-md text-on-surface" for="password">Password</label>
+<div class="relative">
+<input class="w-full h-field pl-md pr-xl bg-white border border-outline-variant/60 rounded-2xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant shadow-sm" id="password" name="password" placeholder="Enter your password" required="" type="password"/>
+<button aria-label="Toggle password visibility" class="absolute right-md top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface focus:outline-none flex items-center justify-center" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined text-[20px]" id="visibility-icon">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Error State Container (Hidden by default for component variant) -->
+<div class="hidden text-error text-sm font-medium mt-[-8px]" id="error-message">
+                        Invalid email or password
+                    </div>
+<!-- Submit Button -->
+<button class="mt-xs w-full h-field bg-[#3563E9] text-white rounded-2xl font-label-md text-[15px] font-semibold flex items-center justify-center hover:bg-[#254bba] focus:ring-4 focus:ring-primary/20 transition-all active:scale-[0.99] shadow-sm relative overflow-hidden group" id="submit-btn" type="submit">
+<span class="btn-text">Sign in</span>
+<!-- Loading Spinner -->
+<div class="spinner-container hidden absolute inset-0 items-center justify-center">
+<svg class="spinner text-white" viewbox="0 0 50 50">
+<circle class="path" cx="25" cy="25" fill="none" r="20" stroke-width="5"></circle>
+</svg>
+</div>
+</button>
+<!-- Trust Note -->
+<div class="flex items-center justify-center gap-xs mt-sm text-outline-variant">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+<span class="font-body-md text-[13px]">Your project data is protected and private.</span>
+</div>
+</form>
+</div>
+</div>
+<!-- Footer -->
+<div class="w-full p-lg flex justify-between items-center text-outline-variant font-body-md text-[13px] border-t border-outline-variant/20 md:border-transparent md:pt-0">
+<span>© AI Project Manager</span>
+<div class="flex gap-sm">
+<a class="hover:text-on-surface transition-colors" href="#">Terms</a>
+<span>·</span>
+<a class="hover:text-on-surface transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</div>
+<!-- State Component Variants (Hidden) -->
+<div class="hidden" id="component-variants">
+<!-- Variant: Error State -->
+<div class="w-[420px] p-4 bg-white">
+<input class="w-full h-field px-md bg-white border border-error rounded-2xl focus:border-error focus:ring-2 focus:ring-error/20 outline-none transition-all font-body-md text-body-md text-on-surface" type="email" value="invalid@email"/>
+<div class="text-error text-sm font-medium mt-1">Invalid email or password</div>
+</div>
+<!-- Variant: Empty Required -->
+<div class="w-[420px] p-4 bg-white">
+<input class="w-full h-field px-md bg-white border border-error rounded-2xl focus:border-error focus:ring-2 focus:ring-error/20 outline-none transition-all font-body-md text-body-md text-on-surface" placeholder="Required field" type="text"/>
+</div>
+</div>
+<script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const visibilityIcon = document.getElementById('visibility-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                visibilityIcon.textContent = 'visibility';
+            } else {
+                passwordInput.type = 'password';
+                visibilityIcon.textContent = 'visibility_off';
+            }
+        }
+
+        function handleSignIn(event) {
+            event.preventDefault(); // Prevent actual form submission for demo
+            
+            const btn = document.getElementById('submit-btn');
+            const email = document.getElementById('email');
+            const password = document.getElementById('password');
+            
+            // Add loading state
+            btn.classList.add('loading-active');
+            btn.disabled = true;
+            btn.classList.add('opacity-90', 'cursor-not-allowed');
+            email.disabled = true;
+            password.disabled = true;
+
+            // Simulate network request
+            setTimeout(() => {
+                // Remove loading state (in a real app, you'd redirect here)
+                btn.classList.remove('loading-active');
+                btn.disabled = false;
+                btn.classList.remove('opacity-90', 'cursor-not-allowed');
+                email.disabled = false;
+                password.disabled = false;
+                
+                // Optional: show a quick success state before redirect
+                const btnText = btn.querySelector('.btn-text');
+                btnText.textContent = 'Success';
+                btn.classList.replace('bg-[#3563E9]', 'bg-green-600');
+                btn.classList.replace('hover:bg-[#254bba]', 'hover:bg-green-700');
+                
+                setTimeout(() => {
+                    btnText.textContent = 'Sign in';
+                    btn.classList.replace('bg-green-600', 'bg-[#3563E9]');
+                    btn.classList.replace('hover:bg-green-700', 'hover:bg-[#254bba]');
+                }, 1500);
+
+            }, 2000);
+        }
+        
+        // Demo helper to show error state (run in console: showError())
+        function showError() {
+            document.getElementById('email').classList.add('border-error', 'focus:border-error', 'focus:ring-error/20');
+            document.getElementById('password').classList.add('border-error', 'focus:border-error', 'focus:ring-error/20');
+            document.getElementById('error-message').classList.remove('hidden');
+        }
+    </script>
+</body></html>

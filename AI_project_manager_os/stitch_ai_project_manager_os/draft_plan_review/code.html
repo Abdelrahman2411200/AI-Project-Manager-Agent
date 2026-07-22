@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Project Manager - Draft Plan Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#656e84",
+                    "outline": "#747686",
+                    "surface-container-high": "#dce9ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#4d566b",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-container": "#977cff",
+                    "on-secondary-container": "#2d0086",
+                    "surface": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "primary": "#0848d0",
+                    "primary-fixed": "#dce1ff",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#003ab1",
+                    "on-primary-fixed": "#00164f",
+                    "on-secondary-fixed": "#1e0060",
+                    "tertiary-fixed-dim": "#bdc6e0",
+                    "on-tertiary-fixed": "#121b2e",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#1d52d8",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed-dim": "#ccbeff",
+                    "on-tertiary-container": "#eff1ff",
+                    "inverse-surface": "#213145",
+                    "surface-variant": "#d3e4fe",
+                    "outline-variant": "#c4c5d7",
+                    "on-surface-variant": "#434654",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#b6c4ff",
+                    "secondary": "#6346c7",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#3563e9",
+                    "inverse-primary": "#b6c4ff",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#f0f1ff",
+                    "surface-dim": "#cbdbf5",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e7deff",
+                    "on-secondary-fixed-variant": "#4b2aae",
+                    "on-tertiary-fixed-variant": "#3e475b",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "tertiary-fixed": "#d9e2fc"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "2xl": "48px",
+                    "xs": "4px",
+                    "container-max": "1440px",
+                    "gutter": "24px",
+                    "sm": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Manrope"],
+                    "display-lg-mobile": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: theme('colors.outline-variant');
+            border-radius: 10px;
+        }
+        .task-card-hover:hover {
+            box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.05), 0px 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-color: theme('colors.primary-fixed-dim');
+        }
+        .ai-sparkle-bg {
+            background: linear-gradient(135deg, theme('colors.secondary-container') 0%, transparent 100%);
+            opacity: 0.1;
+        }
+    </style>
+</head>
+<body class="flex h-screen w-full bg-background text-on-background overflow-hidden font-body-md">
+<!-- SideNavBar -->
+<nav class="bg-inverse-surface dark:bg-inverse-surface h-screen w-64 flex-shrink-0 flex flex-col py-md px-md z-20">
+<!-- Brand Header -->
+<div class="flex items-center gap-sm mb-xl px-sm">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary font-headline-sm text-headline-sm font-bold">
+                A
+            </div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-surface-container-lowest">AI Project Manager</h1>
+<p class="font-label-sm text-label-sm text-outline-variant">Enterprise Intelligence</p>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full flex items-center justify-center gap-sm bg-primary hover:bg-primary-container text-on-primary py-sm px-md rounded-lg font-label-md text-label-md transition-colors mb-lg">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Project
+        </button>
+<!-- Main Tabs -->
+<ul class="flex-1 flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">folder_managed</span>
+<span class="font-label-md text-label-md">Projects</span>
+</a>
+</li>
+<li>
+<!-- Active State: Planning Runs -->
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-primary-fixed-dim font-bold bg-white/10 transition-colors transform active:scale-98" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span class="font-label-md text-label-md">Planning Runs</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">Activity</span>
+</a>
+</li>
+</ul>
+<!-- Footer Tabs -->
+<ul class="mt-auto border-t border-white/10 pt-md flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-sm py-sm rounded-lg text-outline-variant hover:text-surface-bright hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background relative">
+<!-- TopAppBar -->
+<header class="w-full h-16 sticky top-0 bg-surface dark:bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-lg z-10 flex-shrink-0">
+<!-- Left: Context / Search -->
+<div class="flex items-center gap-md flex-1">
+<div class="flex items-center text-on-surface-variant font-label-md text-label-md gap-xs">
+<span class="material-symbols-outlined text-[16px]">folder</span>
+<span>E-Commerce Re-platforming</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface">Plan Generation</span>
+</div>
+</div>
+<!-- Center: Navigation Links -->
+<nav class="flex items-center h-full absolute left-1/2 -translate-x-1/2">
+<ul class="flex items-center h-full gap-lg font-label-md text-label-md">
+<li class="h-full flex items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Overview</a>
+</li>
+<li class="h-full flex items-center">
+<!-- Active: Plan -->
+<a class="text-primary border-b-2 border-primary pt-base pb-base h-full flex items-center opacity-80" href="#">Plan</a>
+</li>
+<li class="h-full flex items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Board</a>
+</li>
+<li class="h-full flex items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Timeline</a>
+</li>
+<li class="h-full flex items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Health</a>
+</li>
+</ul>
+</nav>
+<!-- Right: Actions -->
+<div class="flex items-center gap-md text-primary dark:text-primary-fixed flex-1 justify-end">
+<button class="p-xs rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-xs rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-xs rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Plan Header Actions -->
+<div class="px-lg py-md flex items-center justify-between border-b border-outline-variant bg-surface flex-shrink-0">
+<div class="flex items-center gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">Draft Plan v2</h2>
+<span class="inline-flex items-center px-sm py-xs rounded-full border border-secondary text-secondary font-label-sm text-label-sm font-semibold bg-white">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mr-1.5"></span>
+                    Under Review
+                </span>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center gap-xs px-md py-sm bg-surface-container-lowest border border-outline-variant text-on-surface rounded font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">fact_check</span>
+                    Validate
+                </button>
+<button class="flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">task_alt</span>
+                    Approve and activate
+                </button>
+</div>
+</div>
+<!-- Three Region Layout -->
+<div class="flex flex-1 overflow-hidden p-lg gap-lg bg-surface-container-low">
+<!-- LEFT: Plan Outline -->
+<aside class="w-64 flex-shrink-0 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm overflow-hidden">
+<div class="px-md py-sm border-b border-outline-variant bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px] text-tertiary">toc</span>
+<h3 class="font-label-md text-label-md text-on-surface">Plan Outline</h3>
+</div>
+<div class="p-sm flex-1 overflow-y-auto custom-scrollbar">
+<ul class="flex flex-col gap-xs font-body-md text-body-md text-on-surface-variant">
+<li>
+<button class="w-full flex items-center gap-sm px-sm py-xs rounded hover:bg-surface-container transition-colors text-left">
+<span class="material-symbols-outlined text-[18px] text-outline">lightbulb</span>
+                                Assumptions
+                                <span class="ml-auto text-label-sm text-outline px-1.5 py-0.5 bg-surface-container rounded">4</span>
+</button>
+</li>
+<li>
+<button class="w-full flex items-center gap-sm px-sm py-xs rounded hover:bg-surface-container transition-colors text-left">
+<span class="material-symbols-outlined text-[18px] text-outline">flag</span>
+                                Milestones
+                                <span class="ml-auto text-label-sm text-outline px-1.5 py-0.5 bg-surface-container rounded">3</span>
+</button>
+</li>
+<li>
+<!-- Active Section -->
+<button class="w-full flex items-center gap-sm px-sm py-xs rounded bg-surface-container-high text-primary font-medium text-left">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                Tasks
+                                <span class="ml-auto text-label-sm bg-primary text-on-primary px-1.5 py-0.5 rounded">24</span>
+</button>
+<!-- Sub-navigation (Milestones) -->
+<ul class="ml-xl mt-xs flex flex-col gap-xs border-l border-outline-variant pl-sm font-body-md text-body-md text-outline">
+<li><button class="hover:text-on-surface transition-colors text-primary font-medium">M1: Core Infra</button></li>
+<li><button class="hover:text-on-surface transition-colors">M2: Catalog API</button></li>
+<li><button class="hover:text-on-surface transition-colors">M3: Frontend V1</button></li>
+</ul>
+</li>
+<li class="mt-xs">
+<button class="w-full flex items-center gap-sm px-sm py-xs rounded hover:bg-surface-container transition-colors text-left">
+<span class="material-symbols-outlined text-[18px] text-outline">warning</span>
+                                Risks
+                                <span class="ml-auto text-label-sm text-outline px-1.5 py-0.5 bg-surface-container rounded">2</span>
+</button>
+</li>
+</ul>
+</div>
+</aside>
+<!-- CENTER: Milestones & Tasks Canvas -->
+<section class="flex-1 min-w-[500px] flex flex-col overflow-y-auto custom-scrollbar pb-2xl pr-sm">
+<!-- Milestone Accordion -->
+<div class="mb-lg">
+<div class="flex items-center gap-sm mb-md sticky top-0 bg-surface-container-low py-sm z-10">
+<div class="w-6 h-6 rounded-full bg-outline-variant flex items-center justify-center text-white font-label-sm">1</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Core Infrastructure Setup</h3>
+<span class="ml-auto text-label-md text-outline-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                            Est. 2 Weeks
+                        </span>
+</div>
+<div class="flex flex-col gap-sm pl-xl relative">
+<!-- Vertical progress line -->
+<div class="absolute left-3 top-0 bottom-0 w-0.5 bg-outline-variant z-0"></div>
+<!-- Task Card: AI Generated -->
+<div class="relative z-10 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-lg p-md task-card-hover transition-all group overflow-hidden">
+<!-- Subtle AI BG indicator -->
+<div class="absolute top-0 right-0 w-32 h-full ai-sparkle-bg pointer-events-none"></div>
+<div class="flex items-start gap-md">
+<div class="mt-1">
+<input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" disabled="" type="checkbox"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-sm mb-1">
+<span class="font-label-sm text-label-sm text-outline font-mono">[TASK-001]</span>
+<h4 class="font-label-md text-label-md text-on-surface truncate">Setup Stripe API Webhooks</h4>
+<!-- Source Indicator -->
+<span class="ml-auto flex items-center gap-xs px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-label-sm border border-secondary/20">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                            AI Drafted
+                                        </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-sm">Configure secure endpoint for receiving Stripe payment lifecycle events. Ensure idempotency key handling is robust.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-sm">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-error-container/30 text-error font-label-sm text-label-sm border border-error/20">
+<span class="material-symbols-outlined text-[12px]">priority_high</span>
+                                                High Priority
+                                            </span>
+<span class="font-label-sm text-label-sm text-outline-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                                Unassigned
+                                            </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Task Card: Locked/Manual -->
+<div class="relative z-10 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-lg p-md task-card-hover transition-all group">
+<div class="flex items-start gap-md">
+<div class="mt-1">
+<input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" disabled="" type="checkbox"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-sm mb-1">
+<span class="font-label-sm text-label-sm text-outline font-mono">[TASK-002]</span>
+<h4 class="font-label-md text-label-md text-on-surface truncate">Database Schema Migration</h4>
+<!-- Source Indicator -->
+<span class="ml-auto flex items-center gap-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+                                            Locked
+                                        </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-sm">Execute baseline schema migration for user and product tables. Requires DBA approval before staging deploy.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-sm">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-label-sm">
+                                                Critical
+                                            </span>
+<span class="font-label-sm text-label-sm text-outline-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">group</span>
+                                                DB Team
+                                            </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Task Card: Edited/Invalidated State -->
+<div class="relative z-10 flex flex-col bg-surface-container-lowest border-2 border-error/50 rounded-lg p-md shadow-sm">
+<div class="flex items-start gap-md">
+<div class="mt-1">
+<input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" disabled="" type="checkbox"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-sm mb-1">
+<span class="font-label-sm text-label-sm text-error font-mono">[TASK-003]</span>
+<h4 class="font-label-md text-label-md text-on-surface truncate">Configure Auth0 Provider</h4>
+<!-- Source Indicator -->
+<span class="ml-auto flex items-center gap-xs px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm border border-error/30">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+                                            Edited (Pending)
+                                        </span>
+</div>
+<!-- Warning Banner inside card -->
+<div class="mt-sm mb-sm p-xs bg-error-container/20 border border-error/20 rounded flex items-start gap-xs text-error">
+<span class="material-symbols-outlined text-[16px] mt-0.5">error</span>
+<p class="font-label-sm text-label-sm">Manual changes broke AI dependencies. Re-validation required.</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-sm">Set up OIDC connection. Added requirement for MFA enforcement on admin roles.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-sm">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+                                                Medium
+                                            </span>
+</div>
+<button class="font-label-sm text-label-sm text-primary hover:underline">View History</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Add Task Button -->
+<div class="relative z-10 mt-xs">
+<button class="flex items-center gap-sm py-sm px-md text-outline hover:text-on-surface font-label-md text-label-md transition-colors w-full border border-dashed border-outline-variant rounded-lg hover:border-outline hover:bg-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                                Add manual task
+                            </button>
+</div>
+</div>
+</div>
+<!-- Another Milestone (Collapsed style) -->
+<div class="mb-lg opacity-60 hover:opacity-100 transition-opacity">
+<div class="flex items-center gap-sm bg-surface-container-lowest border border-outline-variant p-sm rounded-lg cursor-pointer">
+<div class="w-6 h-6 rounded-full border border-outline-variant flex items-center justify-center text-outline-variant font-label-sm">2</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Product Catalog API</h3>
+<span class="material-symbols-outlined ml-auto text-outline">expand_more</span>
+</div>
+</div>
+</section>
+<!-- RIGHT: Validation & Evidence -->
+<aside class="w-80 flex-shrink-0 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm overflow-hidden">
+<div class="px-md py-sm border-b border-outline-variant bg-surface flex items-center justify-between">
+<h3 class="font-label-md text-label-md text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px] text-tertiary">plagiarism</span>
+                        Validation Context
+                    </h3>
+<button class="p-xs text-outline hover:text-on-surface rounded hover:bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">close_fullscreen</span>
+</button>
+</div>
+<div class="p-md flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-lg">
+<!-- Global Warning -->
+<div class="bg-error-container text-on-error-container p-sm rounded-md border border-error/20 shadow-sm flex items-start gap-sm">
+<span class="material-symbols-outlined text-[20px] text-error mt-0.5">warning</span>
+<div>
+<h4 class="font-label-md text-label-md font-bold mb-xs">Validation Broken</h4>
+<p class="font-label-sm text-label-sm opacity-90">Edits to [TASK-003] conflict with Architectural Assumption A-12. Please run validation.</p>
+<button class="mt-sm px-xs py-1 bg-error text-on-error rounded text-[10px] font-bold uppercase tracking-wide hover:bg-on-error-container transition-colors">Run check</button>
+</div>
+</div>
+<!-- AI Assumptions Section -->
+<section>
+<h4 class="font-label-sm text-label-sm text-outline-variant uppercase tracking-wider mb-sm">AI Assumptions</h4>
+<div class="flex flex-col gap-sm">
+<div class="p-sm bg-surface-container-low border border-outline-variant rounded relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+<p class="font-body-md text-body-md text-on-surface mb-xs">Stripe is the sole payment processor for Phase 1.</p>
+<!-- Evidence Chip -->
+<div class="inline-flex items-center gap-xs px-2 py-1 bg-surface-container-lowest border border-outline-variant rounded-full text-outline-variant hover:text-primary hover:border-primary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[12px]">description</span>
+<span class="font-label-sm text-[10px]">PRD_v1.2.pdf</span>
+</div>
+</div>
+<div class="p-sm bg-surface-container-low border border-outline-variant rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary"></div>
+<p class="font-body-md text-body-md text-on-surface mb-xs">Database schema allows for non-relational product attributes.</p>
+<div class="inline-flex items-center gap-xs px-2 py-1 bg-surface-container-lowest border border-outline-variant rounded-full text-outline-variant hover:text-primary hover:border-primary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[12px]">chat</span>
+<span class="font-label-sm text-[10px]">Slack: Arch Team</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Confidence Score -->
+<section class="mt-auto border-t border-outline-variant pt-md">
+<div class="flex items-center justify-between mb-sm">
+<h4 class="font-label-sm text-label-sm text-outline-variant">Plan Confidence</h4>
+<span class="font-label-md text-label-md text-error">72%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error" style="width: 72%"></div>
+</div>
+<p class="font-label-sm text-label-sm text-outline-variant mt-xs text-center">Score dropped due to manual edits.</p>
+</section>
+</div>
+</aside>
+</div>
+</main>
+</body></html>
