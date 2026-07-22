@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+
+# Preserve imported specifications and Stitch exports byte-for-byte.
+"IMPLEMENTATION PLAN.MD" whitespace=-trailing-space
+IMPLEMENTATION%20PLAN.MD whitespace=-trailing-space
+AI_project_manager_os/** whitespace=-trailing-space

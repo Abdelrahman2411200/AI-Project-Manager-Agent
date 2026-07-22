@@ -1,0 +1,24 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --font-heading: Manrope, Inter, "Segoe UI", sans-serif;
+  --color-navy-950: #101729;
+  --color-navy-900: #172033;
+  --color-navy-700: #34405a;
+  --color-cobalt-600: #3563e9;
+  --color-cobalt-500: #4c72ef;
+  --color-cobalt-100: #e9efff;
+  --color-violet-600: #7357d8;
+  --color-canvas: #f5f7fc;
+  --color-surface: #ffffff;
+  --color-border: #e3e8f2;
+  --color-muted: #69758c;
+  --color-success: #168567;
+  --shadow-panel: 0 18px 50px rgb(23 32 51 / 8%);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+}

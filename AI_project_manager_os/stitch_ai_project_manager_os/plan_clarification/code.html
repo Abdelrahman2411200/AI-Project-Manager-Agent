@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Clarification Screen - AI Project Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#656e84",
+                      "outline": "#747686",
+                      "surface-container-high": "#dce9ff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#4d566b",
+                      "surface-container-low": "#eff4ff",
+                      "secondary-container": "#977cff",
+                      "on-secondary-container": "#2d0086",
+                      "surface": "#f8f9ff",
+                      "background": "#f8f9ff",
+                      "primary": "#0848d0",
+                      "primary-fixed": "#dce1ff",
+                      "on-error": "#ffffff",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-background": "#0b1c30",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#003ab1",
+                      "on-primary-fixed": "#00164f",
+                      "on-secondary-fixed": "#1e0060",
+                      "tertiary-fixed-dim": "#bdc6e0",
+                      "on-tertiary-fixed": "#121b2e",
+                      "error-container": "#ffdad6",
+                      "surface-tint": "#1d52d8",
+                      "surface-bright": "#f8f9ff",
+                      "secondary-fixed-dim": "#ccbeff",
+                      "on-tertiary-container": "#eff1ff",
+                      "inverse-surface": "#213145",
+                      "surface-variant": "#d3e4fe",
+                      "outline-variant": "#c4c5d7",
+                      "on-surface-variant": "#434654",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "secondary": "#6346c7",
+                      "on-secondary": "#ffffff",
+                      "primary-container": "#3563e9",
+                      "inverse-primary": "#b6c4ff",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#f0f1ff",
+                      "surface-dim": "#cbdbf5",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed": "#e7deff",
+                      "on-secondary-fixed-variant": "#4b2aae",
+                      "on-tertiary-fixed-variant": "#3e475b",
+                      "on-surface": "#0b1c30",
+                      "surface-container": "#e5eeff",
+                      "tertiary-fixed": "#d9e2fc"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "xl": "32px",
+                      "lg": "24px",
+                      "2xl": "48px",
+                      "xs": "4px",
+                      "container-max": "1440px",
+                      "gutter": "24px",
+                      "sm": "8px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "display-lg-mobile": [
+                              "Manrope"
+                      ],
+                      "display-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "14px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .option-card {
+            transition: all 0.2s ease;
+        }
+        
+        .option-card:hover {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.surface-container-low');
+        }
+        
+        .option-card.selected {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.surface-container');
+            box-shadow: 0 0 0 1px theme('colors.primary');
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col items-center justify-center p-lg relative overflow-hidden font-body-md text-body-md">
+<!-- Decorative ambient background elements -->
+<div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+<div class="absolute -top-40 -left-40 w-96 h-96 bg-primary-fixed rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+<div class="absolute top-40 -right-40 w-96 h-96 bg-secondary-fixed rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+<div class="absolute -bottom-40 left-20 w-72 h-72 bg-tertiary-fixed rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+</div>
+<main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-lg z-10">
+<!-- Main Clarification Card -->
+<div class="md:col-span-2 glass-card rounded-xl p-lg flex flex-col">
+<div class="flex items-center justify-between mb-lg">
+<span class="inline-flex items-center gap-sm px-sm py-xs rounded-full bg-surface-container-high text-primary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">progress_activity</span>
+                    Question 2 of 4
+                </span>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="mb-xl">
+<h2 class="font-display-lg text-display-lg text-on-surface mb-sm">Is online payment required for the first release?</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">This directly impacts the integration timeline and security compliance requirements for MVP.</p>
+</div>
+<div class="grid grid-cols-1 gap-md mb-xl">
+<!-- Option 1 -->
+<label class="option-card border border-outline-variant rounded-lg p-md cursor-pointer flex items-start gap-md relative">
+<input class="mt-sm text-primary focus:ring-primary h-4 w-4 border-outline" name="payment_requirement" type="radio" value="required"/>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Required</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Full payment gateway integration needed before launch.</p>
+</div>
+</label>
+<!-- Option 2 -->
+<label class="option-card border border-outline-variant rounded-lg p-md cursor-pointer flex items-start gap-md relative selected">
+<input checked="" class="mt-sm text-primary focus:ring-primary h-4 w-4 border-outline" name="payment_requirement" type="radio" value="sandbox"/>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Sandbox only</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Test transactions only. Real payments deferred to v1.1.</p>
+</div>
+<span class="absolute top-md right-md bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-sm py-xs rounded-full flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> AI Suggestion
+                    </span>
+</label>
+<!-- Option 3 -->
+<label class="option-card border border-outline-variant rounded-lg p-md cursor-pointer flex items-start gap-md relative">
+<input class="mt-sm text-primary focus:ring-primary h-4 w-4 border-outline" name="payment_requirement" type="radio" value="excluded"/>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Excluded</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">No payment features in the initial scope.</p>
+</div>
+</label>
+</div>
+<div class="mt-auto flex items-center justify-between border-t border-outline-variant pt-lg">
+<button class="px-lg py-md rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors flex items-center gap-sm">
+<span class="material-symbols-outlined">lightbulb</span>
+                    Use AI Assumption
+                </button>
+<div class="flex gap-md">
+<button class="px-lg py-md rounded-lg font-label-md text-label-md bg-white border border-outline-variant text-on-surface hover:bg-surface-container transition-colors">
+                        Skip
+                    </button>
+<button class="px-lg py-md rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container transition-colors shadow-sm">
+                        Confirm Answer
+                    </button>
+</div>
+</div>
+</div>
+<!-- Side Info Panel -->
+<div class="flex flex-col gap-lg">
+<!-- Why it matters -->
+<div class="glass-card rounded-xl p-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">info</span>
+                    Why it matters
+                </h3>
+<div class="space-y-md">
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">timeline</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface">Affects Schedule</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Full integration adds estimated 2 weeks to development.</p>
+</div>
+</div>
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">account_tree</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface">Affects Scope</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Requires setting up Stripe API and handling webhooks.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Previously Answered -->
+<div class="glass-card rounded-xl p-md flex-1">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-md uppercase tracking-wider">Previously Answered</h3>
+<div class="space-y-sm">
+<div class="p-sm bg-surface rounded-lg border border-outline-variant/50 opacity-70 hover:opacity-100 transition-opacity">
+<div class="flex items-start justify-between mb-xs">
+<p class="font-label-md text-label-md text-on-surface truncate pr-md">1. Target user base for MVP?</p>
+<span class="material-symbols-outlined text-[16px] text-tertiary-container shrink-0">edit</span>
+</div>
+<p class="font-body-sm text-body-md text-on-surface-variant truncate">Internal employees only</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple script to handle radio button styling selection
+        document.addEventListener('DOMContentLoaded', () => {
+            const options = document.querySelectorAll('.option-card');
+            const radios = document.querySelectorAll('input[type="radio"]');
+
+            radios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    // Remove selected class from all
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Add to closest option-card
+                    if(e.target.checked) {
+                        e.target.closest('.option-card').classList.add('selected');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

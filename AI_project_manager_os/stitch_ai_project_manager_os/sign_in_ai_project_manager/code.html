@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In - AI Project Manager</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#656e84",
+                        "outline": "#747686",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#4d566b",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-container": "#977cff",
+                        "on-secondary-container": "#2d0086",
+                        "surface": "#f8f9ff",
+                        "background": "#f8f9ff",
+                        "primary": "#0848d0",
+                        "primary-fixed": "#dce1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ab1",
+                        "on-primary-fixed": "#00164f",
+                        "on-secondary-fixed": "#1e0060",
+                        "tertiary-fixed-dim": "#bdc6e0",
+                        "on-tertiary-fixed": "#121b2e",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#1d52d8",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed-dim": "#ccbeff",
+                        "on-tertiary-container": "#eff1ff",
+                        "inverse-surface": "#213145",
+                        "surface-variant": "#d3e4fe",
+                        "outline-variant": "#c4c5d7",
+                        "on-surface-variant": "#434654",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "secondary": "#6346c7",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#3563e9",
+                        "inverse-primary": "#b6c4ff",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#f0f1ff",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e7deff",
+                        "on-secondary-fixed-variant": "#4b2aae",
+                        "on-tertiary-fixed-variant": "#3e475b",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#d9e2fc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "2xl": "48px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "display-lg-mobile": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom styles for the animated loading spinner */
+        .spinner {
+            animation: rotate 2s linear infinite;
+            z-index: 2;
+            width: 20px;
+            height: 20px;
+        }
+        .spinner .path {
+            stroke: currentColor;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
+        @keyframes dash {
+            0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+            100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+        }
+        .loading-active .btn-text { display: none; }
+        .loading-active .spinner-container { display: flex; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- Left Pane: High-trust illustration -->
+<div class="hidden lg:flex lg:w-5/12 bg-surface-container flex-col relative overflow-hidden border-r border-outline-variant/30">
+<!-- Abstract glowing elements to represent 'AI' and 'Nodes' -->
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-low to-surface-container-high z-0"></div>
+<div class="absolute -top-2xl -left-2xl w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary-container/10 rounded-full blur-3xl"></div>
+<!-- Illustration Image -->
+<div class="z-10 flex-grow flex items-center justify-center p-2xl">
+<div class="w-full max-w-md aspect-square bg-contain bg-center bg-no-opacity bg-no-repeat drop-shadow-xl opacity-90" data-alt="A highly restrained, professional, and abstract 3D illustration representing project milestones and data node networks. Clean, thin geometric lines connecting floating glowing spheres in varying shades of cobalt blue and soft violet. The background is a clean, bright, high-key light mode environment. The aesthetic conveys trust, structured intelligence, and calm corporate modernism. Volumetric lighting gently highlights the interconnected structures." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC-d3qiQbPuaptKhwm0ns8H1oDQkRnzGRI-CJNP7c1o2AL_jNrIw5rztw9aHgHfTB6YH7iV4c8zivoxvoEbqX7uxIvGpM_-tRaQdu6lz5cZS6AGB_seoB93ChbDArl0iXFdsAEsF85Dj5ANvxYL9k_qye7FYajmvupu1io5s-DiRO0M0rIm4Pb70YugGrK1eR24gffd2QMHXNn-Y9ooKZmhjEYXdcDiXs6NLuc-2K_PPWRjTLISEXkbZQ')"></div>
+</div>
+<div class="z-10 p-xl pb-2xl">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-sm">Structured Intelligence.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-sm">Bring clarity to complex initiatives with AI-driven insights and deterministic project tracking.</p>
+</div>
+</div>
+<!-- Right Pane: Sign-In Form -->
+<div class="w-full lg:w-7/12 flex items-center justify-center p-md md:p-xl relative">
+<!-- Form Panel -->
+<div class="w-full max-w-[420px] bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05)] flex flex-col relative z-10">
+<!-- Header -->
+<div class="mb-lg text-center flex flex-col items-center">
+<div class="w-12 h-12 bg-primary-container/10 rounded-lg flex items-center justify-center mb-md border border-primary-container/20">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">dataset</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-on-surface mb-xs tracking-tight">AI Project Manager</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Sign in to access your workspace</p>
+</div>
+<!-- Form -->
+<form class="flex flex-col gap-md" id="signin-form" onsubmit="handleSignIn(event)">
+<!-- Email Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-xs" for="email">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline-variant pointer-events-none text-[20px]">mail</span>
+<input class="w-full h-10 pl-[36px] pr-sm bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant/60 shadow-sm" id="email" name="email" placeholder="name@company.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div>
+<div class="flex justify-between items-center mb-xs">
+<label class="block font-label-md text-label-md text-on-surface" for="password">Password</label>
+<a class="font-label-sm text-label-sm text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Forgot password?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline-variant pointer-events-none text-[20px]">lock</span>
+<input class="w-full h-10 pl-[36px] pr-xl bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant/60 shadow-sm" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute right-sm top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface focus:outline-none h-6 w-6 flex items-center justify-center rounded" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined text-[20px]" id="visibility-icon">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="mt-xs w-full h-10 bg-primary text-on-primary rounded font-label-md text-label-md flex items-center justify-center hover:bg-on-primary-fixed-variant transition-all active:scale-[0.98] shadow-sm relative overflow-hidden group" id="submit-btn" type="submit">
+<!-- Hover shine effect -->
+<div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
+<span class="btn-text">Sign In</span>
+<!-- Loading Spinner (Hidden by default) -->
+<div class="spinner-container hidden absolute inset-0 items-center justify-center">
+<svg class="spinner" viewbox="0 0 50 50">
+<circle class="path" cx="25" cy="25" fill="none" r="20" stroke-width="5"></circle>
+</svg>
+</div>
+</button>
+</form>
+<!-- Footer Note -->
+<div class="mt-lg text-center font-label-sm text-label-sm text-outline">
+                By signing in, you agree to the <a class="text-on-surface hover:underline" href="#">Terms of Service</a> &amp; <a class="text-on-surface hover:underline" href="#">Privacy Policy</a>.
+            </div>
+</div>
+</div>
+<style>
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+    </style>
+<script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const visibilityIcon = document.getElementById('visibility-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                visibilityIcon.textContent = 'visibility';
+            } else {
+                passwordInput.type = 'password';
+                visibilityIcon.textContent = 'visibility_off';
+            }
+        }
+
+        function handleSignIn(event) {
+            event.preventDefault(); // Prevent actual form submission for demo
+            
+            const btn = document.getElementById('submit-btn');
+            
+            // Add loading state
+            btn.classList.add('loading-active');
+            btn.disabled = true;
+            btn.classList.add('opacity-90', 'cursor-not-allowed');
+
+            // Simulate network request
+            setTimeout(() => {
+                // Remove loading state (in a real app, you'd redirect here)
+                btn.classList.remove('loading-active');
+                btn.disabled = false;
+                btn.classList.remove('opacity-90', 'cursor-not-allowed');
+                
+                // Optional: show a quick success state before redirect
+                const btnText = btn.querySelector('.btn-text');
+                btnText.textContent = 'Success';
+                btn.classList.replace('bg-primary', 'bg-tertiary-container');
+                
+                setTimeout(() => {
+                    btnText.textContent = 'Sign In';
+                    btn.classList.replace('bg-tertiary-container', 'bg-primary');
+                }, 1500);
+
+            }, 2000);
+        }
+    </script>
+</body></html>
