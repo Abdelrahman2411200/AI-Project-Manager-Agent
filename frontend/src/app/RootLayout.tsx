@@ -1,4 +1,8 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+
+import { logout } from "../api/auth";
+import type { UserView } from "../api/types";
 
 function ProductMark() {
   return (
@@ -10,64 +14,55 @@ function ProductMark() {
   );
 }
 
-export function RootLayout() {
+interface RootLayoutProps {
+  user: UserView;
+}
+
+function initials(email: string): string {
+  return email.slice(0, 2).toUpperCase();
+}
+
+export function RootLayout({ user }: RootLayoutProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.clear();
+      void navigate("/sign-in", { replace: true });
+    },
+  });
+
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">
-        Skip to main content
-      </a>
-
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="sidebar" aria-label="Application sidebar">
         <div className="brand">
           <ProductMark />
-          <div>
-            <strong>AI Project Manager</strong>
-            <span>Project intelligence</span>
-          </div>
+          <div><strong>AI Project Manager</strong><span>Project intelligence</span></div>
         </div>
-
         <nav className="nav-list" aria-label="Primary navigation">
-          <NavLink to="/" end>
-            <span aria-hidden="true">⌂</span>
-            Overview
-          </NavLink>
-          <span className="nav-item-disabled" aria-disabled="true">
-            <span aria-hidden="true">◇</span>
-            Projects
-          </span>
-          <span className="nav-item-disabled" aria-disabled="true">
-            <span aria-hidden="true">✓</span>
-            My tasks
-          </span>
-          <span className="nav-item-disabled" aria-disabled="true">
-            <span aria-hidden="true">↗</span>
-            Reports
-          </span>
+          <NavLink to="/projects" end><span className="nav-glyph" aria-hidden="true">P</span>Projects</NavLink>
+          <NavLink to="/projects/new"><span className="nav-glyph" aria-hidden="true">+</span>New project</NavLink>
+          <span className="nav-item-disabled" aria-disabled="true"><span className="nav-glyph" aria-hidden="true">T</span>My tasks</span>
+          <span className="nav-item-disabled" aria-disabled="true"><span className="nav-glyph" aria-hidden="true">R</span>Reports</span>
         </nav>
-
         <div className="sidebar-status">
           <span className="status-dot" />
-          <div>
-            <strong>Foundation online</strong>
-            <span>Phase 1 of 13</span>
-          </div>
+          <div><strong>Identity secured</strong><span>Phase 2 of 13</span></div>
         </div>
       </aside>
-
       <div className="workspace">
         <header className="topbar">
-          <div>
-            <span className="eyebrow">Workspace</span>
-            <strong>Engineering foundation</strong>
-          </div>
-          <div className="avatar" aria-label="Signed in user placeholder">
-            AP
+          <div><span className="eyebrow">Owner workspace</span><strong>{user.email}</strong></div>
+          <div className="account-actions">
+            <div className="avatar" aria-label={`Signed in as ${user.email}`}>{initials(user.email)}</div>
+            <button type="button" className="text-button" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()}>
+              {logoutMutation.isPending ? "Signing out…" : "Sign out"}
+            </button>
           </div>
         </header>
-
-        <main id="main-content">
-          <Outlet />
-        </main>
+        <main id="main-content"><Outlet /></main>
       </div>
     </div>
   );

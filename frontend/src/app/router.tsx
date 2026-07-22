@@ -1,15 +1,24 @@
-import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import { createBrowserRouter, Navigate, type RouteObject } from "react-router-dom";
 
-import { FoundationPage } from "../pages/FoundationPage";
+import { CreateProjectPage } from "../pages/CreateProjectPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
-import { RootLayout } from "./RootLayout";
+import { ProjectDetailPage } from "../pages/ProjectDetailPage";
+import { ProjectsPage } from "../pages/ProjectsPage";
+import { SignInPage } from "../pages/SignInPage";
+import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
 export const routes: RouteObject[] = [
   {
-    path: "/",
-    element: <RootLayout />,
+    path: "/sign-in",
+    element: <SignInPage />,
+  },
+  {
+    element: <AuthenticatedLayout />,
     children: [
-      { index: true, element: <FoundationPage /> },
+      { path: "/", element: <Navigate to="/projects" replace /> },
+      { path: "/projects", element: <ProjectsPage /> },
+      { path: "/projects/new", element: <CreateProjectPage /> },
+      { path: "/projects/:projectId", element: <ProjectDetailPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

@@ -25,8 +25,8 @@ def test_liveness_reports_process_status(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "AI Project Manager API",
-        "version": "0.1.0",
-        "environment": "development",
+        "version": "0.2.0",
+        "environment": "test",
         "checks": {"process": "ok"},
     }
 
@@ -36,7 +36,7 @@ def test_readiness_reports_configuration_status(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ready"
-    assert response.json()["checks"] == {"configuration": "ok"}
+    assert response.json()["checks"] == {"configuration": "ok", "database": "ok"}
 
 
 def test_unknown_route_uses_problem_detail_envelope(client: TestClient) -> None:

@@ -6,14 +6,17 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 1 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the monorepo foundation:
+Phase 2 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the secure identity and persistence baseline:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
 - Database-backed worker process placeholder for later asynchronous workflows
 - PostgreSQL, API, worker, and frontend orchestration through Docker Compose
 - Locked backend and frontend dependencies with lint, type-check, test, and build commands
-- UI design tokens adapted from the repository’s Stitch design exploration
+- UI design tokens adapted from the repository's Stitch design exploration
+- Argon2id authentication, opaque server-side sessions, CSRF/origin protection, and login throttling
+- Owner-scoped project intake with requirements, constraints, calendars, audit events, and optimistic concurrency
+- Alembic migrations verified against PostgreSQL, plus premium sign-in and guided project-creation flows
 
 No project-planning features are presented as complete yet. The 13 implementation phases progress from this foundation to the full university release.
 
@@ -96,11 +99,19 @@ docker compose up --build
 
 The web application is served at `http://localhost:5173`; the API is available at `http://localhost:8000`. API liveness and readiness endpoints are `/api/v1/health/live` and `/api/v1/health/ready`.
 
+Create the first local owner account interactively after the stack starts:
+
+```powershell
+docker compose run --rm api uv run python -m app.cli.create_user --email owner@example.com
+```
+
 ### Run the backend directly
 
 ```powershell
 Set-Location backend
 uv sync --group dev
+uv run alembic upgrade head
+uv run python -m app.cli.create_user --email owner@example.com
 uv run uvicorn app.main:app --reload
 ```
 
@@ -153,4 +164,4 @@ docker compose config --quiet
 
 ## Delivery boundaries
 
-The MVP is completed through Phase 10 of the implementation plan. Selective regeneration, critical-path analysis, advanced scheduling, what-if simulation, dependency visualization, PDF export, and the university demo are delivered in Phases 11–13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.
+The MVP is completed through Phase 10 of the implementation plan. Selective regeneration, critical-path analysis, advanced scheduling, what-if simulation, dependency visualization, PDF export, and the university demo are delivered in Phases 11-13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.

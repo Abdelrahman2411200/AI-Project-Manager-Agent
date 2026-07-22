@@ -5,7 +5,12 @@ from app.core.config import Settings
 
 
 def test_development_defaults_are_safe_for_local_use() -> None:
-    settings = Settings(_env_file=None)
+    settings = Settings(
+        app_env="development",
+        database_url="sqlite:///./local.db",
+        cors_origins=["http://localhost:5173"],
+        _env_file=None,
+    )
 
     assert settings.app_env == "development"
     assert settings.database_url.startswith("sqlite")

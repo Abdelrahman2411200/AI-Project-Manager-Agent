@@ -1,7 +1,7 @@
 {
   "name": "ai-project-manager-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,10 +13,13 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@hookform/resolvers": "5.4.0",
     "@tanstack/react-query": "5.101.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router-dom": "7.18.1"
+    "react-hook-form": "7.82.0",
+    "react-router-dom": "7.18.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
