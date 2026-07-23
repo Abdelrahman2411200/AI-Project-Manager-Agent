@@ -38,14 +38,16 @@ services:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://project_manager:project_manager@db:5432/project_manager
       CORS_ORIGINS: '["http://localhost:5173"]'
+      SESSION_HASH_SECRET: development-compose-session-secret-change-me
+      COOKIE_SECURE: "false"
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
       - backend_venv:/app/.venv
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD
@@ -72,13 +74,36 @@ services:
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://project_manager:project_manager@db:5432/project_manager
+      SESSION_HASH_SECRET: development-compose-session-secret-change-me
+    volumes:
+      - ./backend:/app
+      - backend_venv:/app/.venv
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./backend
+      target: development
+    command:
+      - uv
+      - run
+      - alembic
+      - upgrade
+      - head
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://project_manager:project_manager@db:5432/project_manager
+      SESSION_HASH_SECRET: development-compose-session-secret-change-me
     volumes:
       - ./backend:/app
       - backend_venv:/app/.venv
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
+    restart: "no"
 
   frontend:
     build:

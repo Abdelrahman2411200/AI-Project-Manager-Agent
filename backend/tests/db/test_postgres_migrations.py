@@ -1,0 +1,64 @@
+import os
+from uuid import uuid4
+
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import make_url
+
+
+@pytest.mark.postgres
+def test_postgres_migrations_create_phase_two_constraints() -> None:
+    admin_url = os.getenv("TEST_POSTGRES_DATABASE_URL")
+    if not admin_url:
+        pytest.skip("TEST_POSTGRES_DATABASE_URL is not configured")
+    database_name = f"phase2_test_{uuid4().hex[:10]}"
+    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    test_url = make_url(admin_url).set(database=database_name)
+    try:
+        with admin_engine.connect() as connection:
+            connection.execute(text(f'CREATE DATABASE "{database_name}"'))
+        os.environ["ALEMBIC_DATABASE_URL"] = test_url.render_as_string(hide_password=False)
+        config = Config("alembic.ini")
+        command.upgrade(config, "head")
+        command.check(config)
+        test_engine = create_engine(test_url)
+        try:
+            inspector = inspect(test_engine)
+            assert {
+                "users",
+                "sessions",
+                "projects",
+                "project_requirements",
+                "project_constraints",
+                "work_calendars",
+                "audit_events",
+            }.issubset(inspector.get_table_names())
+            project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
+            assert "ck_projects_capacity_range" in project_checks
+            session_indexes = {item["name"] for item in inspector.get_indexes("sessions")}
+            assert "ix_sessions_token_hash_unique" in session_indexes
+            with test_engine.begin() as connection:
+                audit_trigger = connection.scalar(
+                    text(
+                        "SELECT trigger_name FROM information_schema.triggers "
+                        "WHERE event_object_table = 'audit_events' "
+                        "AND trigger_name = 'audit_events_append_only'"
+                    )
+                )
+            assert audit_trigger == "audit_events_append_only"
+        finally:
+            test_engine.dispose()
+    finally:
+        os.environ.pop("ALEMBIC_DATABASE_URL", None)
+        with admin_engine.connect() as connection:
+            connection.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :database_name AND pid <> pg_backend_pid()"
+                ),
+                {"database_name": database_name},
+            )
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{database_name}"'))
+        admin_engine.dispose()
