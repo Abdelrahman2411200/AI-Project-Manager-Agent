@@ -20,6 +20,7 @@ from app.db.models.plan import (
 from app.db.models.project import Project
 from app.db.models.run import AgentRun
 from app.services.audit import AuditRecorder
+from app.services.plan_content import persisted_content_hash
 from app.services.plan_quality import (
     PlanningCalculations,
     PlanningCandidates,
@@ -136,6 +137,9 @@ def persist_validated_draft(
                 planned_start=calculated["planned_start"],
                 planned_finish=calculated["planned_finish"],
                 status="pending",
+                source="ai",
+                protected=False,
+                locked=False,
             )
         )
     session.flush()
@@ -168,6 +172,7 @@ def persist_validated_draft(
                 requirement_refs=task_item.requirement_refs,
                 assumption_refs=task_item.assumption_refs,
                 locked=False,
+                protected=False,
                 priority_score=Decimal(priority["score"]),
                 priority_label=priority["label"],
                 priority_breakdown=priority["breakdown"],
@@ -187,6 +192,8 @@ def persist_validated_draft(
                 reason=dependency_item.reason,
                 evidence_refs=dependency_item.evidence_refs,
                 confidence_label=dependency_item.confidence_label,
+                source="ai",
+                protected=False,
             )
         )
     probability_score = {"unlikely": 1, "possible": 2, "likely": 3}
@@ -209,6 +216,8 @@ def persist_validated_draft(
                 status="open",
             )
         )
+    session.flush()
+    plan.content_hash = persisted_content_hash(session, plan)
     session.flush()
     AuditRecorder(session).append(
         owner_id=owner_id,

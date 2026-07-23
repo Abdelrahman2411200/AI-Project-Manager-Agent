@@ -47,6 +47,7 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "tasks",
                 "task_dependencies",
                 "risks",
+                "plan_approvals",
             }.issubset(inspector.get_table_names())
             project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
             assert "ck_projects_capacity_range" in project_checks
@@ -83,6 +84,28 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "dependency_predecessor_same_version",
                 "dependency_successor_same_version",
             }.issubset(dependency_foreign_keys)
+            plan_indexes = {item["name"]: item for item in inspector.get_indexes("plan_versions")}
+            assert plan_indexes["uq_plan_versions_one_active_per_project"]["unique"]
+            with test_engine.begin() as connection:
+                phase_six_triggers = set(
+                    connection.scalars(
+                        text(
+                            "SELECT trigger_name FROM information_schema.triggers "
+                            "WHERE event_object_table IN "
+                            "('plan_approvals','plan_versions','milestones','tasks',"
+                            "'task_dependencies','project_analyses','risks')"
+                        )
+                    )
+                )
+            assert {
+                "plan_approvals_append_only",
+                "plan_versions_frozen_metadata",
+                "milestones_frozen_content",
+                "tasks_frozen_content",
+                "task_dependencies_frozen_content",
+                "project_analyses_frozen_content",
+                "risks_frozen_content",
+            }.issubset(phase_six_triggers)
         finally:
             test_engine.dispose()
     finally:
