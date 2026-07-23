@@ -9,7 +9,7 @@ from sqlalchemy.engine import make_url
 
 
 @pytest.mark.postgres
-def test_postgres_migrations_create_phase_two_constraints() -> None:
+def test_postgres_migrations_create_current_constraints() -> None:
     admin_url = os.getenv("TEST_POSTGRES_DATABASE_URL")
     if not admin_url:
         pytest.skip("TEST_POSTGRES_DATABASE_URL is not configured")
@@ -34,6 +34,8 @@ def test_postgres_migrations_create_phase_two_constraints() -> None:
                 "project_constraints",
                 "work_calendars",
                 "audit_events",
+                "prompt_versions",
+                "provider_usage",
             }.issubset(inspector.get_table_names())
             project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
             assert "ck_projects_capacity_range" in project_checks
@@ -48,6 +50,19 @@ def test_postgres_migrations_create_phase_two_constraints() -> None:
                     )
                 )
             assert audit_trigger == "audit_events_append_only"
+            with test_engine.begin() as connection:
+                phase_four_triggers = set(
+                    connection.scalars(
+                        text(
+                            "SELECT trigger_name FROM information_schema.triggers "
+                            "WHERE event_object_table IN ('prompt_versions', 'provider_usage')"
+                        )
+                    )
+                )
+            assert {
+                "prompt_versions_immutable",
+                "provider_usage_append_only",
+            }.issubset(phase_four_triggers)
         finally:
             test_engine.dispose()
     finally:

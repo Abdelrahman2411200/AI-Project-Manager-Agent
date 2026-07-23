@@ -15,6 +15,13 @@ def test_development_defaults_are_safe_for_local_use() -> None:
     assert settings.app_env == "development"
     assert settings.database_url.startswith("sqlite")
     assert settings.cors_origin_strings == ["http://localhost:5173"]
+    assert settings.openai_model == "gpt-5.6-terra"
+    assert settings.openai_api_key is None
+
+
+def test_blank_openai_key_is_unconfigured() -> None:
+    settings = Settings(openai_api_key="   ", _env_file=None)
+    assert settings.openai_api_key is None
 
 
 def test_production_rejects_local_database_configuration() -> None:

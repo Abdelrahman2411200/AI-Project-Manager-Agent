@@ -40,6 +40,11 @@ services:
       CORS_ORIGINS: '["http://localhost:5173"]'
       SESSION_HASH_SECRET: development-compose-session-secret-change-me
       COOKIE_SECURE: "false"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-terra}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-low}
+      OPENAI_VERBOSITY: ${OPENAI_VERBOSITY:-low}
     ports:
       - "8000:8000"
     volumes:
@@ -75,6 +80,11 @@ services:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://project_manager:project_manager@db:5432/project_manager
       SESSION_HASH_SECRET: development-compose-session-secret-change-me
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-terra}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-low}
+      OPENAI_VERBOSITY: ${OPENAI_VERBOSITY:-low}
     volumes:
       - ./backend:/app
       - backend_venv:/app/.venv
