@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 5 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the persistent, resumable planning workflow on top of the trusted deterministic and schema-constrained AI foundations:
+Phase 6 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers safe draft review, editing, locking, validation, and immutable owner activation:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -33,8 +33,16 @@ Phase 5 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) del
 - Plan-version isolation through composite database constraints, with temporary model references mapped to UUIDs only at persistence
 - Partial outcomes for token-budget exhaustion and fail-closed behavior for refusals, invalid required output, cycles, and quality violations
 - A fifth Alembic migration for plan drafts, durable agent runs, node traces, and the leased job queue
+- Owner-scoped plan graph and version-history APIs with optimistic `If-Match` concurrency
+- Draft-only milestone, task, and dependency CRUD with stable keys, lock protection, and user/protected provenance
+- Deterministic persisted-graph validation that recalculates priorities, dates, milestone effort, and content hashes
+- Review submission, changes-requested return, exact-hash approval, and atomic activation/supersession
+- Append-only approval records, immutable reviewed content, and a database-enforced single active version
+- Deterministic plan-version diffs across content, estimates, dates, dependencies, and lock/source changes
+- A sixth Alembic migration with lifecycle triggers and active-version/approval constraints
+- Typed TanStack Query hooks and mutation clients for the Phase 6 lifecycle
 
-Validated AI-generated plans remain drafts awaiting explicit owner approval. Phase 6 adds the complete draft editing, review, approval, and activation lifecycle.
+Only an unchanged, validated, owner-reviewed content hash can become active. Phase 7 adds the complete planning and approval user interface on top of these APIs.
 
 ## Product workflow
 

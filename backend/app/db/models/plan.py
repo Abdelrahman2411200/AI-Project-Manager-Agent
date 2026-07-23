@@ -19,11 +19,13 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, utc_now
 
 JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
 
@@ -45,6 +47,13 @@ class PlanVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("project_id", "number", name="plan_version_project_number"),
         UniqueConstraint("source_run_id", name="plan_version_source_run"),
         Index("ix_plan_versions_project_state_created", "project_id", "state", "created_at"),
+        Index(
+            "uq_plan_versions_one_active_per_project",
+            "project_id",
+            unique=True,
+            postgresql_where=text("state = 'active'"),
+            sqlite_where=text("state = 'active'"),
+        ),
     )
 
     project_id: Mapped[UUID] = mapped_column(
@@ -61,6 +70,39 @@ class PlanVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     quality_report: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
     source_run_id: Mapped[UUID] = mapped_column(nullable=False)
     row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__: dict[str, Any] = {  # noqa: RUF012
+        "version_id_col": row_version,
+        "version_id_generator": lambda version: (version or 0) + 1,
+    }
+
+
+class PlanApproval(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "plan_approvals"
+    __table_args__ = (
+        CheckConstraint(
+            "decision IN ('approved', 'changes_requested', 'rejected')",
+            name="decision_allowed",
+        ),
+        Index("ix_plan_approvals_version_created", "version_id", "created_at"),
+        Index("ix_plan_approvals_project_created", "project_id", "created_at"),
+    )
+
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False
+    )
+    version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plan_versions.id", ondelete="RESTRICT"), nullable=False
+    )
+    actor_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    decision: Mapped[str] = mapped_column(String(24), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(1000))
+    content_hash: Mapped[str] = mapped_column(String(71), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
 
 
 class ProjectAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -156,6 +198,8 @@ class Milestone(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "status IN ('pending', 'in_progress', 'completed', 'cancelled')",
             name="status_allowed",
         ),
+        CheckConstraint("source IN ('ai', 'user')", name="source_allowed"),
+        CheckConstraint("row_version >= 1", name="row_version_positive"),
         UniqueConstraint("version_id", "stable_key", name="milestone_version_key"),
         UniqueConstraint("version_id", "sequence", name="milestone_version_sequence"),
         UniqueConstraint("id", "version_id", name="milestone_id_version"),
@@ -178,6 +222,15 @@ class Milestone(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     planned_start: Mapped[date | None] = mapped_column(Date)
     planned_finish: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    protected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__: dict[str, Any] = {  # noqa: RUF012
+        "version_id_col": row_version,
+        "version_id_generator": lambda version: (version or 0) + 1,
+    }
 
 
 class Task(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -238,6 +291,7 @@ class Task(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     requirement_refs: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
     assumption_refs: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    protected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     priority_score: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
     priority_label: Mapped[str] = mapped_column(String(16), nullable=False)
     priority_breakdown: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
@@ -246,11 +300,17 @@ class Task(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
+    __mapper_args__: dict[str, Any] = {  # noqa: RUF012
+        "version_id_col": row_version,
+        "version_id_generator": lambda version: (version or 0) + 1,
+    }
+
 
 class TaskDependency(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "task_dependencies"
     __table_args__ = (
         CheckConstraint("dependency_type = 'finish_to_start'", name="type_finish_to_start"),
+        CheckConstraint("source IN ('ai', 'user')", name="source_allowed"),
         CheckConstraint("predecessor_id <> successor_id", name="endpoints_distinct"),
         UniqueConstraint(
             "version_id",
@@ -282,6 +342,8 @@ class TaskDependency(UUIDPrimaryKeyMixin, Base):
     reason: Mapped[str] = mapped_column(String(1000), nullable=False)
     evidence_refs: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
     confidence_label: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    protected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class Risk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -320,3 +382,9 @@ class Risk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     related_refs: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
     source_fact_refs: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+
+
+@event.listens_for(PlanApproval, "before_update")
+@event.listens_for(PlanApproval, "before_delete")
+def _prevent_approval_mutation(*_: object) -> None:
+    raise ValueError("Plan approvals are append-only.")

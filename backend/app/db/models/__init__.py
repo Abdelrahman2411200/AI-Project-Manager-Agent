@@ -3,6 +3,7 @@ from app.db.models.identity import Session, User
 from app.db.models.plan import (
     ClarificationQuestion,
     Milestone,
+    PlanApproval,
     PlanningDecision,
     PlanVersion,
     ProjectAnalysis,
@@ -21,6 +22,7 @@ __all__ = [
     "AuditEvent",
     "ClarificationQuestion",
     "Milestone",
+    "PlanApproval",
     "PlanVersion",
     "PlanningDecision",
     "Project",

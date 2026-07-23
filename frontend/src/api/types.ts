@@ -146,3 +146,202 @@ export interface ClarificationResumeView {
   questions: ClarificationView[];
   resumed: boolean;
 }
+
+export type PlanState =
+  | "idea"
+  | "clarification_required"
+  | "generating"
+  | "draft"
+  | "under_review"
+  | "approved"
+  | "active"
+  | "archived"
+  | "superseded";
+
+export interface PlanVersionSummary {
+  id: string;
+  project_id: string;
+  number: number;
+  state: PlanState;
+  based_on_id: string | null;
+  reason: string;
+  content_hash: string;
+  quality_status: "passed" | "failed";
+  row_version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlanAnalysisView {
+  id: string;
+  version_id: string;
+  summary: string;
+  project_type: string;
+  intended_users: string[];
+  objectives: Array<Record<string, unknown>>;
+  success_criteria: Array<Record<string, unknown>>;
+  modules: Array<Record<string, unknown>>;
+  workstreams: string[];
+  assumptions: Array<Record<string, unknown>>;
+  constraints: Array<Record<string, unknown>>;
+  complexity: string;
+  mvp_boundary: string[];
+  excluded_scope: string[];
+}
+
+export interface MilestoneView {
+  id: string;
+  version_id: string;
+  stable_key: string;
+  module_refs: string[];
+  name: string;
+  description: string;
+  objective: string;
+  deliverable: string;
+  sequence: number;
+  target_date: string | null;
+  planned_effort_hours: string;
+  acceptance_criteria: string[];
+  planned_start: string | null;
+  planned_finish: string | null;
+  status: string;
+  source: "ai" | "user";
+  protected: boolean;
+  locked: boolean;
+  row_version: number;
+}
+
+export interface TaskView {
+  id: string;
+  version_id: string;
+  milestone_id: string;
+  parent_id: string | null;
+  stable_key: string;
+  title: string;
+  description: string;
+  deliverable: string;
+  acceptance_criteria: string[];
+  definition_of_done: string[];
+  effort_min_hours: string;
+  effort_likely_hours: string;
+  effort_max_hours: string;
+  complexity: "trivial" | "low" | "medium" | "high";
+  workstreams: string[];
+  skill_tags: string[];
+  source: "ai" | "user";
+  requirement_refs: string[];
+  assumption_refs: string[];
+  locked: boolean;
+  protected: boolean;
+  priority_score: string;
+  priority_label: string;
+  priority_breakdown: Record<string, unknown>;
+  planned_start: string | null;
+  planned_finish: string | null;
+  status: string;
+  row_version: number;
+}
+
+export interface DependencyView {
+  id: string;
+  version_id: string;
+  predecessor_id: string;
+  successor_id: string;
+  dependency_type: "finish_to_start";
+  reason: string;
+  evidence_refs: string[];
+  confidence_label: "low" | "medium" | "high";
+  source: "ai" | "user";
+  protected: boolean;
+}
+
+export interface PlanApprovalView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  actor_id: string;
+  decision: "approved" | "changes_requested" | "rejected";
+  reason: string | null;
+  content_hash: string;
+  created_at: string;
+}
+
+export interface PlanGraphView extends PlanVersionSummary {
+  quality_report: Record<string, unknown>;
+  analysis: PlanAnalysisView | null;
+  milestones: MilestoneView[];
+  tasks: TaskView[];
+  dependencies: DependencyView[];
+  risks: Array<Record<string, unknown>>;
+  approvals: PlanApprovalView[];
+}
+
+export interface PlanValidationView {
+  passed: boolean;
+  issues: Array<{
+    severity: "must" | "should";
+    code: string;
+    path: string;
+    message: string;
+    references: string[];
+  }>;
+  warning_codes: string[];
+  calculation_versions: Record<string, string>;
+  content_hash: string;
+  row_version: number;
+}
+
+export interface PlanDiffView {
+  from_version_id: string;
+  to_version_id: string;
+  changes: Array<Record<string, unknown>>;
+}
+
+export interface PriorityFactorsPayload {
+  mvp_necessity: number;
+  deadline_urgency: number;
+  user_value: number;
+  risk_reduction: number;
+  user_preference: number;
+}
+
+export interface TaskCreatePayload {
+  milestone_id: string;
+  parent_id?: string | null;
+  title: string;
+  description: string;
+  deliverable: string;
+  acceptance_criteria: string[];
+  definition_of_done: string[];
+  effort_min_hours: number;
+  effort_likely_hours: number;
+  effort_max_hours: number;
+  complexity: "trivial" | "low" | "medium" | "high";
+  workstreams: string[];
+  skill_tags?: string[];
+  requirement_refs?: string[];
+  assumption_refs?: string[];
+  priority_factors: PriorityFactorsPayload;
+  locked?: boolean;
+}
+
+export interface MilestoneCreatePayload {
+  module_refs: string[];
+  name: string;
+  description: string;
+  objective: string;
+  deliverable: string;
+  sequence: number;
+  target_date?: string | null;
+  planned_effort_hours: number;
+  acceptance_criteria: string[];
+  locked?: boolean;
+}
+
+export interface DependencyCreatePayload {
+  predecessor_id: string;
+  successor_id: string;
+  reason: string;
+  evidence_refs: string[];
+  confidence_label: "low" | "medium" | "high";
+}

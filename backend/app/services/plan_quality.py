@@ -151,7 +151,7 @@ def calculate_plan(
         }
         for item in candidates.tasks.items
     }
-    calendar = _calendar(project)
+    calendar = project_work_calendar(project)
     schedule = schedule_tasks(
         [
             ScheduleTask(
@@ -401,7 +401,7 @@ def _structural_issues(facts: PlanningFacts, candidates: PlanningCandidates) -> 
     return issues
 
 
-def _calendar(project: Project) -> DomainWorkCalendar:
+def project_work_calendar(project: Project) -> DomainWorkCalendar:
     weekday_names = {
         "monday": 0,
         "tuesday": 1,
