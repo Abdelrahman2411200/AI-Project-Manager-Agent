@@ -1,0 +1,14 @@
+{
+  "acceptance.v1": "sha256:37fa6fe947b3c90c5ee3bd9b8f440d0c594e2ec32b061c64a1f4b5e09c2a45b4",
+  "analysis.v1": "sha256:0dc51494845779f818aa55e5af49a0f17b921e1e8de9facf23c4ffce4cb82a10",
+  "change_impact.v1": "sha256:0cd964567213587fa67d2a833c26be8c5613c721962a76ff769cf80f79508630",
+  "clarification.v1": "sha256:abd3dc54928c6ec4039c660b2a546e43dacacb4a2ef7d0f09683a50a2f5d4fae",
+  "dependencies.v1": "sha256:46f5caf2ef6898798ce1bc10931e1fe4858623e83c489f36f42431884c0db8e9",
+  "milestones.v1": "sha256:b81ab1ce8754ca511d6e3b901dba19eee0c3bb122b2fc65832e23f0b8743760b",
+  "modules.v1": "sha256:c53e09eb2f3f5b169871f5da46b85947906e3170f7692c44ad16ddfce6ad0ddd",
+  "recommendations.v1": "sha256:43da16293eee8bfdead1c4c74827835fc0f91d531bdf769267473c94ffdde95f",
+  "risks.v1": "sha256:7a63bcbae53a3695c33f8f932515d1b3153a24a9e9b5e9370baec6dc2dba9381",
+  "scenario.v1": "sha256:c50093c1f4abff5af2908e3d88260835130ca387be5225f6f7df67e16ba6a026",
+  "tasks.v1": "sha256:3ebfbce774ee98e91f8b4da6073b2edf57b5c65218556d4ac43ab2f9a59e61a7",
+  "weekly_report.v1": "sha256:a357548f5f2401b3770e02f0fe5e415eb1fd1db84e28bc51daf6297b98078c1f"
+}

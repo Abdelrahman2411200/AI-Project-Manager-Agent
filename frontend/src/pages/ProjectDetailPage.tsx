@@ -34,7 +34,7 @@ export function ProjectDetailPage() {
         <div><span className="eyebrow">Requirements</span><h2>Captured scope</h2></div>
         {project.data.requirements.length ? <ul>{project.data.requirements.map((item) => <li key={item.id}><span className={`requirement-kind ${item.kind}`}>{item.kind}</span>{item.text}</li>)}</ul> : <p>No explicit features were added. The planning workflow can ask for clarification.</p>}
       </section>
-      <section className="next-panel"><div><span className="eyebrow">Next phase capability</span><h2>Ready for deterministic planning</h2><p>Dependency validation, scheduling, progress, and health engines arrive in Phase 3.</p></div><span className="phase-number" aria-label="Phase 3">03</span></section>
+      <section className="next-panel"><div><span className="eyebrow">Next phase capability</span><h2>Ready for AI-generated draft plans</h2><p>Schema-constrained planning workflows and atomic draft persistence arrive in Phase 5.</p></div><span className="phase-number" aria-label="Phase 5">05</span></section>
     </div>
   );
 }

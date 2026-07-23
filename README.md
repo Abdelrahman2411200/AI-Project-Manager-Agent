@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 3 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the trusted deterministic planning core:
+Phase 4 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the schema-constrained AI boundary on top of the trusted deterministic planning core:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -21,8 +21,14 @@ Phase 3 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) est
 - Explainable priority scores, leaf-only weighted progress, IANA-timezone working calendars, and deterministic capacity scheduling
 - Completion forecasts and precedence-ordered health classifications with stable rule codes and evidence
 - Property-style fixtures with 98% domain branch coverage and a 1,000-task/approximately 3,000-edge benchmark below two seconds
+- Provider-neutral structured request, result, refusal, usage, and error contracts with an offline fake provider
+- A configurable OpenAI Responses adapter using strict Pydantic output, `store: false`, pseudonymous safety identifiers, explicit timeouts, and complete token accounting
+- Nine semantic output schemas and three versioned workflow-state schemas with fail-closed cross-field invariants
+- Twelve immutable prompt versions with content hashes, output budgets, stable untrusted-data delimiters, positive fixtures, and adversarial regression examples
+- A schema, identifier, business-rule, permission, and deterministic validation ladder with at most one repair attempt
+- Immutable prompt-version persistence and append-only model-usage records through the fourth Alembic migration
 
-The engines are pure backend contracts in this phase; planning persistence and AI-generated drafts begin in Phases 4 and 5. The 13 implementation phases progress from this foundation to the full university release.
+The engines and AI contracts are backend foundations in this phase; persistent planning workflows and AI-generated draft graphs begin in Phase 5. The 13 implementation phases progress from this foundation to the full university release.
 
 ## Product workflow
 
@@ -66,7 +72,7 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Persistence | PostgreSQL in deployment; SQLite for single-worker local development |
 | Quality | Pytest, Ruff, mypy, Vitest, Testing Library, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
-| AI boundary | Configurable provider adapter; structured-output implementation begins in Phase 4 |
+| AI boundary | OpenAI Responses adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
 
 ## Repository layout
 
