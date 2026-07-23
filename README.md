@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 2 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the secure identity and persistence baseline:
+Phase 3 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the trusted deterministic planning core:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -17,8 +17,12 @@ Phase 2 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) est
 - Argon2id authentication, opaque server-side sessions, CSRF/origin protection, and login throttling
 - Owner-scoped project intake with requirements, constraints, calendars, audit events, and optimistic concurrency
 - Alembic migrations verified against PostgreSQL, plus premium sign-in and guided project-creation flows
+- Version-local DAG validation with stable topological order, downstream reachability, readiness projection, and concrete cycle paths
+- Explainable priority scores, leaf-only weighted progress, IANA-timezone working calendars, and deterministic capacity scheduling
+- Completion forecasts and precedence-ordered health classifications with stable rule codes and evidence
+- Property-style fixtures with 98% domain branch coverage and a 1,000-task/approximately 3,000-edge benchmark below two seconds
 
-No project-planning features are presented as complete yet. The 13 implementation phases progress from this foundation to the full university release.
+The engines are pure backend contracts in this phase; planning persistence and AI-generated drafts begin in Phases 4 and 5. The 13 implementation phases progress from this foundation to the full university release.
 
 ## Product workflow
 
