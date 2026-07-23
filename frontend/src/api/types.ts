@@ -102,7 +102,7 @@ export type AgentRunStatus =
 export interface AgentRunView {
   id: string;
   project_id: string;
-  workflow: "planning";
+  workflow: "planning" | "monitoring";
   status: AgentRunStatus;
   current_step: string;
   token_budget: number;
@@ -355,4 +355,167 @@ export interface DependencyCreatePayload {
   reason: string;
   evidence_refs: string[];
   confidence_label: "low" | "medium" | "high";
+}
+
+export type TaskStatus =
+  | "pending"
+  | "ready"
+  | "in_progress"
+  | "blocked"
+  | "completed"
+  | "cancelled";
+
+export interface TaskExecutionView {
+  id: string;
+  task_id: string;
+  project_id: string;
+  version_id: string;
+  milestone_id: string;
+  milestone_key: string;
+  milestone_name: string;
+  parent_id: string | null;
+  stable_key: string;
+  title: string;
+  deliverable: string;
+  priority_score: string;
+  priority_label: string;
+  planned_start: string | null;
+  planned_finish: string | null;
+  effort_likely_hours: string;
+  workstreams: string[];
+  status: TaskStatus;
+  progress_fraction: string;
+  actual_effort_hours: string;
+  blocked_reason: string | null;
+  prerequisites_satisfied: boolean;
+  ready_to_start: boolean;
+  incomplete_predecessor_refs: string[];
+  row_version: number;
+  status_changed_at: string;
+}
+
+export interface TaskStatusEventView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  task_id: string;
+  actor_id: string | null;
+  actor_type: "user" | "system";
+  from_status: TaskStatus | null;
+  to_status: TaskStatus;
+  reason: string;
+  progress_fraction: string;
+  correlation_id: string;
+  occurred_at: string;
+}
+
+export interface ProgressUpdateView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  task_id: string;
+  actor_id: string | null;
+  fraction: string;
+  actual_effort_hours: string;
+  note: string | null;
+  source: "user" | "system";
+  correlation_id: string;
+  occurred_at: string;
+}
+
+export interface WeightedMetricView {
+  fraction: string | null;
+  weighted_completed_hours: string;
+  estimated_hours: string;
+  active_leaf_count: number;
+  unestimated_leaf_count: number;
+}
+
+export interface MilestoneProgressView extends WeightedMetricView {
+  milestone_id: string;
+  stable_key: string;
+  name: string;
+}
+
+export interface TaskProgressView {
+  task_id: string;
+  stable_key: string;
+  fraction: string;
+  status: TaskStatus;
+}
+
+export interface ProjectProgressView {
+  project_id: string;
+  version_id: string;
+  state_hash: string;
+  as_of: string;
+  calculated_at: string;
+  calculation_version: string;
+  project: WeightedMetricView;
+  milestones: MilestoneProgressView[];
+  tasks: TaskProgressView[];
+  warning_codes: string[];
+  insufficient_data: boolean;
+}
+
+export interface HealthEvidenceView {
+  rule_code: string;
+  values: Record<string, string>;
+  references: string[];
+}
+
+export interface DetectionView {
+  code: string;
+  severity: "info" | "warning" | "critical";
+  references: string[];
+  values: Record<string, string>;
+  calculation_version: string;
+}
+
+export interface ProjectHealthView {
+  project_id: string;
+  version_id: string;
+  state_hash: string;
+  as_of: string;
+  calculated_at: string;
+  label: "Completed" | "On track" | "At risk" | "Delayed" | "Insufficient data";
+  rule_codes: string[];
+  evidence: HealthEvidenceView[];
+  detections: DetectionView[];
+  forecast_finish: string | null;
+  project_finish: string | null;
+  deadline: string | null;
+  deadline_feasible: boolean | null;
+  blocking_path: string[];
+  schedule_warnings: Array<{
+    code: string;
+    detail: string;
+    task_keys: string[];
+  }>;
+  calculation_versions: Record<string, string>;
+}
+
+export interface ExecutionBoardView {
+  project_id: string;
+  version_id: string;
+  version_number: number;
+  tasks: TaskExecutionView[];
+  recent_events: TaskStatusEventView[];
+  progress: ProjectProgressView;
+  health: ProjectHealthView;
+}
+
+export interface TaskStatusMutationView {
+  task: TaskExecutionView;
+  event: TaskStatusEventView;
+  readiness_changes: TaskStatusEventView[];
+  progress: ProjectProgressView;
+  health: ProjectHealthView;
+}
+
+export interface TaskProgressMutationView {
+  task: TaskExecutionView;
+  update: ProgressUpdateView;
+  progress: ProjectProgressView;
+  health: ProjectHealthView;
 }

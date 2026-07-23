@@ -14,6 +14,7 @@ from app.db.base import utc_now
 from app.db.models.plan import PlanApproval, PlanVersion
 from app.db.models.project import Project
 from app.services.audit import AuditRecorder
+from app.services.execution import initialize_active_plan
 from app.services.plan_content import persisted_content_hash
 from app.services.plan_validation import validate_persisted_plan
 from app.services.plans import PlanGraph, PlanService
@@ -129,6 +130,12 @@ class ApprovalService:
         before = self._ref(plan)
         plan.state = "active"
         plan.updated_at = utc_now()
+        initialize_active_plan(
+            self.session,
+            plan,
+            owner_id=self.owner_id,
+            request_id=self.request_id,
+        )
         if previous is not None:
             self.audit.append(
                 owner_id=self.owner_id,

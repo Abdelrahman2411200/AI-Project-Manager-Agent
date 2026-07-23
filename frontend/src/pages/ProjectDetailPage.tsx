@@ -69,14 +69,15 @@ export function ProjectDetailPage() {
           </div>
           <p>
             {activeVersion
-              ? "The approved version is immutable and available for inspection."
+              ? "The approved version is immutable. Manage task status, progress, readiness, schedule, and evidence-rich health from active execution."
               : latestVersion
                 ? "Review generated milestones, tasks, estimates, dependencies, scope, and validation evidence."
                 : "Start the structured workflow. It pauses for missing decisions and never activates a plan without owner approval."}
           </p>
         </div>
         <div className="header-actions">
-          {latestVersion ? <Link className="button primary" to={`/projects/${projectId}/plan/${latestVersion.id}/review`}>Open plan review</Link> : <Link className="button primary" to={`/projects/${projectId}/planning`}>Start planning</Link>}
+          {activeVersion ? <Link className="button primary" to={`/projects/${projectId}/overview`}>Open active execution</Link> : latestVersion ? <Link className="button primary" to={`/projects/${projectId}/plan/${latestVersion.id}/review`}>Open plan review</Link> : <Link className="button primary" to={`/projects/${projectId}/planning`}>Start planning</Link>}
+          {activeVersion ? <Link className="button secondary" to={`/projects/${projectId}/board`}>View task board</Link> : null}
           {activeVersion && latestVersion?.id !== activeVersion.id ? <Link className="button secondary" to={`/projects/${projectId}/plan/${activeVersion.id}/review`}>View active version</Link> : null}
         </div>
       </section>

@@ -26,7 +26,7 @@ JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
 class AgentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
-        CheckConstraint("workflow IN ('planning')", name="workflow_allowed"),
+        CheckConstraint("workflow IN ('planning', 'monitoring')", name="workflow_allowed"),
         CheckConstraint(
             "status IN ('queued', 'running', 'waiting_for_user', 'partial', 'failed', "
             "'completed', 'cancelled')",
@@ -117,7 +117,7 @@ class AgentRunStep(UUIDPrimaryKeyMixin, Base):
 class AgentJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agent_jobs"
     __table_args__ = (
-        CheckConstraint("job_type IN ('planning')", name="job_type_allowed"),
+        CheckConstraint("job_type IN ('planning', 'monitoring')", name="job_type_allowed"),
         CheckConstraint(
             "status IN ('queued', 'claimed', 'completed', 'failed', 'cancelled')",
             name="status_allowed",
