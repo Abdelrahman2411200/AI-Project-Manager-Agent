@@ -78,3 +78,71 @@ export interface ProjectCreatePayload {
     status: "open" | "confirmed";
   }>;
 }
+
+export type AgentRunStatus =
+  | "queued"
+  | "running"
+  | "waiting_for_user"
+  | "partial"
+  | "failed"
+  | "completed"
+  | "cancelled";
+
+export interface AgentRunView {
+  id: string;
+  project_id: string;
+  workflow: "planning";
+  status: AgentRunStatus;
+  current_step: string;
+  token_budget: number;
+  tokens_used: number;
+  cancel_requested: boolean;
+  proposed_plan_version_id: string | null;
+  outcome: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface AgentRunStepView {
+  id: string;
+  name: string;
+  mode: "deterministic" | "llm" | "human" | "transactional";
+  purpose: string;
+  attempt: number;
+  status: string;
+  input_refs: Array<Record<string, unknown>>;
+  output_refs: Array<Record<string, unknown>>;
+  validation: Array<Record<string, unknown>>;
+  usage: Record<string, unknown>;
+  failure_code: string | null;
+  retryable: boolean;
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number | null;
+}
+
+export interface ClarificationView {
+  id: string;
+  run_id: string;
+  stable_key: string;
+  question: string;
+  reason: string;
+  affects: string[];
+  required: boolean;
+  answer_type: "text" | "number" | "boolean" | "date" | "single_choice" | "multi_choice";
+  options: string[];
+  default_assumption: string | null;
+  source_fact_refs: string[];
+  answer_json: unknown;
+  status: "open" | "answered" | "assumed" | "dismissed";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClarificationResumeView {
+  run: AgentRunView;
+  questions: ClarificationView[];
+  resumed: boolean;
+}

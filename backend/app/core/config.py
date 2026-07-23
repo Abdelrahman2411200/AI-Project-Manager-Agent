@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     app_name: str = "AI Project Manager API"
     app_env: Literal["development", "test", "staging", "production"] = "development"
-    app_version: str = "0.4.0"
+    app_version: str = "0.5.0"
     api_prefix: str = "/api/v1"
     database_url: str = Field(default="sqlite:///./project_manager.db", min_length=1)
     cors_origins: list[AnyHttpUrl] = Field(
@@ -31,9 +31,13 @@ class Settings(BaseSettings):
     login_rate_limit_window_seconds: int = Field(default=60, ge=10, le=3600)
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="gpt-5.6-terra", min_length=1, max_length=120)
-    openai_timeout_seconds: float = Field(default=60.0, ge=1.0, le=300.0)
+    openai_timeout_seconds: float = Field(default=90.0, ge=1.0, le=300.0)
     openai_reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "low"
     openai_verbosity: Literal["low", "medium", "high"] = "low"
+    planning_run_default_token_budget: int = Field(default=50_000, ge=1_000, le=200_000)
+    job_heartbeat_seconds: int = Field(default=15, ge=1, le=60)
+    job_lease_seconds: int = Field(default=90, ge=10, le=600)
+    job_poll_seconds: float = Field(default=1.0, ge=0.1, le=30.0)
 
     @field_validator("openai_api_key", mode="before")
     @classmethod
