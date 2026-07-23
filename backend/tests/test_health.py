@@ -25,7 +25,7 @@ def test_liveness_reports_process_status(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "AI Project Manager API",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "environment": "test",
         "checks": {"process": "ok"},
     }

@@ -1,6 +1,6 @@
 [project]
 name = "ai-project-manager-api"
-version = "0.2.0"
+version = "0.3.0"
 description = "Stateful AI project planning and monitoring API"
 requires-python = ">=3.12,<3.13"
 dependencies = [
