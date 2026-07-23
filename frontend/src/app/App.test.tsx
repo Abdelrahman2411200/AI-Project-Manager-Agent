@@ -74,6 +74,7 @@ describe("application routes", () => {
 
     expect(await screen.findByRole("heading", { name: "Create a new project" })).toBeInTheDocument();
     expect(screen.getByLabelText("Project name *")).toBeRequired();
-    expect(screen.getByRole("button", { name: "Create project" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save and start planning" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save project" })).toBeInTheDocument();
   });
 });

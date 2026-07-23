@@ -6,6 +6,7 @@ import { ProjectDetailPage } from "../pages/ProjectDetailPage";
 import { ProjectsPage } from "../pages/ProjectsPage";
 import { SignInPage } from "../pages/SignInPage";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
+import { ClarificationsRoute, PlanningRoute, PlanReviewRoute } from "./PlanningRoutes";
 
 export const routes: RouteObject[] = [
   {
@@ -19,6 +20,9 @@ export const routes: RouteObject[] = [
       { path: "/projects", element: <ProjectsPage /> },
       { path: "/projects/new", element: <CreateProjectPage /> },
       { path: "/projects/:projectId", element: <ProjectDetailPage /> },
+      { path: "/projects/:projectId/planning", element: <PlanningRoute /> },
+      { path: "/projects/:projectId/clarify", element: <ClarificationsRoute /> },
+      { path: "/projects/:projectId/plan/:versionId/review", element: <PlanReviewRoute /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

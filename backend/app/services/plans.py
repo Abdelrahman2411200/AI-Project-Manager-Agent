@@ -199,6 +199,36 @@ class PlanService:
         values = payload.model_dump(exclude_unset=True)
         self._require_human_edit_allowed(milestone.locked, values)
         before = self._item_ref(milestone)
+        swapped: Milestone | None = None
+        requested_sequence = values.get("sequence")
+        if requested_sequence is not None and requested_sequence != milestone.sequence:
+            swapped = self.session.scalar(
+                select(Milestone).where(
+                    Milestone.version_id == plan.id,
+                    Milestone.sequence == requested_sequence,
+                    Milestone.id != milestone.id,
+                )
+            )
+            if swapped is not None:
+                if swapped.locked:
+                    raise PlanLifecycleConflictError(
+                        "Unlock the milestone occupying that position before reordering."
+                    )
+                old_sequence = milestone.sequence
+                highest_sequence = max(
+                    self.session.scalars(
+                        select(Milestone.sequence).where(Milestone.version_id == plan.id)
+                    ),
+                    default=0,
+                )
+                swapped.sequence = highest_sequence + 1
+                self.session.flush()
+                milestone.sequence = requested_sequence
+                self.session.flush()
+                swapped.sequence = old_sequence
+                swapped.source = "user"
+                swapped.protected = True
+                values.pop("sequence")
         for field, value in values.items():
             setattr(milestone, field, value)
         milestone.source = "user"
@@ -210,6 +240,9 @@ class PlanService:
             "Milestone",
             milestone.id,
             before,
+            after_extra=(
+                {"swapped_milestone": swapped.stable_key} if swapped is not None else None
+            ),
         )
         return self.policy.milestone(self.policy.plan(plan.id), milestone.id), self.policy.plan(
             plan.id
