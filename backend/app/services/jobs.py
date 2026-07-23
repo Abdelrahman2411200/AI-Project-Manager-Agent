@@ -28,6 +28,7 @@ class JobQueue:
         self,
         *,
         run_id: UUID,
+        job_type: str = "planning",
         idempotency_key: str,
         payload_ref: dict[str, str],
         available_at: datetime | None = None,
@@ -37,12 +38,16 @@ class JobQueue:
             select(AgentJob).where(AgentJob.idempotency_key == idempotency_key)
         )
         if existing is not None:
-            if existing.run_id != run_id or existing.payload_ref != payload_ref:
+            if (
+                existing.run_id != run_id
+                or existing.job_type != job_type
+                or existing.payload_ref != payload_ref
+            ):
                 raise ValueError("Job idempotency key conflicts with another payload.")
             return existing
         job = AgentJob(
             run_id=run_id,
-            job_type="planning",
+            job_type=job_type,
             status="queued",
             idempotency_key=idempotency_key,
             payload_ref=payload_ref,

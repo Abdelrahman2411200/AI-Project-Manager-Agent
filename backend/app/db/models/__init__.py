@@ -1,4 +1,10 @@
 from app.db.models.audit import AuditEvent
+from app.db.models.execution import (
+    MonitoringSnapshot,
+    ProgressUpdate,
+    TaskExecutionProjection,
+    TaskStatusEvent,
+)
 from app.db.models.identity import Session, User
 from app.db.models.plan import (
     ClarificationQuestion,
@@ -22,9 +28,11 @@ __all__ = [
     "AuditEvent",
     "ClarificationQuestion",
     "Milestone",
+    "MonitoringSnapshot",
     "PlanApproval",
     "PlanVersion",
     "PlanningDecision",
+    "ProgressUpdate",
     "Project",
     "ProjectAnalysis",
     "ProjectConstraint",
@@ -35,6 +43,8 @@ __all__ = [
     "Session",
     "Task",
     "TaskDependency",
+    "TaskExecutionProjection",
+    "TaskStatusEvent",
     "User",
     "WorkCalendar",
 ]

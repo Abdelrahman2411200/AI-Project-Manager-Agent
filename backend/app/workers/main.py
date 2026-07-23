@@ -16,6 +16,7 @@ from app.core.config import Settings, get_settings
 from app.db.session import SessionLocal
 from app.services.jobs import JobQueue, StaleJobClaimError
 from app.workflows.engine import NodeFailure
+from app.workflows.monitoring import MonitoringWorkflow
 from app.workflows.planning import PlanningWorkflow
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ async def _heartbeat(
 
 
 async def process_one_job(
-    provider: StructuredModelProvider,
+    provider: StructuredModelProvider | None,
     settings: Settings,
     *,
     worker_id: str,
@@ -72,6 +73,7 @@ async def process_one_job(
             return False
         job_id = job.id
         run_id = job.run_id
+        job_type = job.job_type
         claim_token = job.claim_token
         if claim_token is None:  # defensive: a claimed row always has a token
             raise RuntimeError("Claimed job is missing its lease token.")
@@ -85,11 +87,16 @@ async def process_one_job(
     try:
         with SessionLocal() as workflow_session:
             try:
-                await PlanningWorkflow(
-                    workflow_session,
-                    provider,
-                    settings,
-                ).execute(run_id)
+                if job_type == "monitoring":
+                    await MonitoringWorkflow(workflow_session).execute(run_id)
+                elif provider is None:
+                    error_code = "AI_UNCONFIGURED"
+                else:
+                    await PlanningWorkflow(
+                        workflow_session,
+                        provider,
+                        settings,
+                    ).execute(run_id)
             except NodeFailure as error:
                 error_code = error.code
                 logger.warning(
@@ -130,10 +137,9 @@ async def process_one_job(
 
 
 async def _run_loop(settings: Settings) -> None:
-    if settings.openai_api_key is None:
-        logger.error("worker_ai_unconfigured")
-        return
-    provider = OpenAIResponsesProvider(settings)
+    provider = OpenAIResponsesProvider(settings) if settings.openai_api_key is not None else None
+    if provider is None:
+        logger.warning("worker_ai_unconfigured_monitoring_only")
     worker_id = f"{socket.gethostname()}:{threading.get_native_id()}"
     logger.info(
         "worker_started",

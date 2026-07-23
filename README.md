@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 7 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the complete accessible project-planning and approval experience:
+Phase 8 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers active-plan execution with deterministic progress, forecasting, and health:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -50,8 +50,19 @@ Phase 7 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) del
 - Deterministic validation evidence, exact `If-Match` conflict recovery, review/change-request controls, and explicit exact-hash activation confirmation
 - Responsive list-first layouts with retained navigation and no horizontal overflow at 360 px
 - MSW-backed component tests, axe semantic checks, keyboard tests, and Playwright create-to-approval coverage at desktop and 360 px
+- Active-plan task projections that keep mutable execution state separate from immutable approved content
+- Legal, optimistic-concurrency-protected task transitions with idempotency keys, append-only status events, progress updates, and audit records
+- Dependency readiness propagation and leaf-weighted task, milestone, and project progress recalculation
+- State-hashed remaining-work scheduling that rejects stale monitoring results before persistence
+- Stable detectors for overdue and blocked work, unmet dependencies, delayed milestones, schedule slippage/infeasibility, low buffer, capacity, scope, ready work, and inconsistent state
+- Precedence-ordered health labels with exact rule codes, entity references, forecast facts, and calculation versions
+- Database-backed monitoring jobs that run without AI and resume through the existing worker queue
+- Owner-scoped execution, event-history, progress, and health APIs under `/api/v1`
+- Accessible overview, Kanban/list board, task controls, activity history, and evidence-rich health pages
+- A seventh Alembic migration with projection indexes, plan-version constraints, and database-level append-only execution-history triggers
+- API, domain, migration, component, axe, keyboard, and Playwright lifecycle coverage at desktop and 360 px
 
-Only an unchanged, validated, owner-reviewed content hash can become active. Phase 8 adds active execution, task history, weighted progress, recalculation, and the project health dashboard.
+Only an unchanged, validated, owner-reviewed content hash can become active. Phase 9 adds grounded recommendations, risk warnings, factual reports, and Markdown export on top of the persisted Phase 8 evidence.
 
 ## Product workflow
 
