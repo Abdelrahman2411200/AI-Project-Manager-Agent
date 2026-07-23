@@ -36,6 +36,17 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "audit_events",
                 "prompt_versions",
                 "provider_usage",
+                "agent_runs",
+                "agent_run_steps",
+                "agent_jobs",
+                "plan_versions",
+                "project_analyses",
+                "clarification_questions",
+                "planning_decisions",
+                "milestones",
+                "tasks",
+                "task_dependencies",
+                "risks",
             }.issubset(inspector.get_table_names())
             project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
             assert "ck_projects_capacity_range" in project_checks
@@ -63,6 +74,15 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "prompt_versions_immutable",
                 "provider_usage_append_only",
             }.issubset(phase_four_triggers)
+            step_indexes = {item["name"] for item in inspector.get_indexes("agent_run_steps")}
+            assert "ix_agent_run_steps_input" in step_indexes
+            dependency_foreign_keys = {
+                item["name"] for item in inspector.get_foreign_keys("task_dependencies")
+            }
+            assert {
+                "dependency_predecessor_same_version",
+                "dependency_successor_same_version",
+            }.issubset(dependency_foreign_keys)
         finally:
             test_engine.dispose()
     finally:

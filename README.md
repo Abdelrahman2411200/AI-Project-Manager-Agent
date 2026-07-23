@@ -6,11 +6,11 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 4 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) establishes the schema-constrained AI boundary on top of the trusted deterministic planning core:
+Phase 5 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the persistent, resumable planning workflow on top of the trusted deterministic and schema-constrained AI foundations:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
-- Database-backed worker process placeholder for later asynchronous workflows
+- Database-backed worker with leased claims, heartbeats, stale-worker protection, retry backoff, and cooperative cancellation
 - PostgreSQL, API, worker, and frontend orchestration through Docker Compose
 - Locked backend and frontend dependencies with lint, type-check, test, and build commands
 - UI design tokens adapted from the repository's Stitch design exploration
@@ -27,8 +27,14 @@ Phase 4 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) est
 - Twelve immutable prompt versions with content hashes, output budgets, stable untrusted-data delimiters, positive fixtures, and adversarial regression examples
 - A schema, identifier, business-rule, permission, and deterministic validation ladder with at most one repair attempt
 - Immutable prompt-version persistence and append-only model-usage records through the fourth Alembic migration
+- Owner-scoped, idempotent planning-run APIs with polling traces, clarification answers, cancellation, and safe resume
+- Checkpointed clarification, analysis, module, milestone, task, acceptance, dependency, schedule, risk, and quality-gate nodes
+- Atomic persistence of validated plan versions, analyses, milestones, tasks, dependencies, and risks after deterministic validation
+- Plan-version isolation through composite database constraints, with temporary model references mapped to UUIDs only at persistence
+- Partial outcomes for token-budget exhaustion and fail-closed behavior for refusals, invalid required output, cycles, and quality violations
+- A fifth Alembic migration for plan drafts, durable agent runs, node traces, and the leased job queue
 
-The engines and AI contracts are backend foundations in this phase; persistent planning workflows and AI-generated draft graphs begin in Phase 5. The 13 implementation phases progress from this foundation to the full university release.
+Validated AI-generated plans remain drafts awaiting explicit owner approval. Phase 6 adds the complete draft editing, review, approval, and activation lifecycle.
 
 ## Product workflow
 
