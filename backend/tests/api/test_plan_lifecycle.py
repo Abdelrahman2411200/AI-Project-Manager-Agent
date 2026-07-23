@@ -462,6 +462,18 @@ def test_milestone_task_dependency_crud_diff_and_archive() -> None:
         assert milestone["source"] == "user"
         assert milestone["protected"] is True
 
+        reordered = client.patch(
+            f"/api/v1/plan-versions/{plan_id}/milestones/{milestone['id']}",
+            json={"sequence": 1},
+            headers=_plan_headers(csrf, milestone_result["plan"]["row_version"]),
+        )
+        assert reordered.status_code == 200
+        reordered_graph = client.get(f"/api/v1/plan-versions/{plan_id}").json()
+        assert [
+            (item["stable_key"], item["sequence"]) for item in reordered_graph["milestones"]
+        ] == [("MS-002", 1), ("MS-001", 2)]
+        milestone_result["plan"] = reordered.json()["plan"]
+
         task_created = client.post(
             f"/api/v1/plan-versions/{plan_id}/tasks",
             json={

@@ -18,6 +18,10 @@ export const planKeys = {
   all: ["plans"] as const,
   project: (projectId: string) => [...planKeys.all, "project", projectId] as const,
   detail: (versionId: string) => [...planKeys.all, "detail", versionId] as const,
+  milestones: (versionId: string) => [...planKeys.detail(versionId), "milestones"] as const,
+  tasks: (versionId: string) => [...planKeys.detail(versionId), "tasks"] as const,
+  dependencies: (versionId: string) =>
+    [...planKeys.detail(versionId), "dependencies"] as const,
 };
 
 function versionHeaders(rowVersion: number): HeadersInit {

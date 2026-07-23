@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 6 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers safe draft review, editing, locking, validation, and immutable owner activation:
+Phase 7 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the complete accessible project-planning and approval experience:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -41,8 +41,17 @@ Phase 6 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) del
 - Deterministic plan-version diffs across content, estimates, dates, dependencies, and lock/source changes
 - A sixth Alembic migration with lifecycle triggers and active-version/approval constraints
 - Typed TanStack Query hooks and mutation clients for the Phase 6 lifecycle
+- Guided project intake that can save independently or immediately start an idempotent planning run
+- Polling planning progress with concise public step labels, cancellation, safe failures, token usage, and clarification routing
+- Typed clarification controls with required-answer gating, explicit suggested assumptions, keyboard operation, and browser-local draft persistence
+- A semantic plan review covering analysis, scope, modules, assumptions, milestones, tasks, dependencies, risks, provenance, estimates, priority, and schedule
+- Focused React Hook Form and Zod editors for analysis, milestones, tasks, effort ranges, acceptance criteria, definitions of done, and priority factors
+- Atomic keyboard milestone reordering, owner locks, deletion confirmation, dependency cycle feedback, and dirty-navigation guards
+- Deterministic validation evidence, exact `If-Match` conflict recovery, review/change-request controls, and explicit exact-hash activation confirmation
+- Responsive list-first layouts with retained navigation and no horizontal overflow at 360 px
+- MSW-backed component tests, axe semantic checks, keyboard tests, and Playwright create-to-approval coverage at desktop and 360 px
 
-Only an unchanged, validated, owner-reviewed content hash can become active. Phase 7 adds the complete planning and approval user interface on top of these APIs.
+Only an unchanged, validated, owner-reviewed content hash can become active. Phase 8 adds active execution, task history, weighted progress, recalculation, and the project health dashboard.
 
 ## Product workflow
 
@@ -84,7 +93,7 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Backend | Python 3.12, FastAPI, Pydantic Settings, Uvicorn |
 | Frontend | React 19, TypeScript, Vite, TanStack Query, React Router |
 | Persistence | PostgreSQL in deployment; SQLite for single-worker local development |
-| Quality | Pytest, Ruff, mypy, Vitest, Testing Library, ESLint |
+| Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
 | AI boundary | OpenAI Responses adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
 
@@ -166,6 +175,7 @@ Set-Location frontend
 npm run lint
 npm run typecheck
 npm run test:run
+npm run test:e2e
 npm run build
 ```
 

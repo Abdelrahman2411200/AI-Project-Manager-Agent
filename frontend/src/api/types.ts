@@ -77,6 +77,17 @@ export interface ProjectCreatePayload {
     text: string;
     status: "open" | "confirmed";
   }>;
+  constraints?: Array<{
+    constraint_type: string;
+    value_json: Record<string, unknown>;
+    source?: "user";
+    confirmed: boolean;
+  }>;
+  work_calendar?: {
+    weekday_hours: Record<string, number>;
+    holidays: string[];
+    parallel_limit: number;
+  };
 }
 
 export type AgentRunStatus =

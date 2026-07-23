@@ -14,6 +14,14 @@ const nonPollingStatuses = new Set([
   "cancelled",
 ]);
 
+export const runKeys = {
+  all: ["planning-runs"] as const,
+  detail: (runId: string) => [...runKeys.all, "detail", runId] as const,
+  steps: (runId: string) => [...runKeys.all, "steps", runId] as const,
+  clarifications: (projectId: string, runId: string) =>
+    [...runKeys.all, "clarifications", projectId, runId] as const,
+};
+
 export function startPlanningRun(
   projectId: string,
   tokenBudget = 50_000,
