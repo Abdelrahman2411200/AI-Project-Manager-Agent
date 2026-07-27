@@ -641,6 +641,7 @@ class PlanningWorkflow:
         state.status = "completed"
         state.current_step = "await_approval"
         state.proposed_plan_version_id = run.proposed_plan_version_id
+        state.validation_passed = True
         state.approval_required = True
         state.updated_at = utc_now()
         run.state_snapshot = state.model_dump(mode="json")

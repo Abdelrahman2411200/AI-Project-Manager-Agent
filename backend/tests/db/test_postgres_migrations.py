@@ -6,6 +6,16 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import Session
+
+from app.ai.prompts.persistence import (
+    mark_prompt_used,
+    record_provider_usage,
+    sync_prompt_catalog,
+)
+from app.ai.prompts.registry import get_prompt
+from app.ai.provider import ModelUsage
 
 
 @pytest.mark.postgres
@@ -84,6 +94,48 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "prompt_versions_immutable",
                 "provider_usage_append_only",
             }.issubset(phase_four_triggers)
+            with Session(test_engine) as session:
+                prompt_records = sync_prompt_catalog(session)
+                session.commit()
+                assert len(prompt_records) == 12
+                assert {record.version for record in prompt_records} == {"v2"}
+
+                prompt = get_prompt("analysis.v2")
+                used_prompt = mark_prompt_used(
+                    session,
+                    key=prompt.key,
+                    version=prompt.version,
+                    expected_hash=prompt.template_hash,
+                )
+                usage = record_provider_usage(
+                    session,
+                    request_id=f"postgres-phase4-{uuid4()}",
+                    prompt_version_id=used_prompt.id,
+                    provider="fake",
+                    model="fake-pinned",
+                    response_id="fake-response",
+                    usage=ModelUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+                    duration_ms=25,
+                    outcome="completed",
+                )
+                session.commit()
+
+                with pytest.raises(DBAPIError, match="used prompt versions are immutable"):
+                    session.execute(
+                        text(
+                            "UPDATE prompt_versions SET purpose = 'forbidden mutation' "
+                            "WHERE id = :id"
+                        ),
+                        {"id": used_prompt.id},
+                    )
+                session.rollback()
+
+                with pytest.raises(DBAPIError, match="provider usage records are append-only"):
+                    session.execute(
+                        text("UPDATE provider_usage SET outcome = 'failed' WHERE id = :id"),
+                        {"id": usage.id},
+                    )
+                session.rollback()
             step_indexes = {item["name"] for item in inspector.get_indexes("agent_run_steps")}
             assert "ix_agent_run_steps_input" in step_indexes
             dependency_foreign_keys = {

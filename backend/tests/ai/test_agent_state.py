@@ -41,6 +41,20 @@ def test_completed_planning_requires_persisted_draft_and_quality_report() -> Non
         )
 
 
+def test_completed_planning_requires_passed_quality_gate() -> None:
+    with pytest.raises(ValidationError, match="passed quality gate"):
+        PlanningAgentState(
+            run_id=uuid4(),
+            project_id=uuid4(),
+            status="completed",
+            current_step="complete",
+            project_version=1,
+            intake_ref=ref("project_intake"),
+            proposed_plan_version_id=uuid4(),
+            validation_report_ref=ref("validation_report"),
+        )
+
+
 def test_monitoring_completed_state_must_be_current_or_requeued() -> None:
     with pytest.raises(ValidationError, match="current or marked stale"):
         MonitoringAgentState(

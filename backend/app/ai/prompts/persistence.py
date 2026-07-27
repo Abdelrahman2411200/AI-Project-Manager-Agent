@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.ai.prompts.registry import DATA_END, DATA_START, GLOBAL_POLICY, PROMPT_REGISTRY
+from app.ai.prompts.registry import DATA_END, DATA_START, PROMPT_REGISTRY
 from app.ai.provider import ModelUsage
 from app.db.models.prompt import PromptVersion, ProviderUsage
 
@@ -27,7 +27,7 @@ def sync_prompt_catalog(session: Session) -> list[PromptVersion]:
             "template_hash": template.template_hash,
             "schema_name": template.schema_name,
             "purpose": template.purpose,
-            "system_template": f"{GLOBAL_POLICY}\nTask:\n{template.task_instructions}",
+            "system_template": template.instructions,
             "user_template": f"{DATA_START}\n{{context_json}}\n{DATA_END}",
             "output_token_budget": template.output_token_budget,
             "reasoning_effort": template.reasoning_effort,

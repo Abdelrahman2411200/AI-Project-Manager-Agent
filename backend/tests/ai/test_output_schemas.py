@@ -79,6 +79,14 @@ def test_choice_question_requires_options() -> None:
         ClarificationQuestion.model_validate(invalid)
 
 
+def test_required_question_default_must_be_explicitly_labeled() -> None:
+    invalid = {**QUESTION, "default_assumption": "Use sandbox payments"}
+    with pytest.raises(ValidationError, match="explicitly labeled"):
+        ClarificationQuestion.model_validate(invalid)
+    valid = {**QUESTION, "default_assumption": "Assumption: Use sandbox payments"}
+    assert ClarificationQuestion.model_validate(valid).default_assumption is not None
+
+
 def test_analysis_rejects_duplicate_normalized_module_objectives() -> None:
     duplicate = deepcopy(MODULE)
     duplicate["temp_id"] = "MOD-002"

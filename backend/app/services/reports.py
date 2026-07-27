@@ -363,7 +363,7 @@ class ReportService:
         *,
         run_id: UUID,
     ) -> tuple[WeeklyReportNarrative, ModelUsage]:
-        prompt = get_prompt("weekly_report.v1")
+        prompt = get_prompt("weekly_report.v2")
         sync_prompt_catalog(self.session)
         prompt_record = mark_prompt_used(
             self.session,

@@ -70,6 +70,7 @@ class PlanningAgentState(AgentStateBase):
     risk_refs: Annotated[list[EntityReference], Field(max_length=500)] = []
     validation_report_ref: EntityReference | None = None
     proposed_plan_version_id: UUID | None = None
+    validation_passed: bool = False
     approval_required: bool = True
 
     @model_validator(mode="after")
@@ -80,6 +81,8 @@ class PlanningAgentState(AgentStateBase):
             self.proposed_plan_version_id is None or self.validation_report_ref is None
         ):
             raise ValueError("Completed planning requires a persisted draft and quality report.")
+        if self.status == "completed" and not self.validation_passed:
+            raise ValueError("Completed planning requires a passed quality gate.")
         return self
 
 

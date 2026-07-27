@@ -153,6 +153,14 @@ class ClarificationQuestion(StrictModel):
                 raise ValueError("Choice questions require between two and six options.")
         elif self.options:
             raise ValueError("Only choice questions may define options.")
+        if (
+            self.required
+            and self.default_assumption is not None
+            and not self.default_assumption.casefold().startswith("assumption:")
+        ):
+            raise ValueError(
+                "A required-question default must be explicitly labeled 'Assumption:'."
+            )
         return self
 
 
@@ -193,6 +201,13 @@ class WeeklyReportNarrative(StrictModel):
     next_actions: Annotated[list[CitedStatement], Field(max_length=30)] = []
     decisions_needed: Annotated[list[CitedStatement], Field(max_length=30)] = []
     caveats: Annotated[list[Text], Field(max_length=20)] = []
+
+
+class GroundedExplanation(StrictModel):
+    summary: Annotated[str, Field(min_length=20, max_length=2000)]
+    evidence_refs: Annotated[list[Reference], Field(min_length=1, max_length=20)]
+    tradeoffs: Annotated[list[Text], Field(min_length=1, max_length=5)]
+    approval_required: Literal[True] = True
 
 
 class ProjectAnalysisOutput(StrictModel):

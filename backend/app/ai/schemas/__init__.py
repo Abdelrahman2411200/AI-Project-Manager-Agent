@@ -1,6 +1,7 @@
 from app.ai.schemas.outputs import (
     ClarificationQuestion,
     DependencySuggestion,
+    GroundedExplanation,
     MilestoneDraft,
     ModuleDraft,
     ProjectAnalysisOutput,
@@ -13,6 +14,7 @@ from app.ai.schemas.outputs import (
 __all__ = [
     "ClarificationQuestion",
     "DependencySuggestion",
+    "GroundedExplanation",
     "MilestoneDraft",
     "ModuleDraft",
     "ProjectAnalysisOutput",
