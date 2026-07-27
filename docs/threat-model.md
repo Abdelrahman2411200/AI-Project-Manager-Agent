@@ -14,7 +14,7 @@ operator-to-backup storage.
 
 | Threat | Primary controls | Verification | Residual risk |
 |---|---|---|---|
-| Account/session takeover | Argon2id, opaque hashed sessions, Secure/HttpOnly/SameSite cookie, CSRF token, expiry/revocation | Auth/session and CSRF tests | Medium: endpoint/device compromise |
+| Account/session takeover | Argon2id, opaque hashed sessions, hardened cookie attributes, CSRF defenses, expiration/revocation | Auth/session and CSRF tests | Medium: endpoint/device compromise |
 | Cross-owner data access | Owner-scoped services, indirect-ID checks, 404 for foreign resources | Authorization integration suite | Low |
 | Prompt injection/data exfiltration | Project text treated as data, no model tools, bounded context, strict schema/reference/business validation, `store=false` | Contract and injection fixtures | Medium: persuasive user-authored content |
 | Active-plan corruption | Approval boundary, content hashes, row locks, immutable versions, no model write path | Lifecycle/concurrency tests | Low |
