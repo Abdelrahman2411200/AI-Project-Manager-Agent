@@ -109,10 +109,10 @@ class MonitoringAgentState(AgentStateBase):
 class ReportingAgentState(AgentStateBase):
     workflow: Literal["reporting"] = "reporting"
     active_plan_version_id: UUID
-    report_type: Literal["weekly", "on_demand"]
+    report_type: Literal["weekly", "project", "milestone", "risk", "comparison"]
     period_start: date
     period_end: date
-    event_cursor: Annotated[str, Field(min_length=1, max_length=200)]
+    event_cursor: Annotated[str, Field(min_length=1, max_length=200)] | None
     report_data_ref: EntityReference | None = None
     narrative_ref: EntityReference | None = None
     report_id: UUID | None = None

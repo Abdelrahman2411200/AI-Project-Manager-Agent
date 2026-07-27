@@ -6,6 +6,13 @@ from app.db.models.execution import (
     TaskStatusEvent,
 )
 from app.db.models.identity import Session, User
+from app.db.models.insight import (
+    ProductMetricEvent,
+    Recommendation,
+    RecommendationDecision,
+    RecommendationEvidence,
+    Report,
+)
 from app.db.models.plan import (
     ClarificationQuestion,
     Milestone,
@@ -32,6 +39,7 @@ __all__ = [
     "PlanApproval",
     "PlanVersion",
     "PlanningDecision",
+    "ProductMetricEvent",
     "ProgressUpdate",
     "Project",
     "ProjectAnalysis",
@@ -39,6 +47,10 @@ __all__ = [
     "ProjectRequirement",
     "PromptVersion",
     "ProviderUsage",
+    "Recommendation",
+    "RecommendationDecision",
+    "RecommendationEvidence",
+    "Report",
     "Risk",
     "Session",
     "Task",

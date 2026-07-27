@@ -18,6 +18,7 @@ from app.services.execution import initialize_active_plan
 from app.services.plan_content import persisted_content_hash
 from app.services.plan_validation import validate_persisted_plan
 from app.services.plans import PlanGraph, PlanService
+from app.services.telemetry import TelemetryRecorder
 
 
 class ApprovalService:
@@ -27,6 +28,7 @@ class ApprovalService:
         self.request_id = request_id
         self.policy = PlanLifecyclePolicy(session, owner_id)
         self.audit = AuditRecorder(session)
+        self.telemetry = TelemetryRecorder(session)
 
     def request_changes(
         self,
@@ -172,6 +174,16 @@ class ApprovalService:
             request_id=self.request_id,
             before_ref=before,
             after_ref=self._ref(plan),
+        )
+        self.telemetry.append(
+            name="plan.approved",
+            owner_id=self.owner_id,
+            request_id=self.request_id,
+            project_id=plan.project_id,
+            attributes={
+                "version_number": plan.number,
+                "superseded_previous": previous is not None,
+            },
         )
         self._commit()
         return PlanService(

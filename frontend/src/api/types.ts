@@ -102,7 +102,7 @@ export type AgentRunStatus =
 export interface AgentRunView {
   id: string;
   project_id: string;
-  workflow: "planning" | "monitoring";
+  workflow: "planning" | "monitoring" | "reporting";
   status: AgentRunStatus;
   current_step: string;
   token_budget: number;
@@ -114,6 +114,108 @@ export interface AgentRunView {
   updated_at: string;
   started_at: string | null;
   completed_at: string | null;
+}
+
+export type RecommendationState = "open" | "accepted" | "dismissed" | "deferred";
+
+export interface RecommendationEvidenceView {
+  id: string;
+  entity_type: string;
+  entity_ref: string;
+  fact_key: string;
+  fact_value: unknown;
+  captured_at: string;
+}
+
+export interface RecommendationDecisionView {
+  id: string;
+  recommendation_id: string;
+  decision: "accept" | "dismiss" | "defer";
+  reason: string | null;
+  defer_until: string | null;
+  occurred_at: string;
+}
+
+export interface RecommendationView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  snapshot_id: string;
+  recommendation_type: string;
+  detection_code: string;
+  why_it_matters: string;
+  suggested_action: string;
+  expected_impact: string;
+  urgency: "low" | "medium" | "high" | "immediate";
+  risk: string;
+  approval_required: boolean;
+  verification_step: string;
+  alternatives: string[];
+  state: RecommendationState;
+  explanation_source: "deterministic" | "ai";
+  evidence: RecommendationEvidenceView[];
+  latest_decision: RecommendationDecisionView | null;
+  row_version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ReportType = "weekly" | "project" | "milestone" | "risk" | "comparison";
+
+export interface EvidenceFact {
+  entity_type: string;
+  entity_ref: string;
+  fact_key: string;
+  value: unknown;
+}
+
+export interface FactualReportData {
+  schema_version: "1.0";
+  project_id: string;
+  project_name: string;
+  version_id: string;
+  version_number: number;
+  report_type: ReportType;
+  period_start: string;
+  period_end: string;
+  state_hash: string;
+  event_cursor: string | null;
+  evidence: Record<string, EvidenceFact>;
+  metrics: Record<string, unknown>;
+  completed_refs: string[];
+  blocker_refs: string[];
+  risk_refs: string[];
+  next_action_refs: string[];
+  health_label: string;
+  health_rule_codes: string[];
+  calculation_versions: Record<string, string>;
+}
+
+export interface ReportSummaryView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  run_id: string;
+  report_type: ReportType;
+  period_start: string;
+  period_end: string;
+  status: "completed" | "partial";
+  narrative_failure_code: string | null;
+  content_hash: string;
+  created_at: string;
+}
+
+export interface ReportView extends ReportSummaryView {
+  data: FactualReportData;
+  narrative: Record<string, unknown> | null;
+  markdown: string;
+}
+
+export interface ReportStartView {
+  run_id: string;
+  status: AgentRunStatus;
+  report_id: string | null;
+  duplicate: boolean;
 }
 
 export interface AgentRunStepView {

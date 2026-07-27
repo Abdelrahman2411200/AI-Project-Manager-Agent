@@ -72,6 +72,9 @@ async function mockExecution(page: Page) {
     if (path === `/projects/${ids.project}/execution` && method === "GET") {
       return json(route, board);
     }
+    if (path === `/projects/${ids.project}/recommendations` && method === "GET") {
+      return json(route, []);
+    }
     const statusMatch = path.match(/^\/tasks\/([^/]+)\/status$/);
     if (statusMatch && method === "POST") {
       expect(request.headers()["if-match"]).toBeTruthy();

@@ -7,14 +7,27 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.provider import StructuredModelError, StructuredModelProvider
+from app.core.config import Settings, get_settings
 from app.db.base import utc_now
 from app.db.models.run import AgentRun, AgentRunStep
 from app.services.monitoring import MonitoringService
+from app.services.recommendations import (
+    RecommendationGroundingError,
+    RecommendationService,
+)
 
 
 class MonitoringWorkflow:
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        provider: StructuredModelProvider | None = None,
+        settings: Settings | None = None,
+    ) -> None:
         self.session = session
+        self.provider = provider
+        self.settings = settings or get_settings()
 
     async def execute(self, run_id: UUID) -> AgentRun:
         run = self.session.scalar(select(AgentRun).where(AgentRun.id == run_id).with_for_update())
@@ -53,13 +66,38 @@ class MonitoringWorkflow:
             plan,
             expected_state_hash=expected_hash,
         )
-        run.status = "completed"
+        recommendation_service = RecommendationService(
+            self.session,
+            run.initiator_id,
+            f"run:{run.id}",
+        )
+        recommendations = recommendation_service.sync_for_snapshot(snapshot)
+        narrative_failure: str | None = None
+        tokens_used = 0
+        if self.provider is not None and recommendations:
+            try:
+                recommendations, usage = await recommendation_service.enrich_with_ai(
+                    snapshot,
+                    recommendations,
+                    self.provider,
+                    self.settings,
+                    run_id=run.id,
+                )
+                tokens_used = usage.total_tokens
+            except RecommendationGroundingError:
+                narrative_failure = "UNSUPPORTED_RECOMMENDATION_CLAIMS"
+            except StructuredModelError as error:
+                narrative_failure = error.code.value.upper()
+        run.status = "partial" if narrative_failure else "completed"
+        run.tokens_used = tokens_used
         run.current_step = "monitor.persist"
         run.completed_at = utc_now()
         run.outcome = {
             "snapshot_id": str(snapshot.id),
             "state_hash": snapshot.state_hash,
             "health_label": snapshot.health_label,
+            "recommendation_ids": [str(item.id) for item in recommendations],
+            "narrative_failure_code": narrative_failure,
         }
         completed_steps = [
             "monitor.readiness",
@@ -71,9 +109,12 @@ class MonitoringWorkflow:
         ]
         run.state_snapshot = {
             **run.state_snapshot,
-            "status": "completed",
+            "status": run.status,
             "current_step": "monitor.persist",
             "completed_steps": completed_steps,
+            "failed_steps": (["monitor.recommendation_narrative"] if narrative_failure else []),
+            "recommendation_ids": [str(item.id) for item in recommendations],
+            "warnings": ([narrative_failure] if narrative_failure else []),
             "updated_at": utc_now().isoformat(),
         }
         existing_step = self.session.scalar(
@@ -110,6 +151,43 @@ class MonitoringWorkflow:
                             "entity_id": str(snapshot.id),
                             "content_hash": snapshot.state_hash,
                         }
+                    ],
+                    validation=[],
+                    usage={"input_tokens": 0, "output_tokens": 0, "cost_usd": "0"},
+                    completed_at=utc_now(),
+                    duration_ms=0,
+                )
+            )
+        if recommendations and not self.session.scalar(
+            select(AgentRunStep.id).where(
+                AgentRunStep.run_id == run.id,
+                AgentRunStep.name == "monitor.recommendations",
+            )
+        ):
+            self.session.add(
+                AgentRunStep(
+                    run_id=run.id,
+                    name="monitor.recommendations",
+                    mode="deterministic",
+                    purpose="Create deduplicated evidence-backed recommendation candidates.",
+                    attempt=1,
+                    status="completed",
+                    input_hash=snapshot.state_hash,
+                    idempotency_key=f"{run.id}:monitor.recommendations:1",
+                    input_refs=[
+                        {
+                            "entity_type": "MonitoringSnapshot",
+                            "entity_id": str(snapshot.id),
+                            "content_hash": snapshot.state_hash,
+                        }
+                    ],
+                    output_refs=[
+                        {
+                            "entity_type": "Recommendation",
+                            "entity_id": str(item.id),
+                            "content_hash": item.input_hash,
+                        }
+                        for item in recommendations
                     ],
                     validation=[],
                     usage={"input_tokens": 0, "output_tokens": 0, "cost_usd": "0"},

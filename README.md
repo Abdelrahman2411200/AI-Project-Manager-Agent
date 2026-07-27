@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 8 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers active-plan execution with deterministic progress, forecasting, and health:
+Phase 9 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers grounded monitoring recommendations and immutable factual reporting on top of active execution:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -61,8 +61,18 @@ Phase 8 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) del
 - Accessible overview, Kanban/list board, task controls, activity history, and evidence-rich health pages
 - A seventh Alembic migration with projection indexes, plan-version constraints, and database-level append-only execution-history triggers
 - API, domain, migration, component, axe, keyboard, and Playwright lifecycle coverage at desktop and 360 px
+- Deterministic recommendation candidates for every supported monitoring detection, deduplicated by exact state and evidence hashes
+- Immutable recommendation evidence with owner decisions for accept, dismiss, and defer; every decision explicitly preserves the active plan
+- Optional schema-constrained AI wording that is rejected when a reference, number, date, percentage, or unsafe markup is unsupported
+- Immediate factual `ReportData` snapshots with asynchronous weekly, project, milestone, risk, and comparison report workflows
+- Persisted report JSON, cited narrative, sanitized Markdown, content hashes, partial factual fallback, and safe owner-scoped export filenames
+- Correlated request, workflow, model-usage, audit, and redacted product-outcome telemetry with stable pseudonymous user identifiers
+- Owner-scoped recommendation and report APIs, report run polling, optimistic recommendation decisions, CSRF, and idempotency enforcement
+- Accessible recommendation evidence, decision dialogs, report history/detail screens, and structured evidence indexes without raw HTML rendering
+- An eighth reversible Alembic migration with insight indexes and database-level append-only evidence, decision, report, and metric triggers
+- Phase 9 API, grounding, migration, component, axe, keyboard, reload, export, desktop, and 360 px Playwright coverage
 
-Only an unchanged, validated, owner-reviewed content hash can become active. Phase 9 adds grounded recommendations, risk warnings, factual reports, and Markdown export on top of the persisted Phase 8 evidence.
+Only an unchanged, validated, owner-reviewed content hash can become active. Recommendations are guidance, never implicit plan mutations, and reports remain factual even when AI wording is unavailable or rejected.
 
 ## Product workflow
 
