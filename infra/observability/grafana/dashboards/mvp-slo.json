@@ -1,0 +1,52 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "title": "API p95 latency",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le, http_request_method) (rate(ai_project_manager_http_server_request_duration_seconds_bucket[5m])))"}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Oldest queued job (seconds)",
+      "type": "stat",
+      "targets": [{"expr": "max(ai_project_manager_job_queue_age_seconds)"}]
+    },
+    {
+      "id": 3,
+      "title": "Provider failure ratio",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(ai_project_manager_provider_calls_total{outcome!=\"success\"}[15m])) / clamp_min(sum(rate(ai_project_manager_provider_calls_total[15m])), 1)"}]
+    },
+    {
+      "id": 4,
+      "title": "Estimated model cost today (USD)",
+      "type": "stat",
+      "targets": [{"expr": "sum(increase(ai_project_manager_model_cost_usd_total[24h]))"}]
+    },
+    {
+      "id": 5,
+      "title": "Duplicate job claims",
+      "type": "stat",
+      "targets": [{"expr": "sum(increase(ai_project_manager_duplicate_job_claim_total[1h]))"}]
+    },
+    {
+      "id": 6,
+      "title": "Last successful backup age (seconds)",
+      "type": "stat",
+      "targets": [{"expr": "time() - max(ai_project_manager_backup_success_timestamp_seconds)"}]
+    }
+  ],
+  "schemaVersion": 41,
+  "tags": ["ai-project-manager", "mvp", "slo"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "AI Project Manager MVP SLOs",
+  "uid": "aipm-mvp-slo",
+  "version": 1
+}

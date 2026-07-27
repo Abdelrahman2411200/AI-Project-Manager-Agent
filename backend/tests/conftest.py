@@ -12,6 +12,7 @@ from app.auth.security import login_rate_limiter
 from app.db import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import engine
+from app.security.middleware import ai_request_limiter
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -24,6 +25,7 @@ def database_schema() -> None:
 @pytest.fixture(autouse=True)
 def clean_database() -> None:
     login_rate_limiter.clear()
+    ai_request_limiter.clear()
     yield
     with engine.begin() as connection:
         plan_versions = Base.metadata.tables.get("plan_versions")

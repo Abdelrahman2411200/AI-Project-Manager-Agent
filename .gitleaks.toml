@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test-only idempotency headers are replay tokens, not credentials"
+condition = "AND"
+paths = ['''^backend/tests/''']
+regexTarget = "match"
+regexes = ['''Idempotency-Key["']?\s*[:=]''']

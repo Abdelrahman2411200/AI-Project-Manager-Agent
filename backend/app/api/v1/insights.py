@@ -18,6 +18,7 @@ from app.schemas.insight import (
     ReportSummaryView,
     ReportView,
 )
+from app.services.budgets import BudgetExceededError
 from app.services.recommendations import (
     RecommendationConflictError,
     RecommendationNotFoundError,
@@ -164,6 +165,12 @@ def start_report(
         raise HTTPException(status_code=404, detail="Report resource not found.") from error
     except ReportConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    except BudgetExceededError as error:
+        raise HTTPException(
+            status_code=429,
+            detail=str(error),
+            headers={"Retry-After": str(error.retry_after), "X-Error-Code": error.code},
+        ) from error
 
 
 @router.get("/reports/{report_id}", response_model=ReportView)

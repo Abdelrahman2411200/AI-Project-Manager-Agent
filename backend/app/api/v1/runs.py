@@ -15,6 +15,7 @@ from app.schemas.run import (
     ClarificationView,
     PlanningRunRequest,
 )
+from app.services.budgets import BudgetExceededError
 from app.services.runs import (
     ClarificationValidationError,
     PlanningRunService,
@@ -61,6 +62,12 @@ def start_planning_run(
         raise _not_found() from error
     except RunConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    except BudgetExceededError as error:
+        raise HTTPException(
+            status_code=429,
+            detail=str(error),
+            headers={"Retry-After": str(error.retry_after), "X-Error-Code": error.code},
+        ) from error
     return AgentRunView.model_validate(run)
 
 

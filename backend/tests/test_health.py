@@ -25,7 +25,7 @@ def test_liveness_reports_process_status(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "AI Project Manager API",
-        "version": "0.9.0",
+        "version": "0.10.0",
         "environment": "test",
         "checks": {"process": "ok"},
     }
@@ -52,3 +52,13 @@ def test_unknown_route_uses_problem_detail_envelope(client: TestClient) -> None:
         "errors": [],
         "request_id": "missing-route",
     }
+
+
+def test_openapi_contract_is_versioned_under_api_v1(client: TestClient) -> None:
+    response = client.get("/api/v1/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["info"]["version"] == "0.10.0"
+    assert schema["paths"]
+    assert all(path == "/api/v1" or path.startswith("/api/v1/") for path in schema["paths"])
