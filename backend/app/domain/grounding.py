@@ -7,7 +7,7 @@ import re
 from collections.abc import Iterable
 from typing import Any
 
-from app.ai.schemas.outputs import RecommendationDraft, WeeklyReportNarrative
+from app.ai.schemas.outputs import GroundedExplanation, RecommendationDraft, WeeklyReportNarrative
 from app.schemas.insight import EvidenceFact
 
 FACT_TOKEN = re.compile(
@@ -86,6 +86,26 @@ def validate_weekly_narrative(
         )
         if UNSAFE_TEXT.search(statement.text):
             errors.append(f"Statement {index} contains unsafe markup or a URL scheme.")
+    return errors
+
+
+def validate_grounded_explanation(
+    explanation: GroundedExplanation,
+    evidence: dict[str, Any],
+) -> list[str]:
+    """Reject explanation claims not present in the deterministic result object."""
+    errors: list[str] = []
+    missing = sorted(set(explanation.evidence_refs) - set(evidence))
+    if missing:
+        return ["Unknown explanation evidence references: " + ", ".join(missing)]
+    allowed: set[str] = set()
+    for reference in explanation.evidence_refs:
+        allowed.update(factual_tokens(reference))
+        allowed.update(factual_tokens(evidence[reference]))
+    text_fields = (explanation.summary, *explanation.tradeoffs)
+    errors.extend(_unsupported_tokens(text_fields, allowed))
+    if any(UNSAFE_TEXT.search(value) for value in text_fields):
+        errors.append("Explanation contains unsafe markup or a URL scheme.")
     return errors
 
 

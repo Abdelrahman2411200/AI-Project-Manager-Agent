@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.hashing import canonical_hash
+from app.db.models.advanced import RiskRelation
 from app.db.models.plan import (
     Milestone,
     PlanVersion,
@@ -41,6 +42,21 @@ def plan_content_snapshot(session: Session, plan: PlanVersion) -> dict[str, Any]
     risks = list(
         session.scalars(select(Risk).where(Risk.version_id == plan.id).order_by(Risk.stable_key))
     )
+    risk_relations = list(
+        session.scalars(
+            select(RiskRelation)
+            .where(RiskRelation.version_id == plan.id)
+            .order_by(RiskRelation.risk_id, RiskRelation.entity_type, RiskRelation.entity_ref)
+        )
+    )
+    relations_by_risk: dict[UUID, list[dict[str, str]]] = {risk.id: [] for risk in risks}
+    for relation in risk_relations:
+        relations_by_risk.setdefault(relation.risk_id, []).append(
+            {
+                "entity_type": relation.entity_type,
+                "entity_ref": relation.entity_ref,
+            }
+        )
     milestone_keys = {item.id: item.stable_key for item in milestones}
     task_keys = {item.id: item.stable_key for item in tasks}
     return {
@@ -142,6 +158,7 @@ def plan_content_snapshot(session: Session, plan: PlanVersion) -> dict[str, Any]
                 "mitigation": item.mitigation,
                 "contingency": item.contingency,
                 "related_refs": item.related_refs,
+                **({"relations": relations_by_risk[item.id]} if relations_by_risk[item.id] else {}),
                 "source_fact_refs": item.source_fact_refs,
                 "status": item.status,
             }

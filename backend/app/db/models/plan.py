@@ -364,6 +364,7 @@ class Risk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         CheckConstraint("status IN ('open', 'mitigated', 'closed')", name="status_allowed"),
         UniqueConstraint("version_id", "stable_key", name="risk_version_key"),
+        UniqueConstraint("id", "version_id", name="risk_id_version"),
         Index("ix_risks_version_status", "version_id", "status"),
     )
 

@@ -1,3 +1,4 @@
+from app.db.models.advanced import RegenerationProposal, RiskRelation, Scenario
 from app.db.models.audit import AuditEvent
 from app.db.models.execution import (
     MonitoringSnapshot,
@@ -50,8 +51,11 @@ __all__ = [
     "Recommendation",
     "RecommendationDecision",
     "RecommendationEvidence",
+    "RegenerationProposal",
     "Report",
     "Risk",
+    "RiskRelation",
+    "Scenario",
     "Session",
     "Task",
     "TaskDependency",

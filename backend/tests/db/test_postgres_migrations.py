@@ -67,6 +67,9 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "recommendation_decisions",
                 "reports",
                 "product_metric_events",
+                "scenarios",
+                "regeneration_proposals",
+                "risk_relations",
             }.issubset(inspector.get_table_names())
             project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
             assert "ck_projects_capacity_range" in project_checks
@@ -198,6 +201,19 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "reports_append_only",
                 "product_metric_events_append_only",
             }.issubset(phase_nine_triggers)
+            risk_relation_fks = {
+                item["name"] for item in inspector.get_foreign_keys("risk_relations")
+            }
+            assert "risk_relation_same_version" in risk_relation_fks
+            with test_engine.begin() as connection:
+                scenario_trigger = connection.scalar(
+                    text(
+                        "SELECT trigger_name FROM information_schema.triggers "
+                        "WHERE event_object_table = 'scenarios' "
+                        "AND trigger_name = 'scenarios_append_only'"
+                    )
+                )
+            assert scenario_trigger == "scenarios_append_only"
         finally:
             test_engine.dispose()
     finally:
