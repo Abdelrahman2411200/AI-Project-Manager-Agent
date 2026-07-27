@@ -46,6 +46,7 @@ from app.services.jobs import JobQueue
 from app.services.monitoring import (
     MonitoringService,
 )
+from app.services.recommendations import RecommendationService
 
 LEGAL_TRANSITIONS: dict[str, frozenset[str]] = {
     "pending": frozenset({"ready", "cancelled"}),
@@ -739,6 +740,11 @@ class ExecutionService:
             if run is None or job is None or run.status == "completed":
                 return
             snapshot = MonitoringService(self.session, self.owner_id).ensure_current(project_id)
+            recommendations = RecommendationService(
+                self.session,
+                self.owner_id,
+                self.request_id,
+            ).sync_for_snapshot(snapshot)
             run.status = "completed"
             run.started_at = run.started_at or utc_now()
             run.completed_at = utc_now()
@@ -747,6 +753,7 @@ class ExecutionService:
                 "snapshot_id": str(snapshot.id),
                 "state_hash": snapshot.state_hash,
                 "health_label": snapshot.health_label,
+                "recommendation_ids": [str(item.id) for item in recommendations],
             }
             run.state_snapshot = {
                 **run.state_snapshot,
@@ -759,7 +766,9 @@ class ExecutionService:
                     "monitor.reschedule",
                     "monitor.health",
                     "monitor.persist",
+                    "monitor.recommendations",
                 ],
+                "recommendation_ids": [str(item.id) for item in recommendations],
                 "updated_at": utc_now().isoformat(),
             }
             if not self.session.scalar(

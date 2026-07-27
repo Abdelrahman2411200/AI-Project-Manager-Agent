@@ -8,6 +8,7 @@ import { ErrorState, LoadingState, StateBadge } from "../components/Feedback";
 import { ActivityList } from "../features/execution/ActivityList";
 import { ExecutionNav } from "../features/execution/ExecutionNav";
 import { HealthSummary } from "../features/execution/HealthSummary";
+import { RecommendationPanel } from "../features/insights/RecommendationPanel";
 
 function percent(value: string | null): string {
   return value === null ? "—" : `${Math.round(Number(value) * 100)}%`;
@@ -108,6 +109,7 @@ export function ExecutionOverviewPage() {
           </dl>
         </section>
       </div>
+      <RecommendationPanel projectId={projectId} />
       <ActivityList events={board.data.recent_events.slice(0, 8)} taskKeys={taskKeys} />
     </div>
   );

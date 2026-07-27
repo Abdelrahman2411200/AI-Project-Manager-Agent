@@ -1,0 +1,448 @@
+import asyncio
+from datetime import date, timedelta
+from uuid import UUID
+
+import pytest
+from sqlalchemy import select
+
+from app.ai.fake_provider import FakeStructuredModelProvider
+from app.ai.provider import ModelRefusalError
+from app.core.config import get_settings
+from app.db.models.audit import AuditEvent
+from app.db.models.execution import MonitoringSnapshot
+from app.db.models.insight import (
+    ProductMetricEvent,
+    Recommendation,
+    RecommendationDecision,
+    RecommendationEvidence,
+    Report,
+)
+from app.db.models.plan import PlanVersion
+from app.db.models.run import AgentRun
+from app.db.session import SessionLocal
+from app.schemas.insight import FactualReportData, ReportCreateRequest
+from app.services.recommendations import (
+    RecommendationGroundingError,
+    RecommendationService,
+)
+from app.services.reports import ReportService
+from app.workflows.reporting import ReportingWorkflow
+from tests.api.test_execution import _active_fixture, _execution_headers
+from tests.api.test_projects import ORIGIN, write_headers
+
+
+def test_grounded_recommendation_decisions_are_deduplicated_and_never_mutate_plan() -> None:
+    user, client, csrf, project_id, plan_id = _active_fixture("insight-owner@example.com")
+    _, other, _, _, _ = _active_fixture("insight-other@example.com")
+    with client, other:
+        board = client.get(f"/api/v1/projects/{project_id}/execution").json()
+        task = next(item for item in board["tasks"] if item["status"] == "ready")
+        blocked = client.post(
+            f"/api/v1/tasks/{task['task_id']}/status",
+            json={
+                "to_status": "blocked",
+                "reason": "A persisted external approval is unavailable.",
+            },
+            headers=_execution_headers(
+                csrf,
+                task["row_version"],
+                "phase9-block-ready-task",
+            ),
+        )
+        assert blocked.status_code == 200
+        recommendations = client.get(f"/api/v1/projects/{project_id}/recommendations")
+        assert recommendations.status_code == 200
+        items = recommendations.json()
+        recommendation = next(item for item in items if item["detection_code"] == "BLOCKED_TASKS")
+        assert recommendation["evidence"]
+        assert any(item["entity_ref"] == task["stable_key"] for item in recommendation["evidence"])
+        before = client.get(f"/api/v1/plan-versions/{plan_id}").json()["content_hash"]
+        headers = {
+            **write_headers(csrf),
+            "If-Match": str(recommendation["row_version"]),
+            "Idempotency-Key": "phase9-defer-blocker",
+        }
+        payload = {
+            "reason": "Review after the external approval checkpoint.",
+            "defer_until": (date.today() + timedelta(days=7)).isoformat(),
+        }
+        deferred = client.post(
+            f"/api/v1/recommendations/{recommendation['id']}/decisions/defer",
+            json=payload,
+            headers=headers,
+        )
+        assert deferred.status_code == 200
+        assert deferred.json()["state"] == "deferred"
+        assert deferred.json()["latest_decision"]["decision"] == "defer"
+        duplicate = client.post(
+            f"/api/v1/recommendations/{recommendation['id']}/decisions/defer",
+            json=payload,
+            headers=headers,
+        )
+        assert duplicate.status_code == 200
+        assert duplicate.json()["latest_decision"]["id"] == deferred.json()["latest_decision"]["id"]
+        after = client.get(f"/api/v1/plan-versions/{plan_id}").json()["content_hash"]
+        assert after == before
+        assert other.get(f"/api/v1/recommendations/{recommendation['id']}").status_code == 404
+
+    with SessionLocal() as session:
+        assert (
+            len(
+                list(
+                    session.scalars(
+                        select(RecommendationDecision).where(
+                            RecommendationDecision.recommendation_id == UUID(recommendation["id"])
+                        )
+                    )
+                )
+            )
+            == 1
+        )
+        audits = list(
+            session.scalars(
+                select(AuditEvent).where(
+                    AuditEvent.project_id == project_id,
+                    AuditEvent.action == "RecommendationDecision",
+                )
+            )
+        )
+        assert audits[-1].after_ref["active_plan_mutated"] is False
+        snapshot = session.get(MonitoringSnapshot, UUID(recommendation["snapshot_id"]))
+        assert snapshot is not None
+        before_count = len(
+            list(
+                session.scalars(
+                    select(Recommendation).where(Recommendation.project_id == project_id)
+                )
+            )
+        )
+        service = RecommendationService(session, user.id, "dedup-recommendation")
+        assert service.sync_for_snapshot(snapshot)
+        assert service.sync_for_snapshot(snapshot)
+        after_count = len(
+            list(
+                session.scalars(
+                    select(Recommendation).where(Recommendation.project_id == project_id)
+                )
+            )
+        )
+        assert after_count == before_count
+
+
+def test_ai_can_reword_grounded_recommendations_but_cannot_change_policy() -> None:
+    user, client, csrf, project_id, _ = _active_fixture("recommendation-ai@example.com")
+    with client:
+        board = client.get(f"/api/v1/projects/{project_id}/execution").json()
+        task = next(item for item in board["tasks"] if item["status"] == "ready")
+        response = client.post(
+            f"/api/v1/tasks/{task['task_id']}/status",
+            json={"to_status": "blocked", "reason": "A recorded external decision is pending."},
+            headers=_execution_headers(
+                csrf,
+                task["row_version"],
+                "phase9-ai-blocked-task",
+            ),
+        )
+        assert response.status_code == 200
+
+    with SessionLocal() as session:
+        snapshot = session.scalar(
+            select(MonitoringSnapshot)
+            .where(MonitoringSnapshot.project_id == project_id)
+            .order_by(
+                MonitoringSnapshot.calculated_at.desc(),
+                MonitoringSnapshot.id.desc(),
+            )
+        )
+        assert snapshot is not None
+        service = RecommendationService(session, user.id, "recommendation-ai-valid")
+        recommendations = service.sync_for_snapshot(snapshot)
+        assert recommendations
+        outputs = []
+        for index, recommendation in enumerate(recommendations, start=1):
+            evidence_refs = list(
+                session.scalars(
+                    select(RecommendationEvidence.entity_ref).where(
+                        RecommendationEvidence.recommendation_id == recommendation.id
+                    )
+                )
+            )
+            outputs.append(
+                {
+                    "temp_id": f"REC-{index:03d}",
+                    "type": recommendation.recommendation_type,
+                    "detection_code": recommendation.detection_code,
+                    "evidence_refs": evidence_refs,
+                    "why_it_matters": "This recorded condition requires owner attention.",
+                    "suggested_action": (
+                        "Review the cited facts and choose an explicit owner action."
+                    ),
+                    "expected_impact": (
+                        "The execution projection can be recalculated from persisted facts."
+                    ),
+                    "urgency": recommendation.urgency,
+                    "risk": "Ignoring the cited condition can delay approved delivery.",
+                    "approval_required": recommendation.approval_required,
+                    "verification_step": (
+                        "Recalculate monitoring and verify the cited condition is resolved."
+                    ),
+                    "alternatives": ["Continue monitoring without changing the active plan."],
+                }
+            )
+        enriched, _ = asyncio.run(
+            service.enrich_with_ai(
+                snapshot,
+                recommendations,
+                FakeStructuredModelProvider([{"items": outputs}]),
+                get_settings(),
+                run_id=UUID(int=1),
+            )
+        )
+        assert all(item.explanation_source == "ai" for item in enriched)
+        original_type = enriched[0].recommendation_type
+        original_approval = enriched[0].approval_required
+
+        invalid = [dict(item) for item in outputs]
+        invalid[0] = {
+            **invalid[0],
+            "type": (
+                "next_action" if invalid[0]["type"] != "next_action" else "dependency_warning"
+            ),
+            "approval_required": not bool(invalid[0]["approval_required"]),
+        }
+        with pytest.raises(RecommendationGroundingError, match="grounding"):
+            asyncio.run(
+                RecommendationService(
+                    session,
+                    user.id,
+                    "recommendation-ai-invalid",
+                ).enrich_with_ai(
+                    snapshot,
+                    enriched,
+                    FakeStructuredModelProvider([{"items": invalid}]),
+                    get_settings(),
+                    run_id=UUID(int=2),
+                )
+            )
+        assert enriched[0].recommendation_type == original_type
+        assert enriched[0].approval_required is original_approval
+
+
+def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped() -> None:
+    _, client, csrf, project_id, _ = _active_fixture("report-owner@example.com")
+    _, other, _, _, _ = _active_fixture("report-other@example.com")
+    period_end = date.today()
+    period_start = period_end - timedelta(days=6)
+    with client:
+        started = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json={
+                "report_type": "weekly",
+                "period_start": period_start.isoformat(),
+                "period_end": period_end.isoformat(),
+            },
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "phase9-weekly-report",
+            },
+        )
+        assert started.status_code == 202
+        run_id = UUID(started.json()["run_id"])
+    with SessionLocal() as session:
+        run = asyncio.run(ReportingWorkflow(session, None, get_settings()).execute(run_id))
+        assert run.status == "partial"
+        assert run.outcome is not None
+        report_id = UUID(run.outcome["report_id"])
+    with client, other:
+        run_view = client.get(f"/api/v1/agent-runs/{run_id}")
+        assert run_view.status_code == 200
+        assert run_view.json()["workflow"] == "reporting"
+        reports = client.get(f"/api/v1/projects/{project_id}/reports")
+        assert reports.status_code == 200
+        assert reports.json()[0]["status"] == "partial"
+        detail = client.get(f"/api/v1/reports/{report_id}")
+        assert detail.status_code == 200
+        body = detail.json()
+        assert body["narrative"] is None
+        assert body["data"]["project_id"] == str(project_id)
+        assert body["data"]["evidence"]["METRIC-PROGRESS"]
+        assert "AI narrative was unavailable or rejected" in body["markdown"]
+        export = client.get(f"/api/v1/reports/{report_id}/export.md")
+        assert export.status_code == 200
+        assert export.headers["x-content-type-options"] == "nosniff"
+        assert export.headers["content-disposition"].endswith(
+            f'weekly-report-{period_end.isoformat()}.md"'
+        )
+        assert export.text.rstrip() == body["markdown"].rstrip()
+        assert other.get(f"/api/v1/reports/{report_id}").status_code == 404
+
+    with SessionLocal() as session:
+        report = session.get(Report, report_id)
+        assert report is not None
+        report.markdown = "mutation"
+        with pytest.raises(ValueError, match="append-only"):
+            session.flush()
+        session.rollback()
+        metrics = set(
+            session.scalars(
+                select(ProductMetricEvent.name).where(ProductMetricEvent.project_id == project_id)
+            )
+        )
+        assert {"report.started", "report.partial", "report.exported"} <= metrics
+        plan = session.scalar(
+            select(PlanVersion).where(
+                PlanVersion.project_id == project_id,
+                PlanVersion.state == "active",
+            )
+        )
+        assert plan is not None
+
+
+def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> None:
+    _, client, csrf, project_id, _ = _active_fixture("report-policy@example.com")
+    today = date.today()
+    payload = {
+        "report_type": "risk",
+        "period_start": (today - timedelta(days=1)).isoformat(),
+        "period_end": today.isoformat(),
+    }
+    with client:
+        no_csrf = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json=payload,
+            headers={"Origin": ORIGIN, "Idempotency-Key": "report-no-csrf"},
+        )
+        assert no_csrf.status_code == 403
+        headers = {
+            **write_headers(csrf),
+            "Idempotency-Key": "phase9-idempotent-report",
+        }
+        first = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json=payload,
+            headers=headers,
+        )
+        duplicate = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json=payload,
+            headers=headers,
+        )
+        assert first.status_code == duplicate.status_code == 202
+        assert duplicate.json()["duplicate"] is True
+        assert duplicate.json()["run_id"] == first.json()["run_id"]
+        changed = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json={**payload, "report_type": "project"},
+            headers=headers,
+        )
+        assert changed.status_code == 409
+        future = client.post(
+            f"/api/v1/projects/{project_id}/reports",
+            json={
+                **payload,
+                "period_end": (today + timedelta(days=1)).isoformat(),
+            },
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "phase9-future-report",
+            },
+        )
+        assert future.status_code == 409
+
+
+def test_report_narrative_acceptance_rejection_and_refusal_are_deterministic() -> None:
+    user, _, _, project_id, _ = _active_fixture("report-grounding@example.com")
+    today = date.today()
+    with SessionLocal() as session:
+        service = ReportService(session, user.id, "report-grounding")
+        accepted_start = service.start(
+            project_id,
+            ReportCreateRequest(
+                report_type="project",
+                period_start=today - timedelta(days=2),
+                period_end=today,
+            ),
+            idempotency_key="grounded-report-accepted",
+        )
+        accepted_run = session.get(AgentRun, accepted_start.run_id)
+        assert accepted_run is not None
+        data = FactualReportData.model_validate(accepted_run.candidate_data["report_data"])
+        progress = str(data.metrics["weighted_progress_display"])
+        valid = {
+            "title": "Grounded project status",
+            "period_summary": "Persisted project state and events form this status summary.",
+            "completed_items": [],
+            "progress_statement": {
+                "text": f"Weighted project progress is {progress}.",
+                "evidence_refs": ["METRIC-PROGRESS"],
+            },
+            "blockers": [],
+            "risks": [],
+            "next_actions": [],
+            "decisions_needed": [],
+            "caveats": [],
+        }
+        completed = asyncio.run(
+            ReportingWorkflow(
+                session,
+                FakeStructuredModelProvider([valid]),
+                get_settings(),
+            ).execute(accepted_start.run_id)
+        )
+        assert completed.status == "completed"
+        assert completed.outcome is not None
+        accepted_report = session.get(Report, UUID(completed.outcome["report_id"]))
+        assert accepted_report is not None
+        assert accepted_report.narrative_json is not None
+
+        rejected_start = service.start(
+            project_id,
+            ReportCreateRequest(
+                report_type="risk",
+                period_start=today - timedelta(days=2),
+                period_end=today,
+            ),
+            idempotency_key="grounded-report-rejected",
+        )
+        rejected = asyncio.run(
+            ReportingWorkflow(
+                session,
+                FakeStructuredModelProvider(
+                    [
+                        {
+                            **valid,
+                            "progress_statement": {
+                                "text": "Weighted project progress is 99%.",
+                                "evidence_refs": ["METRIC-PROGRESS"],
+                            },
+                        }
+                    ]
+                ),
+                get_settings(),
+            ).execute(rejected_start.run_id)
+        )
+        assert rejected.status == "partial"
+        assert rejected.outcome is not None
+        assert rejected.outcome["narrative_failure_code"] == "UNSUPPORTED_CLAIMS"
+        rejected_report = session.get(Report, UUID(rejected.outcome["report_id"]))
+        assert rejected_report is not None and rejected_report.narrative_json is None
+
+        refused_start = service.start(
+            project_id,
+            ReportCreateRequest(
+                report_type="milestone",
+                period_start=today - timedelta(days=2),
+                period_end=today,
+            ),
+            idempotency_key="grounded-report-refused",
+        )
+        refused = asyncio.run(
+            ReportingWorkflow(
+                session,
+                FakeStructuredModelProvider([ModelRefusalError(response_id="refused")]),
+                get_settings(),
+            ).execute(refused_start.run_id)
+        )
+        assert refused.status == "partial"
+        assert refused.outcome is not None
+        assert refused.outcome["narrative_failure_code"] == "REFUSED"

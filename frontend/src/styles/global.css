@@ -1233,6 +1233,307 @@ main {
   margin-inline-start: auto;
 }
 
+.recommendation-panel,
+.report-generator,
+.report-document,
+.report-list > li {
+  border: 1px solid var(--execution-border);
+  border-radius: 0.9rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.recommendation-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+}
+
+.recommendation-count {
+  padding: 0.4rem 0.65rem;
+  border-radius: 99px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.recommendation-list,
+.recommendation-evidence,
+.report-list,
+.report-evidence-index,
+.cited-statement-list {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recommendation-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--execution-border);
+  border-inline-start: 0.28rem solid var(--color-primary);
+  border-radius: 0.75rem;
+}
+
+.recommendation-card.urgency-high,
+.recommendation-card.urgency-immediate {
+  border-inline-start-color: var(--color-danger);
+}
+
+.recommendation-card-header,
+.recommendation-badges,
+.report-list > li,
+.report-list > li > div:last-child,
+.report-evidence-index > li > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.recommendation-card h3,
+.recommendation-card p {
+  margin-block: 0.25rem 0;
+}
+
+.recommendation-badges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.recommendation-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.recommendation-facts > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  border-radius: 0.55rem;
+  background: var(--color-surface-subtle);
+}
+
+.recommendation-facts dt {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.recommendation-facts dd {
+  margin: 0;
+}
+
+.recommendation-card summary {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-weight: 750;
+}
+
+.recommendation-evidence {
+  margin-top: 0.7rem;
+}
+
+.recommendation-evidence > li {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.7rem;
+  border-radius: 0.55rem;
+  background: var(--color-surface-subtle);
+}
+
+.recommendation-evidence > li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.recommendation-evidence span,
+.report-list time,
+.report-evidence-index span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.evidence-value,
+.report-evidence-index pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.74rem;
+}
+
+.recommendation-dialog form,
+.recommendation-dialog label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.empty-inline {
+  padding: 1.4rem;
+  border: 1px dashed var(--execution-border);
+  border-radius: 0.7rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.empty-inline p {
+  margin-block: 0.35rem 0;
+}
+
+.report-generator {
+  display: grid;
+  gap: 1rem;
+}
+
+.report-generator form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(10rem, 1fr)) auto;
+  align-items: end;
+  gap: 0.8rem;
+}
+
+.report-generator label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.report-run-status {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border-radius: 0.65rem;
+  background: var(--color-primary-soft);
+}
+
+.report-run-status > div {
+  display: grid;
+}
+
+.report-list > li {
+  padding: 1rem;
+}
+
+.report-list h3,
+.report-list p {
+  margin-block: 0.25rem;
+}
+
+.report-list > li > div:last-child {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.report-detail-header {
+  align-items: center;
+}
+
+.report-document {
+  display: grid;
+  gap: 1.2rem;
+  padding: clamp(1.2rem, 4vw, 3.5rem);
+}
+
+.report-detail-page > *,
+.report-detail-page section,
+.report-detail-page article {
+  min-width: 0;
+}
+
+.report-document section {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.report-document h2,
+.report-document p {
+  margin: 0;
+}
+
+.report-lede {
+  max-width: 70ch;
+  color: var(--color-text-muted);
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.cited-statement-list > li {
+  padding: 0.85rem;
+  border-inline-start: 0.2rem solid var(--color-primary);
+  background: var(--color-surface-subtle);
+}
+
+.cited-statement-list span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.cited-statement-list code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.report-facts dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.report-facts dl > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem;
+  border-radius: 0.55rem;
+  background: var(--color-surface-subtle);
+}
+
+.report-facts dt {
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.report-facts dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.report-evidence-index {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-evidence-index > li {
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border: 1px solid var(--execution-border);
+  border-radius: 0.65rem;
+}
+
+.report-detail-page .calculation-footer code {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1180px) {
   .kanban-board {
     grid-template-columns: repeat(2, minmax(16rem, 1fr));
@@ -1258,6 +1559,15 @@ main {
   .execution-list {
     grid-template-columns: 1fr;
   }
+
+  .report-generator form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recommendation-facts,
+  .report-facts dl {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
@@ -1280,13 +1590,30 @@ main {
   .detections-panel ul {
     grid-template-columns: 1fr;
   }
+
+  .recommendation-card-header,
+  .report-list > li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recommendation-badges,
+  .report-list > li > div:last-child {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .report-generator form,
+  .report-evidence-index {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
   .execution-tabs {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .execution-tabs a {

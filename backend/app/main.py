@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition", "X-Request-ID"],
     )
     application.add_middleware(RequestIdMiddleware)
     register_exception_handlers(application)

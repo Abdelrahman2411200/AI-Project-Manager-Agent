@@ -15,6 +15,16 @@ export const ExecutionHealthPage = lazy(async () => {
   return { default: module.ExecutionHealthPage };
 });
 
+export const ReportsPage = lazy(async () => {
+  const module = await import("../pages/ReportsPage");
+  return { default: module.ReportsPage };
+});
+
+export const ReportDetailPage = lazy(async () => {
+  const module = await import("../pages/ReportDetailPage");
+  return { default: module.ReportDetailPage };
+});
+
 export function ExecutionBoardRoute() {
   return <ExecutionFallback><ExecutionBoardPage /></ExecutionFallback>;
 }
@@ -25,6 +35,14 @@ export function ExecutionOverviewRoute() {
 
 export function ExecutionHealthRoute() {
   return <ExecutionFallback><ExecutionHealthPage /></ExecutionFallback>;
+}
+
+export function ReportsRoute() {
+  return <ExecutionFallback><ReportsPage /></ExecutionFallback>;
+}
+
+export function ReportDetailRoute() {
+  return <ExecutionFallback><ReportDetailPage /></ExecutionFallback>;
 }
 
 export function ExecutionFallback({ children }: { children: ReactNode }) {

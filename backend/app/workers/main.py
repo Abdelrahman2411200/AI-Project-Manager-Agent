@@ -18,6 +18,7 @@ from app.services.jobs import JobQueue, StaleJobClaimError
 from app.workflows.engine import NodeFailure
 from app.workflows.monitoring import MonitoringWorkflow
 from app.workflows.planning import PlanningWorkflow
+from app.workflows.reporting import ReportingWorkflow
 
 logger = logging.getLogger(__name__)
 shutdown_requested = threading.Event()
@@ -88,7 +89,17 @@ async def process_one_job(
         with SessionLocal() as workflow_session:
             try:
                 if job_type == "monitoring":
-                    await MonitoringWorkflow(workflow_session).execute(run_id)
+                    await MonitoringWorkflow(
+                        workflow_session,
+                        provider,
+                        settings,
+                    ).execute(run_id)
+                elif job_type == "reporting":
+                    await ReportingWorkflow(
+                        workflow_session,
+                        provider,
+                        settings,
+                    ).execute(run_id)
                 elif provider is None:
                     error_code = "AI_UNCONFIGURED"
                 else:

@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app.ai.fake_provider import FakeStructuredModelProvider
 from app.core.config import get_settings
 from app.db.models.audit import AuditEvent
+from app.db.models.insight import ProductMetricEvent
 from app.db.models.plan import PlanApproval, PlanVersion, Task
 from app.db.session import SessionLocal
 from app.main import app
@@ -191,13 +192,22 @@ def test_review_approval_requires_exact_hash_and_freezes_history() -> None:
         )
         approval = session.scalar(select(PlanApproval).where(PlanApproval.version_id == plan_id))
         assert approval is not None
+        assert (
+            session.scalar(
+                select(func.count(ProductMetricEvent.id)).where(
+                    ProductMetricEvent.project_id == project_id,
+                    ProductMetricEvent.name == "plan.approved",
+                )
+            )
+            == 1
+        )
         approval.reason = "Mutation is forbidden"
         with pytest.raises(ValueError, match="append-only"):
             session.flush()
 
 
 def test_request_changes_returns_review_to_editable_draft() -> None:
-    _, client, csrf, _, plan_id = _fixture("changes-owner@example.com")
+    _, client, csrf, project_id, plan_id = _fixture("changes-owner@example.com")
     with client:
         draft = client.get(f"/api/v1/plan-versions/{plan_id}").json()
         review = client.post(
@@ -224,6 +234,16 @@ def test_request_changes_returns_review_to_editable_draft() -> None:
         )
         assert edited.status_code == 200
         assert edited.json()["quality_status"] == "failed"
+    with SessionLocal() as session:
+        assert (
+            session.scalar(
+                select(func.count(ProductMetricEvent.id)).where(
+                    ProductMetricEvent.project_id == project_id,
+                    ProductMetricEvent.name == "plan.edit_saved",
+                )
+            )
+            == 1
+        )
 
 
 def test_approval_rechecks_persisted_content_against_reviewed_hash() -> None:

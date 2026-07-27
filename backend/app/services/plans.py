@@ -51,6 +51,7 @@ from app.services.plan_content import (
 )
 from app.services.plan_quality import QualityReport
 from app.services.plan_validation import validate_persisted_plan
+from app.services.telemetry import TelemetryRecorder
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +72,7 @@ class PlanService:
         self.request_id = request_id
         self.policy = PlanLifecyclePolicy(session, owner_id)
         self.audit = AuditRecorder(session)
+        self.telemetry = TelemetryRecorder(session)
 
     def list_versions(self, project_id: UUID) -> list[PlanVersion]:
         project_plan = self.session.scalar(
@@ -591,6 +593,22 @@ class PlanService:
                 before_ref=before,
                 after_ref=after,
             )
+            if action in {
+                "DraftEdited",
+                "DraftMilestoneChanged",
+                "DraftTaskChanged",
+                "DependencyChanged",
+            }:
+                self.telemetry.append(
+                    name="plan.edit_saved",
+                    owner_id=self.owner_id,
+                    request_id=self.request_id,
+                    project_id=plan.project_id,
+                    attributes={
+                        "change_type": action,
+                        "entity_type": entity_type,
+                    },
+                )
             self.session.commit()
         except (IntegrityError, StaleDataError) as error:
             self.session.rollback()
