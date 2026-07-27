@@ -43,6 +43,7 @@ from app.schemas.insight import (
     ReportView,
 )
 from app.services.audit import AuditRecorder
+from app.services.budgets import BudgetService
 from app.services.jobs import JobQueue
 from app.services.monitoring import MonitoringService
 from app.services.telemetry import TelemetryRecorder
@@ -102,6 +103,7 @@ class ReportService:
                 report_id=report_id,
                 duplicate=True,
             )
+        BudgetService(self.session, self.owner_id).assert_can_start(8_000)
         data = self.aggregate(project, plan, payload)
         run = AgentRun(
             project_id=project.id,

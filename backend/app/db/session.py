@@ -7,12 +7,24 @@ from sqlalchemy.pool import StaticPool
 from app.core.config import get_settings
 
 
-def create_database_engine(database_url: str) -> Engine:
+def create_database_engine(
+    database_url: str,
+    *,
+    pool_size: int = 20,
+    max_overflow: int = 30,
+    pool_timeout: int = 10,
+) -> Engine:
     options: dict[str, object] = {"pool_pre_ping": True}
     if database_url.startswith("sqlite"):
         options["connect_args"] = {"check_same_thread": False}
         if database_url.rstrip("/").endswith(":memory:") or database_url.endswith("sqlite://"):
             options["poolclass"] = StaticPool
+    else:
+        options.update(
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+        )
     database_engine = create_engine(database_url, **options)
     if database_url.startswith("sqlite"):
 
@@ -25,7 +37,13 @@ def create_database_engine(database_url: str) -> Engine:
     return database_engine
 
 
-engine = create_database_engine(get_settings().database_url)
+settings = get_settings()
+engine = create_database_engine(
+    settings.database_url,
+    pool_size=settings.database_pool_size,
+    max_overflow=settings.database_max_overflow,
+    pool_timeout=settings.database_pool_timeout_seconds,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

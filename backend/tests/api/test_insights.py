@@ -1,6 +1,7 @@
 import asyncio
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
@@ -29,6 +30,10 @@ from app.services.reports import ReportService
 from app.workflows.reporting import ReportingWorkflow
 from tests.api.test_execution import _active_fixture, _execution_headers
 from tests.api.test_projects import ORIGIN, write_headers
+
+
+def _project_today() -> date:
+    return datetime.now(ZoneInfo("Africa/Cairo")).date()
 
 
 def test_grounded_recommendation_decisions_are_deduplicated_and_never_mutate_plan() -> None:
@@ -231,7 +236,7 @@ def test_ai_can_reword_grounded_recommendations_but_cannot_change_policy() -> No
 def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped() -> None:
     _, client, csrf, project_id, _ = _active_fixture("report-owner@example.com")
     _, other, _, _, _ = _active_fixture("report-other@example.com")
-    period_end = date.today()
+    period_end = _project_today()
     period_start = period_end - timedelta(days=6)
     with client:
         started = client.post(
@@ -300,7 +305,7 @@ def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped()
 
 def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> None:
     _, client, csrf, project_id, _ = _active_fixture("report-policy@example.com")
-    today = date.today()
+    today = _project_today()
     payload = {
         "report_type": "risk",
         "period_start": (today - timedelta(days=1)).isoformat(),
@@ -352,7 +357,7 @@ def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> Non
 
 def test_report_narrative_acceptance_rejection_and_refusal_are_deterministic() -> None:
     user, _, _, project_id, _ = _active_fixture("report-grounding@example.com")
-    today = date.today()
+    today = _project_today()
     with SessionLocal() as session:
         service = ReportService(session, user.id, "report-grounding")
         accepted_start = service.start(

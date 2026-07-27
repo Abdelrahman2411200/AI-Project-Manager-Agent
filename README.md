@@ -117,6 +117,7 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
 | AI boundary | OpenAI Responses adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
+| Hardening | Request limits, owner/run budgets, encrypted restore drills, SLO alerts, ordered CI |
 
 ## Repository layout
 
@@ -205,6 +206,18 @@ Compose configuration:
 ```powershell
 docker compose config --quiet
 ```
+
+Phase 10 operational evidence:
+
+- [Architecture review](docs/architecture.md) and [threat model](docs/threat-model.md)
+- [Observability and SLOs](docs/observability.md)
+- [MVP operator runbook](docs/operations/mvp-runbook.md)
+- [Backup and restore drill](docs/operations/backup-restore.md)
+- [MVP release checklist](docs/release/mvp-checklist.md)
+
+The ordered GitHub Actions pipeline runs backend quality and PostgreSQL tests, frontend
+tests/build, desktop/mobile browser acceptance, dependency/SAST/secret scans, and an
+encrypted PostgreSQL restore drill before its release gate can pass.
 
 ## Core safety rules
 

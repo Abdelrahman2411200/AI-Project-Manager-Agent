@@ -19,6 +19,7 @@ from app.db.models.project import Project
 from app.db.models.run import AgentRun, AgentRunStep
 from app.schemas.run import ClarificationAnswer, PlanningRunRequest
 from app.services.audit import AuditRecorder
+from app.services.budgets import BudgetService
 from app.services.jobs import JobQueue
 from app.workflows.state import EntityReference, PlanningAgentState
 
@@ -78,6 +79,7 @@ class PlanningRunService:
         if conflict is not None:
             raise RunConflictError("Another planning run is already active for this project.")
 
+        BudgetService(self.session, self.owner_id).assert_can_start(payload.token_budget)
         sync_prompt_catalog(self.session)
         run = AgentRun(
             project_id=project.id,

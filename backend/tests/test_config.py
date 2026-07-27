@@ -17,6 +17,10 @@ def test_development_defaults_are_safe_for_local_use() -> None:
     assert settings.cors_origin_strings == ["http://localhost:5173"]
     assert settings.openai_model == "gpt-5.6-terra"
     assert settings.openai_api_key is None
+    assert settings.app_version == "0.10.0"
+    assert settings.request_max_body_bytes == 1_048_576
+    assert settings.database_pool_size + settings.database_max_overflow == 50
+    assert settings.api_thread_limit == 100
 
 
 def test_blank_openai_key_is_unconfigured() -> None:

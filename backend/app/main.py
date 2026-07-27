@@ -1,16 +1,19 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from anyio import to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.errors import RequestIdMiddleware, register_exception_handlers
+from app.security.middleware import RequestHardeningMiddleware
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    to_thread.current_default_thread_limiter().total_tokens = get_settings().api_thread_limit
     application.state.is_ready = True
     yield
     application.state.is_ready = False
@@ -35,6 +38,7 @@ def create_app() -> FastAPI:
         expose_headers=["Content-Disposition", "X-Request-ID"],
     )
     application.add_middleware(RequestIdMiddleware)
+    application.add_middleware(RequestHardeningMiddleware, settings=settings)
     register_exception_handlers(application)
     application.include_router(api_router, prefix=settings.api_prefix)
 

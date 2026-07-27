@@ -1,0 +1,16 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test-only idempotency headers are replay tokens, not credentials"
+condition = "AND"
+paths = ['''^backend/tests/''']
+regexTarget = "match"
+regexes = ['''Idempotency-Key["']?\s*[:=]''']
+
+[[allowlists]]
+description = "Threat-model prose names cookie and CSRF controls, not a credential"
+condition = "AND"
+paths = ['''^docs/threat-model\.md$''']
+regexTarget = "match"
+regexes = ['''token,\s+expiry/revocation''']
