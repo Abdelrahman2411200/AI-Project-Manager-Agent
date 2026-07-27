@@ -204,9 +204,11 @@ jobs:
           npm ci
           npm run audit:ci
       - name: Scan repository history for secrets
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          docker run --rm
+          --volume "$PWD:/repo"
+          zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          detect --source=/repo --no-banner --redact=100 --exit-code=1
 
   restore-drill:
     name: 6 · Encrypted restore drill
