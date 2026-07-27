@@ -48,6 +48,15 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "task_dependencies",
                 "risks",
                 "plan_approvals",
+                "task_execution_projections",
+                "task_status_events",
+                "progress_updates",
+                "monitoring_snapshots",
+                "recommendations",
+                "recommendation_evidence",
+                "recommendation_decisions",
+                "reports",
+                "product_metric_events",
             }.issubset(inspector.get_table_names())
             project_checks = {item["name"] for item in inspector.get_check_constraints("projects")}
             assert "ck_projects_capacity_range" in project_checks
@@ -106,6 +115,37 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 "project_analyses_frozen_content",
                 "risks_frozen_content",
             }.issubset(phase_six_triggers)
+            recommendation_indexes = {
+                item["name"]: item for item in inspector.get_indexes("recommendations")
+            }
+            assert recommendation_indexes["uq_recommendations_open_input"]["unique"]
+            assert (
+                str(
+                    next(
+                        item["type"]
+                        for item in inspector.get_columns("reports")
+                        if item["name"] == "data_json"
+                    )
+                )
+                == "JSONB"
+            )
+            with test_engine.begin() as connection:
+                phase_nine_triggers = set(
+                    connection.scalars(
+                        text(
+                            "SELECT trigger_name FROM information_schema.triggers "
+                            "WHERE event_object_table IN "
+                            "('recommendation_evidence','recommendation_decisions',"
+                            "'reports','product_metric_events')"
+                        )
+                    )
+                )
+            assert {
+                "recommendation_evidence_append_only",
+                "recommendation_decisions_append_only",
+                "reports_append_only",
+                "product_metric_events_append_only",
+            }.issubset(phase_nine_triggers)
         finally:
             test_engine.dispose()
     finally:
