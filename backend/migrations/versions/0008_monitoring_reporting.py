@@ -9,15 +9,25 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "0008_monitoring_reporting"
 down_revision: str | None = "0007_active_execution"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+JSON_DOCUMENT = sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
+MONITORING_JSON_COLUMNS = (
+    "progress_json",
+    "schedule_json",
+    "health_json",
+    "detections_json",
+    "calculation_versions",
+)
 
 
 def upgrade() -> None:
     _extend_run_types()
+    _align_monitoring_json_types(use_jsonb=True)
     _create_recommendations()
     _create_reports()
     _create_product_metrics()
@@ -50,6 +60,7 @@ def downgrade() -> None:
     )
     op.drop_index("uq_recommendations_open_input", table_name="recommendations")
     op.drop_table("recommendations")
+    _align_monitoring_json_types(use_jsonb=False)
     _restrict_run_types()
 
 
@@ -68,7 +79,7 @@ def _create_recommendations() -> None:
         sa.Column("risk", sa.String(length=500), nullable=False),
         sa.Column("approval_required", sa.Boolean(), nullable=False),
         sa.Column("verification_step", sa.String(length=1000), nullable=False),
-        sa.Column("alternatives", sa.JSON(), nullable=False),
+        sa.Column("alternatives", JSON_DOCUMENT, nullable=False),
         sa.Column("state", sa.String(length=16), server_default="open", nullable=False),
         sa.Column("input_hash", sa.String(length=71), nullable=False),
         sa.Column("explanation_source", sa.String(length=16), nullable=False),
@@ -154,7 +165,7 @@ def _create_recommendations() -> None:
         sa.Column("entity_type", sa.String(length=20), nullable=False),
         sa.Column("entity_ref", sa.String(length=80), nullable=False),
         sa.Column("fact_key", sa.String(length=80), nullable=False),
-        sa.Column("fact_value", sa.JSON(), nullable=False),
+        sa.Column("fact_value", JSON_DOCUMENT, nullable=False),
         sa.Column(
             "captured_at",
             sa.DateTime(timezone=True),
@@ -248,8 +259,8 @@ def _create_reports() -> None:
         sa.Column("report_type", sa.String(length=20), nullable=False),
         sa.Column("period_start", sa.Date(), nullable=False),
         sa.Column("period_end", sa.Date(), nullable=False),
-        sa.Column("data_json", sa.JSON(), nullable=False),
-        sa.Column("narrative_json", sa.JSON(), nullable=True),
+        sa.Column("data_json", JSON_DOCUMENT, nullable=False),
+        sa.Column("narrative_json", JSON_DOCUMENT, nullable=True),
         sa.Column("markdown", sa.Text(), nullable=False),
         sa.Column("content_hash", sa.String(length=71), nullable=False),
         sa.Column("input_hash", sa.String(length=71), nullable=False),
@@ -322,7 +333,7 @@ def _create_product_metrics() -> None:
         sa.Column("run_id", sa.Uuid(), nullable=True),
         sa.Column("request_id", sa.String(length=128), nullable=False),
         sa.Column("user_hash", sa.String(length=80), nullable=False),
-        sa.Column("safe_attributes", sa.JSON(), nullable=False),
+        sa.Column("safe_attributes", JSON_DOCUMENT, nullable=False),
         sa.Column("duration_ms", sa.Integer(), nullable=True),
         sa.Column(
             "occurred_at",
@@ -381,6 +392,30 @@ def _extend_run_types() -> None:
         batch.create_check_constraint(
             "job_type_allowed",
             "job_type IN ('planning', 'monitoring', 'reporting')",
+        )
+
+
+def _align_monitoring_json_types(*, use_jsonb: bool) -> None:
+    if op.get_bind().dialect.name != "postgresql":
+        return
+    source_type: sa.types.TypeEngine[object]
+    target_type: sa.types.TypeEngine[object]
+    cast_type: str
+    if use_jsonb:
+        source_type = postgresql.JSON()
+        target_type = postgresql.JSONB()
+        cast_type = "jsonb"
+    else:
+        source_type = postgresql.JSONB()
+        target_type = postgresql.JSON()
+        cast_type = "json"
+    for column in MONITORING_JSON_COLUMNS:
+        op.alter_column(
+            "monitoring_snapshots",
+            column,
+            existing_type=source_type,
+            type_=target_type,
+            postgresql_using=f"{column}::{cast_type}",
         )
 
 
