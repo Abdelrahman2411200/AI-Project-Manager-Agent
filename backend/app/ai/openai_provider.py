@@ -50,6 +50,14 @@ class OpenAIResponsesProvider:
     async def generate[StructuredOutputT: BaseModel](
         self, request: StructuredModelRequest[StructuredOutputT]
     ) -> StructuredModelResult[StructuredOutputT]:
+        try:
+            validate_schema_is_strict(request.output_type)
+        except ValueError as error:
+            raise StructuredModelError(
+                ModelFailureCode.INVALID_REQUEST,
+                "The requested output schema is not strict.",
+                retryable=False,
+            ) from error
         started = monotonic_ns()
         try:
             response = await self._client.responses.parse(

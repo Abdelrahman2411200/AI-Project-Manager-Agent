@@ -60,7 +60,7 @@ class PlanningSemanticNodes:
     ) -> Generated[ClarificationQuestionBatch]:
         return await self._generate(
             run,
-            "clarification.v1",
+            "clarification.v2",
             {
                 "intake": facts.intake,
                 "requirements": facts.requirements,
@@ -77,7 +77,7 @@ class PlanningSemanticNodes:
     ) -> Generated[ProjectAnalysisOutput]:
         return await self._generate(
             run,
-            "analysis.v1",
+            "analysis.v2",
             {
                 "intake": facts.intake,
                 "requirements": facts.requirements,
@@ -98,7 +98,7 @@ class PlanningSemanticNodes:
     ) -> Generated[ModuleDraftBatch]:
         return await self._generate(
             run,
-            "modules.v1",
+            "modules.v2",
             {
                 "analysis": analysis.model_dump(mode="json"),
                 "requirements": facts.requirements,
@@ -119,7 +119,7 @@ class PlanningSemanticNodes:
         module_refs = frozenset(item.temp_id for item in modules.items)
         return await self._generate(
             run,
-            "milestones.v1",
+            "milestones.v2",
             {
                 "modules": modules.model_dump(mode="json"),
                 "constraints": facts.constraints,
@@ -142,7 +142,7 @@ class PlanningSemanticNodes:
         milestone_refs = frozenset(item.temp_id for item in milestones.items)
         return await self._generate(
             run,
-            "tasks.v1",
+            "tasks.v2",
             {
                 "milestones": milestones.model_dump(mode="json"),
                 "requirements": facts.requirements,
@@ -167,7 +167,7 @@ class PlanningSemanticNodes:
         milestone_refs = frozenset(item.milestone_ref for item in tasks.items)
         generated: Generated[TaskDraftBatch] = await self._generate(
             run,
-            "acceptance.v1",
+            "acceptance.v2",
             {"tasks": tasks.model_dump(mode="json")},
             ValidationContext(
                 allowed_refs=facts.allowed_refs | task_refs | milestone_refs,
@@ -195,7 +195,7 @@ class PlanningSemanticNodes:
         task_refs = frozenset(item.temp_id for item in tasks.items)
         return await self._generate(
             run,
-            "dependencies.v1",
+            "dependencies.v2",
             {
                 "tasks": [
                     {
@@ -231,7 +231,7 @@ class PlanningSemanticNodes:
         )
         return await self._generate(
             run,
-            "risks.v1",
+            "risks.v2",
             {
                 "analysis": analysis.model_dump(mode="json"),
                 "facts": {

@@ -19,7 +19,7 @@ def test_prompt_catalog_syncs_all_versions_and_used_content_is_immutable() -> No
         session.commit()
         assert len(records) == 12
 
-        template = get_prompt("analysis.v1")
+        template = get_prompt("analysis.v2")
         record = mark_prompt_used(
             session,
             key=template.key,
@@ -38,7 +38,7 @@ def test_prompt_catalog_syncs_all_versions_and_used_content_is_immutable() -> No
 def test_used_prompt_cannot_be_deleted() -> None:
     with SessionLocal() as session:
         sync_prompt_catalog(session)
-        template = get_prompt("modules.v1")
+        template = get_prompt("modules.v2")
         record = mark_prompt_used(
             session,
             key=template.key,
@@ -59,7 +59,7 @@ def test_prompt_hash_mismatch_fails_before_usage() -> None:
             mark_prompt_used(
                 session,
                 key="analysis",
-                version="v1",
+                version="v2",
                 expected_hash=f"sha256:{'0' * 64}",
             )
 

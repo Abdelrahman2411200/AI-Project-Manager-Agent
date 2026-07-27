@@ -291,7 +291,7 @@ class RecommendationService:
     ) -> tuple[list[Recommendation], ModelUsage]:
         if not recommendations:
             return recommendations, ModelUsage()
-        prompt = get_prompt("recommendations.v1")
+        prompt = get_prompt("recommendations.v2")
         sync_prompt_catalog(self.session)
         prompt_record = mark_prompt_used(
             self.session,

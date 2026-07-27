@@ -12,14 +12,15 @@ from openai import (
     AsyncOpenAI,
     RateLimitError,
 )
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
-from app.ai.fake_provider import FakeStructuredModelProvider
+from app.ai.fake_provider import FakeModelResponse, FakeStructuredModelProvider
 from app.ai.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import (
     ModelFailureCode,
     ModelRefusalError,
     ModelTruncatedError,
+    ModelUsage,
     StructuredModelError,
     StructuredModelRequest,
     make_safety_identifier,
@@ -33,7 +34,7 @@ from tests.ai.fixtures import MODULE
 def request() -> StructuredModelRequest[ModuleDraft]:
     return StructuredModelRequest(
         prompt_key="modules",
-        prompt_version="v1",
+        prompt_version="v2",
         instructions="Return a module.",
         input_text="<UNTRUSTED_PROJECT_DATA>{}</UNTRUSTED_PROJECT_DATA>",
         output_type=ModuleDraft,
@@ -112,6 +113,54 @@ def test_fake_provider_enforces_the_same_schema_contract_offline() -> None:
 
     with pytest.raises(RuntimeError, match="no queued output"):
         asyncio.run(FakeStructuredModelProvider([]).generate(request()))
+
+
+def test_fake_provider_captures_scripted_usage_and_metadata() -> None:
+    scripted = FakeModelResponse(
+        output=MODULE,
+        usage=ModelUsage(input_tokens=12, output_tokens=8, total_tokens=20),
+        model="fake-pinned",
+        response_id="fake-response",
+        duration_ms=25,
+    )
+    result = asyncio.run(FakeStructuredModelProvider([scripted]).generate(request()))
+    assert result.usage.total_tokens == 20
+    assert result.model == "fake-pinned"
+    assert result.response_id == "fake-response"
+    assert result.duration_ms == 25
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"prompt_key": "INVALID"}, "prompt_key"),
+        ({"prompt_version": "latest"}, "prompt_version"),
+        ({"token_budget": 0}, "token_budget"),
+        ({"safety_identifier": "short"}, "safety_identifier"),
+        ({"reasoning_effort": "extreme"}, "reasoning_effort"),
+    ],
+)
+def test_model_request_rejects_invalid_boundary_values(
+    overrides: dict[str, Any], message: str
+) -> None:
+    values = {
+        "prompt_key": "modules",
+        "prompt_version": "v2",
+        "instructions": "Return a module.",
+        "input_text": "<UNTRUSTED_PROJECT_DATA>{}</UNTRUSTED_PROJECT_DATA>",
+        "output_type": ModuleDraft,
+        "token_budget": 3000,
+        "safety_identifier": "safety_8e17f1",
+    }
+    with pytest.raises(ValueError, match=message):
+        StructuredModelRequest(**(values | overrides))
+
+
+def test_model_usage_rejects_impossible_accounting() -> None:
+    with pytest.raises(ValueError, match="negative"):
+        ModelUsage(input_tokens=-1)
+    with pytest.raises(ValueError, match="lower"):
+        ModelUsage(input_tokens=10, output_tokens=5, total_tokens=14)
 
 
 def test_safety_identifier_is_stable_and_pseudonymous() -> None:
@@ -241,3 +290,24 @@ def test_openai_adapter_maps_retryable_provider_errors(
 def test_openai_adapter_tolerates_missing_usage() -> None:
     result = asyncio.run(provider(FakeResponses(response(usage=None))).generate(request()))
     assert result.usage.total_tokens == 0
+
+
+def test_openai_adapter_rejects_non_strict_schema_before_network() -> None:
+    class PermissiveOutput(BaseModel):
+        value: str
+
+    invalid_request = StructuredModelRequest(
+        prompt_key="modules",
+        prompt_version="v2",
+        instructions="Return a value.",
+        input_text="<UNTRUSTED_PROJECT_DATA>{}</UNTRUSTED_PROJECT_DATA>",
+        output_type=PermissiveOutput,
+        token_budget=100,
+        safety_identifier="safety_8e17f1",
+    )
+    fake_responses = FakeResponses(response())
+    with pytest.raises(StructuredModelError) as caught:
+        asyncio.run(provider(fake_responses).generate(invalid_request))
+    assert caught.value.code == ModelFailureCode.INVALID_REQUEST
+    assert caught.value.retryable is False
+    assert fake_responses.kwargs == {}
