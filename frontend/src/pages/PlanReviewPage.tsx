@@ -6,6 +6,7 @@ import { getProject, projectKeys } from "../api/projects";
 import { errorMessage, isPermissionError } from "../api/errorUtils";
 import { ErrorState, LoadingState } from "../components/Feedback";
 import { PlanReview } from "../features/plans/PlanReview";
+import { AdvancedPlanPanel } from "../features/plans/AdvancedPlanPanel";
 
 export function PlanReviewPage() {
   const { projectId = "", versionId = "" } = useParams();
@@ -91,6 +92,11 @@ export function PlanReviewPage() {
         <span><i className="legend-dot deterministic" /> Deterministically calculated</span>
       </div>
       <PlanReview project={project.data} plan={plan.data} onRefresh={refresh} />
+      <AdvancedPlanPanel
+        plan={plan.data}
+        versions={versions.data ?? [plan.data]}
+        onRefresh={refresh}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 9 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers grounded monitoring recommendations and immutable factual reporting on top of active execution:
+Phase 11 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers full-version intelligence on top of the hardened MVP:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -71,6 +71,15 @@ Phase 9 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) del
 - Accessible recommendation evidence, decision dialogs, report history/detail screens, and structured evidence indexes without raw HTML rendering
 - An eighth reversible Alembic migration with insight indexes and database-level append-only evidence, decision, report, and metric triggers
 - Phase 9 API, grounding, migration, component, axe, keyboard, reload, export, desktop, and 360 px Playwright coverage
+- Persisted, owner-scoped what-if scenarios calculated from immutable active-plan snapshots with idempotency and exact baseline hashes
+- Deterministic critical-path forward/backward passes, capacity forecasts, stable-key plan comparison, and downstream change-impact discovery
+- Selective regeneration proposals restricted to explicitly selected fields on unlocked, unprotected AI draft content
+- A two-step regeneration approval boundary with proposal concurrency, stale-baseline rejection, complete diffs, affected references, and mandatory draft revalidation
+- Schema-constrained change/scenario explanation support that receives only deterministic result objects and rejects unsupported references, numbers, dates, markup, or approval claims
+- Normalized, version-constrained risk relations plus scenario and regeneration persistence in the ninth reversible Alembic migration
+- Owner-scoped comparison, scenario, and regeneration REST APIs with permission-safe 404 responses, CSRF, idempotency keys, and `If-Match`
+- Accessible scenario inputs/results, baseline delta tables, version-comparison tables, and regeneration preview/decision controls
+- Phase 11 domain, API, AI-grounding, migration, component, axe, ownership, lock-attack, cross-version, virtual-isolation, and 1,000-node coverage
 
 Only an unchanged, validated, owner-reviewed content hash can become active. Recommendations are guidance, never implicit plan mutations, and reports remain factual even when AI wording is unavailable or rejected.
 
@@ -207,13 +216,15 @@ Compose configuration:
 docker compose config --quiet
 ```
 
-Phase 10 operational evidence:
+Phase 10 operational evidence and Phase 11 architecture:
 
 - [Architecture review](docs/architecture.md) and [threat model](docs/threat-model.md)
 - [Observability and SLOs](docs/observability.md)
 - [MVP operator runbook](docs/operations/mvp-runbook.md)
 - [Backup and restore drill](docs/operations/backup-restore.md)
 - [MVP release checklist](docs/release/mvp-checklist.md)
+- [Advanced intelligence architecture](docs/architecture-advanced.md)
+- [Phase 11 verification matrix](docs/release/phase-11-verification.md)
 
 The ordered GitHub Actions pipeline runs backend quality and PostgreSQL tests, frontend
 tests/build, desktop/mobile browser acceptance, dependency/SAST/secret scans, and an
@@ -232,4 +243,4 @@ encrypted PostgreSQL restore drill before its release gate can pass.
 
 ## Delivery boundaries
 
-The MVP is completed through Phase 10 of the implementation plan. Selective regeneration, critical-path analysis, advanced scheduling, what-if simulation, dependency visualization, PDF export, and the university demo are delivered in Phases 11-13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.
+The MVP is completed through Phase 10, and full-version intelligence is completed through Phase 11 of the implementation plan. Dependency visualization, rich Gantt/timeline views, the dedicated risk register, PDF export, the evaluation dashboard, and the university release remain in Phases 12-13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.

@@ -410,6 +410,68 @@ export interface PlanDiffView {
   changes: Array<Record<string, unknown>>;
 }
 
+export interface PlanComparisonView extends PlanDiffView {
+  summary: Record<string, number>;
+  schedule_delta_days: number | null;
+  risk_delta: number;
+  scope_delta: number;
+}
+
+export interface ScenarioOverrides {
+  capacity_hours_per_week?: number;
+  deadline?: string;
+  task_effort_hours?: Record<string, number>;
+}
+
+export interface ScenarioView {
+  id: string;
+  project_id: string;
+  baseline_version_id: string;
+  name: string;
+  overrides_json: ScenarioOverrides;
+  result_json: {
+    baseline: Record<string, unknown>;
+    scenario: Record<string, unknown>;
+    delta: {
+      effort_hours: string;
+      forecast_finish_days: number;
+      critical_path_hours: string;
+      critical_tasks_added: string[];
+      critical_tasks_removed: string[];
+    };
+    sources: Record<string, unknown>;
+  };
+  explanation_json: {
+    summary: string;
+    tradeoffs: Array<Record<string, unknown>>;
+    source: string;
+  } | null;
+  status: string;
+  baseline_content_hash: string;
+  calculation_version: string;
+  created_at: string;
+}
+
+export interface RegenerationProposalView {
+  id: string;
+  project_id: string;
+  version_id: string;
+  baseline_content_hash: string;
+  selection_json: Array<Record<string, unknown>>;
+  replacements_json: Array<Record<string, unknown>>;
+  diff_json: Array<Record<string, unknown>>;
+  impact_json: {
+    affected_stable_keys?: string[];
+    schedule_delta_days?: number | null;
+    risk_delta?: number;
+    scope_delta?: number;
+  };
+  status: "pending" | "approved" | "rejected" | "stale";
+  row_version: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PriorityFactorsPayload {
   mvp_necessity: number;
   deadline_urgency: number;

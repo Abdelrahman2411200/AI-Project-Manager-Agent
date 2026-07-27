@@ -22,6 +22,9 @@ REQUIRED_TABLES = frozenset(
         "agent_runs",
         "agent_jobs",
         "reports",
+        "scenarios",
+        "regeneration_proposals",
+        "risk_relations",
         "audit_events",
         "provider_usage",
     }
