@@ -94,6 +94,7 @@ jobs:
           CORS_ORIGINS: '["http://127.0.0.1:8000"]'
           SESSION_HASH_SECRET: ci-load-test-session-secret-32-characters
         run: |
+          set -o pipefail
           uv run alembic upgrade head
           uv run python -m tests.performance.reference_api_load \
             --base-url http://127.0.0.1:8000 \

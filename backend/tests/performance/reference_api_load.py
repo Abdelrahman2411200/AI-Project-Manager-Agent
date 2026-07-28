@@ -24,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--concurrency", type=int, default=50)
     parser.add_argument(
+        "--rounds",
+        type=int,
+        default=3,
+        help="Measured request rounds; p95 is calculated over every sample.",
+    )
+    parser.add_argument(
         "--serve",
         action="store_true",
         help="Start an in-process Uvicorn server for a self-contained live network gate.",
@@ -77,7 +83,15 @@ def project_payload(index: int) -> dict[str, object]:
     }
 
 
-async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
+async def run(
+    base_url: str,
+    concurrency: int,
+    rounds: int,
+) -> dict[str, float | int | bool]:
+    if concurrency < 1:
+        raise ValueError("concurrency must be positive")
+    if rounds < 1:
+        raise ValueError("rounds must be positive")
     email, password = seed_owner()
     async with httpx.AsyncClient(base_url=base_url, timeout=30) as client:
         login = await client.post(
@@ -108,25 +122,35 @@ async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
             raise RuntimeError(
                 f"Load warm-up write failed: {warmup.status_code} {warmup.text[:200]}"
             )
-        reads = await timed_requests(
-            client,
-            "GET",
-            "/api/v1/usage/quota",
-            concurrency,
-            expected_status=200,
-        )
-        writes = await timed_requests(
-            client,
-            "POST",
-            "/api/v1/projects",
-            concurrency,
-            payload=project_payload,
-            expected_status=201,
-        )
+        reads: list[float] = []
+        writes: list[float] = []
+        for _ in range(rounds):
+            reads.extend(
+                await timed_requests(
+                    client,
+                    "GET",
+                    "/api/v1/usage/quota",
+                    concurrency,
+                    expected_status=200,
+                )
+            )
+            writes.extend(
+                await timed_requests(
+                    client,
+                    "POST",
+                    "/api/v1/projects",
+                    concurrency,
+                    payload=project_payload,
+                    expected_status=201,
+                )
+            )
     read_p95 = p95(reads)
     write_p95 = p95(writes)
     return {
         "concurrency": concurrency,
+        "rounds": rounds,
+        "read_samples": len(reads),
+        "write_samples": len(writes),
         "read_p95_ms": round(read_p95, 3),
         "write_p95_ms": round(write_p95, 3),
         "passed": read_p95 < 300 and write_p95 < 600,
@@ -136,11 +160,12 @@ async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
 async def run_with_optional_server(
     base_url: str,
     concurrency: int,
+    rounds: int,
     *,
     serve: bool,
 ) -> dict[str, float | int | bool]:
     if not serve:
-        return await run(base_url, concurrency)
+        return await run(base_url, concurrency, rounds)
     parsed = httpx.URL(base_url)
     if parsed.host not in {"127.0.0.1", "localhost"} or parsed.port is None:
         raise ValueError("--serve requires an explicit localhost port.")
@@ -164,7 +189,7 @@ async def run_with_optional_server(
             await asyncio.sleep(0.05)
         if not server.started:
             raise RuntimeError("Reference Uvicorn server did not become ready.")
-        return await run(base_url, concurrency)
+        return await run(base_url, concurrency, rounds)
     finally:
         server.should_exit = True
         await server_task
@@ -176,6 +201,7 @@ def main() -> int:
         run_with_optional_server(
             args.base_url,
             args.concurrency,
+            args.rounds,
             serve=args.serve,
         )
     )

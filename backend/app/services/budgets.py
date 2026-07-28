@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -64,22 +64,28 @@ class BudgetService:
         now = datetime.now(UTC)
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         resets_at = day_start + timedelta(days=1)
-        runs = list(
-            self.session.scalars(
-                select(AgentRun).where(
-                    AgentRun.initiator_id == self.owner_id,
-                    AgentRun.created_at >= day_start,
-                )
+        reserved_tokens = case(
+            (
+                AgentRun.status.in_(ACTIVE_RUN_STATUSES),
+                AgentRun.token_budget,
+            ),
+            else_=AgentRun.tokens_used,
+        )
+        runs_used, reserved_or_used = self.session.execute(
+            select(
+                func.count(AgentRun.id),
+                func.coalesce(func.sum(reserved_tokens), 0),
+            ).where(
+                AgentRun.initiator_id == self.owner_id,
+                AgentRun.created_at >= day_start,
             )
-        )
-        reserved_or_used = sum(
-            run.token_budget if run.status in ACTIVE_RUN_STATUSES else run.tokens_used
-            for run in runs
-        )
+        ).one()
+        runs_used = int(runs_used)
+        reserved_or_used = int(reserved_or_used)
         return OwnerQuota(
             daily_run_limit=settings.user_daily_run_limit,
-            runs_used=len(runs),
-            runs_remaining=max(0, settings.user_daily_run_limit - len(runs)),
+            runs_used=runs_used,
+            runs_remaining=max(0, settings.user_daily_run_limit - runs_used),
             daily_token_budget=settings.user_daily_token_budget,
             tokens_reserved_or_used=reserved_or_used,
             tokens_remaining=max(0, settings.user_daily_token_budget - reserved_or_used),
