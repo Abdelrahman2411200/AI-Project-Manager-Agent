@@ -85,7 +85,48 @@ jobs:
           --cov-report=xml:coverage.xml
           --cov-fail-under=85
           --junitxml=pytest.xml
-      - name: Run live PostgreSQL reference load gate
+      - name: Retain safe backend reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: backend-test-reports
+          path: |
+            backend/coverage.xml
+            backend/pytest.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  api-performance:
+    name: 3 · Reference API performance
+    needs: backend-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - working-directory: backend
+        run: uv sync --locked --group dev
+      - name: Run isolated live PostgreSQL reference load gate
         working-directory: backend
         env:
           APP_ENV: test
@@ -99,23 +140,22 @@ jobs:
           uv run python -m tests.performance.reference_api_load \
             --base-url http://127.0.0.1:8000 \
             --concurrency 50 \
+            --rounds 3 \
+            --workers 1 \
             --serve |
             tee reference-load.json
-      - name: Retain safe backend reports
+      - name: Retain reference load result
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: backend-test-reports
-          path: |
-            backend/coverage.xml
-            backend/pytest.xml
-            backend/reference-load.json
+          name: reference-load-result
+          path: backend/reference-load.json
           if-no-files-found: error
           retention-days: 14
 
   frontend:
-    name: 3 · Frontend tests and build
-    needs: backend-tests
+    name: 4 · Frontend tests and build
+    needs: [backend-tests, api-performance]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -143,7 +183,7 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: 4 · Browser acceptance
+    name: 5 · Browser acceptance
     needs: frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -174,7 +214,7 @@ jobs:
           retention-days: 7
 
   security:
-    name: 5 · Security scans
+    name: 6 · Security scans
     needs: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -215,7 +255,7 @@ jobs:
           detect --source=/repo --no-banner --redact=100 --exit-code=1
 
   restore-drill:
-    name: 6 · Encrypted restore drill
+    name: 7 · Encrypted restore drill
     needs: security
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -267,7 +307,7 @@ jobs:
           retention-days: 30
 
   release-gate:
-    name: 7 · Full-version verification gate
+    name: 8 · Full-version verification gate
     needs: restore-drill
     runs-on: ubuntu-latest
     steps:

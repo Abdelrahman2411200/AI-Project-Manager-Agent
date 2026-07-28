@@ -30,6 +30,12 @@ def parse_args() -> argparse.Namespace:
         help="Measured request rounds; p95 is calculated over every sample.",
     )
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Uvicorn workers in the reference API deployment.",
+    )
+    parser.add_argument(
         "--serve",
         action="store_true",
         help="Start a disposable Uvicorn process for a self-contained live network gate.",
@@ -161,9 +167,12 @@ async def run_with_optional_server(
     base_url: str,
     concurrency: int,
     rounds: int,
+    workers: int,
     *,
     serve: bool,
 ) -> dict[str, float | int | bool]:
+    if workers < 1:
+        raise ValueError("workers must be positive")
     if not serve:
         return await run(base_url, concurrency, rounds)
     parsed = httpx.URL(base_url)
@@ -171,13 +180,14 @@ async def run_with_optional_server(
         raise ValueError("--serve requires an explicit localhost port.")
     process = multiprocessing.get_context("spawn").Process(
         target=serve_app,
-        args=(str(parsed.host), parsed.port),
-        daemon=True,
+        args=(str(parsed.host), parsed.port, workers),
     )
     process.start()
     try:
         await wait_until_ready(base_url, process)
-        return await run(base_url, concurrency, rounds)
+        result = await run(base_url, concurrency, rounds)
+        result["server_workers"] = workers
+        return result
     finally:
         if process.is_alive():
             process.terminate()
@@ -187,11 +197,12 @@ async def run_with_optional_server(
             process.join(timeout=5)
 
 
-def serve_app(host: str, port: int) -> None:
+def serve_app(host: str, port: int, workers: int) -> None:
     uvicorn.run(
         "app.main:app",
         host=host,
         port=port,
+        workers=workers,
         log_level="warning",
         access_log=False,
     )
@@ -224,6 +235,7 @@ def main() -> int:
             args.base_url,
             args.concurrency,
             args.rounds,
+            args.workers,
             serve=args.serve,
         )
     )

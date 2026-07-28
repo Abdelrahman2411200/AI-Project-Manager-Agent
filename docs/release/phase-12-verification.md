@@ -25,7 +25,7 @@ PDF exports match immutable stored report facts.
 | FR-024 PDF export | same immutable `Report` representation, canonical hash recheck, authenticated download, safe filename and Markdown fallback |
 | NFR-002 security | owner-safe 404, CSRF on writes, no request-controlled renderer paths, escaped content, no JS/network/downloads, sanitized child environment, bounded output |
 | NFR-006 accessibility | no serious automated axe violations; keyboard links/forms; graph, Gantt and chart table parity; text severity/direction labels |
-| NFR-007 API performance | live PostgreSQL plus a separate disposable Uvicorn process; three 50-concurrency rounds calculate p95 over 150 authenticated reads and 150 writes; shell `pipefail` preserves a failed benchmark exit |
+| NFR-007 API performance | isolated CI job with fresh PostgreSQL plus a single-worker reference Uvicorn container topology in a separate process; three 50-concurrency rounds calculate p95 over 150 authenticated reads and 150 writes; shell `pipefail` preserves a failed benchmark exit |
 | NFR-008 calculation performance | existing 1,000-task/approximately 3,000-edge backend gate under two seconds plus 1,000-node/2,994-edge frontend layout gate |
 | NFR-015 reliability/idempotency | risk optimistic concurrency; report immutability; PDF failure does not alter the report or Markdown |
 | NFR-017 responsive UI | desktop and 360 px Playwright journeys assert no page-level horizontal overflow |
