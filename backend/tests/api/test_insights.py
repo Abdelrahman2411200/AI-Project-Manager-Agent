@@ -4,10 +4,11 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.ai.fake_provider import FakeStructuredModelProvider
 from app.ai.provider import ModelRefusalError
+from app.api.v1 import insights as insights_api
 from app.core.config import get_settings
 from app.db.models.audit import AuditEvent
 from app.db.models.execution import MonitoringSnapshot
@@ -21,6 +22,7 @@ from app.db.models.insight import (
 from app.db.models.plan import PlanVersion
 from app.db.models.run import AgentRun
 from app.db.session import SessionLocal
+from app.reports.pdf import PdfRenderError
 from app.schemas.insight import FactualReportData, ReportCreateRequest
 from app.services.recommendations import (
     RecommendationGroundingError,
@@ -233,7 +235,16 @@ def test_ai_can_reword_grounded_recommendations_but_cannot_change_policy() -> No
         assert enriched[0].approval_required is original_approval
 
 
-def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped() -> None:
+def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakePdfRenderer:
+        def render(self, html: str) -> bytes:
+            assert "METRIC-PROGRESS" in html
+            assert "Report content hash" in html
+            return b"%PDF-1.7\nphase-12-factual-report\n%%EOF"
+
+    monkeypatch.setattr(insights_api, "_pdf_renderer", lambda: FakePdfRenderer())
     _, client, csrf, project_id, _ = _active_fixture("report-owner@example.com")
     _, other, _, _, _ = _active_fixture("report-other@example.com")
     period_end = _project_today()
@@ -279,7 +290,35 @@ def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped()
             f'weekly-report-{period_end.isoformat()}.md"'
         )
         assert export.text.rstrip() == body["markdown"].rstrip()
+        pdf = client.get(f"/api/v1/reports/{report_id}/export.pdf")
+        assert pdf.status_code == 200
+        assert pdf.content.startswith(b"%PDF-")
+        assert pdf.headers["content-type"] == "application/pdf"
+        assert pdf.headers["x-content-type-options"] == "nosniff"
+        assert pdf.headers["cache-control"] == "private, no-store"
+        assert pdf.headers["content-security-policy"] == "sandbox"
+        assert pdf.headers["x-report-content-hash"] == body["content_hash"]
+        assert pdf.headers["x-pdf-sha256"].startswith("sha256:")
+        assert pdf.headers["content-disposition"].endswith(
+            f'weekly-report-{period_end.isoformat()}.pdf"'
+        )
         assert other.get(f"/api/v1/reports/{report_id}").status_code == 404
+        assert other.get(f"/api/v1/reports/{report_id}/export.pdf").status_code == 404
+
+        class UnavailablePdfRenderer:
+            def render(self, _: str) -> bytes:
+                raise PdfRenderError("PDF_TIMEOUT", "internal timeout detail")
+
+        monkeypatch.setattr(
+            insights_api,
+            "_pdf_renderer",
+            lambda: UnavailablePdfRenderer(),
+        )
+        unavailable = client.get(f"/api/v1/reports/{report_id}/export.pdf")
+        assert unavailable.status_code == 503
+        assert unavailable.headers["x-error-code"] == "PDF_TIMEOUT"
+        assert "internal timeout detail" not in unavailable.text
+        assert client.get(f"/api/v1/reports/{report_id}/export.md").status_code == 200
 
     with SessionLocal() as session:
         report = session.get(Report, report_id)
@@ -353,6 +392,40 @@ def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> Non
             },
         )
         assert future.status_code == 409
+
+
+def test_pdf_export_rejects_a_report_hash_mismatch_before_rendering(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, client, _, project_id, _ = _active_fixture("pdf-hash-owner@example.com")
+    today = _project_today()
+    with SessionLocal() as session:
+        started = ReportService(session, user.id, "pdf-hash-start").start(
+            project_id,
+            ReportCreateRequest(
+                report_type="weekly",
+                period_start=today - timedelta(days=1),
+                period_end=today,
+            ),
+            idempotency_key="pdf-hash-mismatch-report",
+        )
+        run = asyncio.run(ReportingWorkflow(session, None, get_settings()).execute(started.run_id))
+        assert run.outcome is not None
+        report_id = UUID(run.outcome["report_id"])
+        session.execute(
+            update(Report).where(Report.id == report_id).values(content_hash=f"sha256:{'0' * 64}")
+        )
+        session.commit()
+
+    class MustNotRender:
+        def render(self, _: str) -> bytes:
+            raise AssertionError("Renderer must not run for a mismatched report hash.")
+
+    monkeypatch.setattr(insights_api, "_pdf_renderer", lambda: MustNotRender())
+    with client:
+        response = client.get(f"/api/v1/reports/{report_id}/export.pdf")
+        assert response.status_code == 409
+        assert "immutable content hash" in response.json()["detail"]
 
 
 def test_report_narrative_acceptance_rejection_and_refusal_are_deterministic() -> None:

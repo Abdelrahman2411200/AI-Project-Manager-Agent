@@ -114,6 +114,22 @@ class AdvancedIntelligenceService:
             by_risk.setdefault(relation.risk_id, []).append(relation)
         return [(risk, by_risk[risk.id]) for risk in risks]
 
+    def get_risk(self, version_id: UUID, risk_id: UUID) -> tuple[Risk, list[RiskRelation]]:
+        plan = self.policy.plan(version_id)
+        risk = self.session.scalar(
+            select(Risk).where(Risk.id == risk_id, Risk.version_id == plan.id)
+        )
+        if risk is None:
+            raise PlanResourceNotFoundError
+        relations = list(
+            self.session.scalars(
+                select(RiskRelation)
+                .where(RiskRelation.risk_id == risk.id)
+                .order_by(RiskRelation.entity_type, RiskRelation.entity_ref)
+            )
+        )
+        return risk, relations
+
     def create_risk(
         self,
         version_id: UUID,
@@ -211,6 +227,54 @@ class AdvancedIntelligenceService:
             )
         )
         return risk, relations, self.policy.plan(plan.id)
+
+    def delete_risk(
+        self,
+        version_id: UUID,
+        risk_id: UUID,
+        expected_version: int,
+    ) -> tuple[str, PlanVersion]:
+        plan = self.policy.mutable_draft(version_id, expected_version)
+        risk = self.session.scalar(
+            select(Risk).where(Risk.id == risk_id, Risk.version_id == plan.id)
+        )
+        if risk is None:
+            raise PlanResourceNotFoundError
+        before = {
+            "stable_key": risk.stable_key,
+            "severity": risk.severity,
+            "status": risk.status,
+        }
+        stable_key = risk.stable_key
+        for relation in self.session.scalars(
+            select(RiskRelation).where(RiskRelation.risk_id == risk.id)
+        ):
+            self.session.delete(relation)
+        self.session.delete(risk)
+        self._invalidate_plan(plan)
+        try:
+            self.session.flush()
+            self.audit.append(
+                owner_id=self.owner_id,
+                actor_id=self.owner_id,
+                project_id=plan.project_id,
+                action="RiskDeleted",
+                entity_type="Risk",
+                entity_id=risk_id,
+                request_id=self.request_id,
+                before_ref=before,
+                after_ref={
+                    "stable_key": stable_key,
+                    "content_hash": plan.content_hash,
+                },
+            )
+            self.session.commit()
+        except (IntegrityError, StaleDataError) as error:
+            self.session.rollback()
+            raise PlanLifecycleConflictError(
+                "Risk deletion conflicts with persisted state."
+            ) from error
+        return stable_key, self.policy.plan(plan.id)
 
     def create_scenario(
         self,

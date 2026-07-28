@@ -70,16 +70,20 @@ export function getReport(reportId: string): Promise<ReportView> {
   return requestJson(`/reports/${reportId}`);
 }
 
-export async function downloadReport(reportId: string): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}/reports/${reportId}/export.md`, {
+export async function downloadReport(
+  reportId: string,
+  format: "md" | "pdf" = "md",
+): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/reports/${reportId}/export.${format}`, {
     credentials: "include",
-    headers: { Accept: "text/markdown" },
+    headers: { Accept: format === "pdf" ? "application/pdf" : "text/markdown" },
   });
   if (!response.ok) {
     throw new ApiError((await response.json()) as ProblemDetail);
   }
   const disposition = response.headers.get("Content-Disposition") ?? "";
-  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "project-report.md";
+  const filename =
+    disposition.match(/filename="([^"]+)"/)?.[1] ?? `project-report.${format}`;
   const url = URL.createObjectURL(await response.blob());
   const anchor = document.createElement("a");
   anchor.href = url;

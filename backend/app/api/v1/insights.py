@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Literal
 from uuid import UUID
 
@@ -9,7 +10,9 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AuthContext, require_csrf, require_user
+from app.core.config import get_settings
 from app.db.session import get_db
+from app.reports.pdf import ChromiumPdfRenderer, PdfRenderError
 from app.schemas.insight import (
     RecommendationDecisionRequest,
     RecommendationView,
@@ -66,6 +69,11 @@ def _recommendations(request: Request, auth: AuthContext, db: Session) -> Recomm
 
 def _reports(request: Request, auth: AuthContext, db: Session) -> ReportService:
     return ReportService(db, auth.user.id, _request_id(request))
+
+
+@lru_cache
+def _pdf_renderer() -> ChromiumPdfRenderer:
+    return ChromiumPdfRenderer(get_settings())
 
 
 @router.get(
@@ -203,5 +211,40 @@ def export_report_markdown(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get("/reports/{report_id}/export.pdf")
+def export_report_pdf(
+    report_id: UUID,
+    request: Request,
+    auth: AuthContext = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    try:
+        content, filename, report_hash, output_hash = _reports(request, auth, db).export_pdf(
+            report_id, _pdf_renderer()
+        )
+    except ReportNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Report resource not found.") from error
+    except ReportConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except PdfRenderError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="PDF rendering is temporarily unavailable. Markdown remains available.",
+            headers={"Retry-After": "30", "X-Error-Code": error.code},
+        ) from error
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+            "X-PDF-SHA256": output_hash,
+            "X-Report-Content-Hash": report_hash,
         },
     )

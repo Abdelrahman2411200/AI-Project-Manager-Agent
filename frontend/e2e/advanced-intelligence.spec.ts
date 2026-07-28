@@ -106,7 +106,7 @@ test("what-if result stays baseline-labelled and responsive", async ({ page }) =
   await expect(page.getByRole("heading", { name: "More weekly capacity" })).toBeVisible();
   await expect(page.getByText("Baseline remains unchanged")).toBeVisible();
   await expect(
-    page.getByRole("table", { name: "Baseline and virtual scenario metrics" }),
+    page.getByRole("table", { name: "Exact baseline and virtual scenario values" }),
   ).toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,

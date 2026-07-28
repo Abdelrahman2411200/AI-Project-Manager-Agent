@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     app_name: str = "AI Project Manager API"
     app_env: Literal["development", "test", "staging", "production"] = "development"
-    app_version: str = "0.11.0"
+    app_version: str = "0.12.0"
     api_prefix: str = "/api/v1"
     database_url: str = Field(default="sqlite:///./project_manager.db", min_length=1)
     database_pool_size: int = Field(default=20, ge=1, le=100)
@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     ai_rate_limit_window_seconds: int = Field(default=60, ge=10, le=3600)
     request_max_body_bytes: int = Field(default=1_048_576, ge=16_384, le=10_485_760)
     request_timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
+    pdf_render_timeout_seconds: int = Field(default=60, ge=5, le=120)
+    pdf_max_bytes: int = Field(default=10_485_760, ge=65_536, le=52_428_800)
+    pdf_max_concurrency: int = Field(default=2, ge=1, le=8)
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="gpt-5.6-terra", min_length=1, max_length=120)
     openai_timeout_seconds: float = Field(default=90.0, ge=1.0, le=300.0)

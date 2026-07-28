@@ -23,6 +23,7 @@ ALLOWED_METRICS = frozenset(
         "report.completed",
         "report.partial",
         "report.exported",
+        "report.export_failed",
         "narrative.validation_failed",
         "narrative.provider_failed",
     }

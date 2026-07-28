@@ -8,46 +8,7 @@ import { listPlanVersions, planKeys } from "../api/plans";
 import { getProject, projectKeys } from "../api/projects";
 import { ErrorState, FeedbackBanner, LoadingState } from "../components/Feedback";
 import { ExecutionNav } from "../features/execution/ExecutionNav";
-
-function ResultTable({
-  baseline,
-  scenario,
-}: {
-  baseline: Record<string, unknown>;
-  scenario: Record<string, unknown>;
-}) {
-  const display = (value: unknown) =>
-    typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-      ? String(value)
-      : value === null || value === undefined
-        ? "Not available"
-        : JSON.stringify(value);
-  const rows = [
-    ["Total effort", "total_effort_hours"],
-    ["Weekly capacity", "capacity_hours_per_week"],
-    ["Forecast weeks", "forecast_weeks"],
-    ["Forecast finish", "forecast_finish"],
-    ["Deadline delta days", "deadline_delta_days"],
-    ["Critical path hours", "critical_path_hours"],
-  ] as const;
-  return (
-    <div className="table-scroll" tabIndex={0}>
-      <table>
-        <caption>Baseline and virtual scenario metrics</caption>
-        <thead><tr><th>Metric</th><th>Baseline</th><th>Scenario</th></tr></thead>
-        <tbody>
-          {rows.map(([label, key]) => (
-            <tr key={key}>
-              <th scope="row">{label}</th>
-              <td>{display(baseline[key])}</td>
-              <td>{display(scenario[key])}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { ScenarioComparison } from "../features/advanced/ScenarioComparison";
 
 export function ScenarioPage() {
   const { projectId = "", scenarioId = "" } = useParams();
@@ -135,16 +96,7 @@ export function ScenarioPage() {
           <FeedbackBanner tone="info" title="Baseline remains unchanged">
             Scenario result is tied to <code>{scenario.data.baseline_content_hash}</code>. It has no write path to plan tables.
           </FeedbackBanner>
-          <dl className="analysis-facts">
-            <div><dt>Forecast delta</dt><dd>{scenario.data.result_json.delta.forecast_finish_days} days</dd></div>
-            <div><dt>Effort delta</dt><dd>{scenario.data.result_json.delta.effort_hours} hours</dd></div>
-            <div><dt>Critical-path delta</dt><dd>{scenario.data.result_json.delta.critical_path_hours} hours</dd></div>
-            <div><dt>Status</dt><dd>{scenario.data.status.replaceAll("_", " ")}</dd></div>
-          </dl>
-          <section className="detail-panel">
-            <h2>Metric comparison</h2>
-            <ResultTable baseline={scenario.data.result_json.baseline} scenario={scenario.data.result_json.scenario} />
-          </section>
+          <ScenarioComparison scenario={scenario.data} />
           <section className="detail-panel">
             <h2>Grounded explanation</h2>
             <p>{scenario.data.explanation_json?.summary ?? "No narrative explanation is available."}</p>

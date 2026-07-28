@@ -1,6 +1,6 @@
 [project]
 name = "ai-project-manager-api"
-version = "0.11.0"
+version = "0.12.0"
 description = "Stateful AI project planning, monitoring, and grounded reporting API"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
     "email-validator==2.3.0",
     "fastapi==0.139.2",
     "openai==2.47.0",
+    "playwright>=1.61.0",
     "psycopg[binary]==3.3.4",
     "pydantic-settings==2.14.2",
     "sqlalchemy==2.0.51",

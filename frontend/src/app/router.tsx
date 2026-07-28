@@ -6,6 +6,7 @@ import { ProjectDetailPage } from "../pages/ProjectDetailPage";
 import { ProjectsPage } from "../pages/ProjectsPage";
 import { SignInPage } from "../pages/SignInPage";
 import { ScenarioPage } from "../pages/ScenarioPage";
+import { AdvancedExperienceRoute } from "./AdvancedRoutes";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
 import {
   ExecutionBoardRoute,
@@ -35,6 +36,7 @@ export const routes: RouteObject[] = [
       { path: "/projects/:projectId/board", element: <ExecutionBoardRoute /> },
       { path: "/projects/:projectId/health", element: <ExecutionHealthRoute /> },
       { path: "/projects/:projectId/reports", element: <ReportsRoute /> },
+      { path: "/projects/:projectId/intelligence", element: <AdvancedExperienceRoute /> },
       { path: "/reports/:reportId", element: <ReportDetailRoute /> },
       { path: "/projects/:projectId/scenarios/:scenarioId", element: <ScenarioPage /> },
       { path: "*", element: <NotFoundPage /> },

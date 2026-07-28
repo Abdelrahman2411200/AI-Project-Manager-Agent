@@ -246,6 +246,8 @@ describe("grounded monitoring and reporting experience", () => {
     expect(view.container.querySelector("script")).toBeNull();
     expect(screen.getByText("Weighted project progress is 25%.")).toBeInTheDocument();
     expect(screen.getAllByText("METRIC-PROGRESS").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Download Markdown" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeInTheDocument();
 
     const results = await axe.run(view.container, {
       rules: { "color-contrast": { enabled: false } },
