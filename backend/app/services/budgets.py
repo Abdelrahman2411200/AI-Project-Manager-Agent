@@ -11,9 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.models.identity import User
-from app.db.models.run import AgentRun
-
-ACTIVE_RUN_STATUSES = frozenset({"queued", "running", "waiting_for_user", "partial"})
+from app.db.models.run import ACTIVE_RUN_STATUSES, AgentRun
 
 
 class BudgetExceededError(RuntimeError):
@@ -32,6 +30,24 @@ class OwnerQuota:
     tokens_reserved_or_used: int
     tokens_remaining: int
     resets_at: datetime
+
+
+def quota_from_totals(
+    *,
+    runs_used: int,
+    reserved_or_used: int,
+    resets_at: datetime,
+) -> OwnerQuota:
+    settings = get_settings()
+    return OwnerQuota(
+        daily_run_limit=settings.user_daily_run_limit,
+        runs_used=runs_used,
+        runs_remaining=max(0, settings.user_daily_run_limit - runs_used),
+        daily_token_budget=settings.user_daily_token_budget,
+        tokens_reserved_or_used=reserved_or_used,
+        tokens_remaining=max(0, settings.user_daily_token_budget - reserved_or_used),
+        resets_at=resets_at,
+    )
 
 
 class BudgetService:
@@ -60,7 +76,6 @@ class BudgetService:
         return quota
 
     def quota(self) -> OwnerQuota:
-        settings = get_settings()
         now = datetime.now(UTC)
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         resets_at = day_start + timedelta(days=1)
@@ -82,12 +97,8 @@ class BudgetService:
         ).one()
         runs_used = int(runs_used)
         reserved_or_used = int(reserved_or_used)
-        return OwnerQuota(
-            daily_run_limit=settings.user_daily_run_limit,
+        return quota_from_totals(
             runs_used=runs_used,
-            runs_remaining=max(0, settings.user_daily_run_limit - runs_used),
-            daily_token_budget=settings.user_daily_token_budget,
-            tokens_reserved_or_used=reserved_or_used,
-            tokens_remaining=max(0, settings.user_daily_token_budget - reserved_or_used),
+            reserved_or_used=reserved_or_used,
             resets_at=resets_at,
         )

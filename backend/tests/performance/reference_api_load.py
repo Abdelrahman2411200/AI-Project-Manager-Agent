@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import multiprocessing
 import statistics
 import time
 from collections.abc import Callable
@@ -16,7 +17,6 @@ import uvicorn
 from app.auth.security import hash_password
 from app.db.models.identity import User
 from app.db.session import SessionLocal
-from app.main import app
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--serve",
         action="store_true",
-        help="Start an in-process Uvicorn server for a self-contained live network gate.",
+        help="Start a disposable Uvicorn process for a self-contained live network gate.",
     )
     return parser.parse_args()
 
@@ -169,30 +169,52 @@ async def run_with_optional_server(
     parsed = httpx.URL(base_url)
     if parsed.host not in {"127.0.0.1", "localhost"} or parsed.port is None:
         raise ValueError("--serve requires an explicit localhost port.")
-    server = uvicorn.Server(
-        uvicorn.Config(
-            app,
-            host=str(parsed.host),
-            port=parsed.port,
-            log_level="warning",
-            access_log=False,
-        )
+    process = multiprocessing.get_context("spawn").Process(
+        target=serve_app,
+        args=(str(parsed.host), parsed.port),
+        daemon=True,
     )
-    server_task = asyncio.create_task(server.serve())
+    process.start()
     try:
-        for _ in range(100):
-            if server.started:
-                break
-            if server_task.done():
-                await server_task
-                raise RuntimeError("Reference Uvicorn server stopped before becoming ready.")
-            await asyncio.sleep(0.05)
-        if not server.started:
-            raise RuntimeError("Reference Uvicorn server did not become ready.")
+        await wait_until_ready(base_url, process)
         return await run(base_url, concurrency, rounds)
     finally:
-        server.should_exit = True
-        await server_task
+        if process.is_alive():
+            process.terminate()
+        process.join(timeout=10)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=5)
+
+
+def serve_app(host: str, port: int) -> None:
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        log_level="warning",
+        access_log=False,
+    )
+
+
+async def wait_until_ready(
+    base_url: str,
+    process: multiprocessing.Process,
+) -> None:
+    async with httpx.AsyncClient(base_url=base_url, timeout=1) as client:
+        for _ in range(200):
+            if not process.is_alive():
+                raise RuntimeError(
+                    f"Reference Uvicorn process exited with code {process.exitcode}."
+                )
+            try:
+                response = await client.get("/api/v1/health/live")
+                if response.status_code == 200:
+                    return
+            except httpx.HTTPError:
+                pass
+            await asyncio.sleep(0.05)
+    raise RuntimeError("Reference Uvicorn process did not become ready.")
 
 
 def main() -> int:
