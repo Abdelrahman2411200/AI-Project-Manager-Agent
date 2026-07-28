@@ -50,6 +50,9 @@ class OpenAIResponsesProvider:
                 max_retries=0,
             )
 
+    async def close(self) -> None:
+        await self._client.close()
+
     async def generate[StructuredOutputT: BaseModel](
         self, request: StructuredModelRequest[StructuredOutputT]
     ) -> StructuredModelResult[StructuredOutputT]:

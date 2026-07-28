@@ -46,13 +46,18 @@ On Windows, configure the ignored file without placing the key in shell history:
 ```
 
 The script prompts with hidden input, updates only the ignored `.env.demo`, restarts
-the API and worker, and verifies that the API loaded the key. Never paste an API
-key into the browser, chat, source code, or a committed file. After the capability
-check turns available, an old failed-run screen offers **Start a new planning run**.
-The helper does not purchase or grant API quota. If a valid key belongs to an
-account without available API credits, the run stops once with
-`MODEL_QUOTA_EXHAUSTED` and the UI directs the operator to restore billing or the
-OpenAI project usage limit before starting another run.
+the API, worker, and frontend, verifies backend configuration, and sends one
+minimal structured provider probe. The probe may consume a small number of API
+tokens. Never paste an API key into the browser, chat, source code, or a committed
+file. After the capability check turns available, an old failed-run screen offers
+**Start a new planning run**. The helper does not purchase or grant API quota. If
+the key has no available API credits, the helper stops with a safe typed result
+before a planning run is created. After restoring API billing, verify the existing
+configuration without re-entering the key:
+
+```powershell
+& .\infra\release\configure-demo-openai.ps1 -ProbeOnly
+```
 
 Open `http://localhost:8080`.
 

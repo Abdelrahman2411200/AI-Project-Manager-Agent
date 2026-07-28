@@ -139,11 +139,19 @@ history:
 & .\infra\release\configure-demo-openai.ps1
 ```
 
-The helper writes the key only to ignored `.env.demo`, force-recreates the API and
-worker, and verifies that the API loaded the value. Do not enter the key in the
-web application, paste it into chat, or commit it. Without the key, project-only
-saves remain available, but the UI disables planning and the API rejects planning
-admission before it creates a run or reserves quota.
+The helper writes the key only to ignored `.env.demo`, force-recreates the API,
+worker, and frontend, verifies backend configuration, and performs one minimal
+structured provider request. The probe may consume a small number of API tokens.
+Do not enter the key in the web application, paste it into chat, or commit it.
+After correcting billing or another provider issue, verify the stored key without
+entering it again:
+
+```powershell
+& .\infra\release\configure-demo-openai.ps1 -ProbeOnly
+```
+
+Without the key, project-only saves remain available, but the UI disables planning
+and the API rejects planning admission before it creates a run or reserves quota.
 
 Known synthetic credentials:
 
