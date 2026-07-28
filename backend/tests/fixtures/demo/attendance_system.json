@@ -1,0 +1,17 @@
+{
+  "slug": "attendance_system",
+  "name": "University Attendance System",
+  "goal": "Track attendance for university students, instructors, and administrators.",
+  "desired_outcome": "Role-scoped attendance capture with access controls and an immutable audit trail.",
+  "weeks": 6,
+  "team_size": 2,
+  "capacity_hours_per_week": 80,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Student roster", "Instructor attendance capture", "Administrator corrections", "Audit history", "Role-based access"],
+  "exclusions": ["Biometric identification", "Public student records"],
+  "clarifications": [{"key": "Q-001", "question": "What is the institutional retention policy?", "answer": "Use the demo retention policy; confirm before production."}],
+  "modules": ["identity", "roster", "attendance", "audit", "quality"],
+  "risk": "Personal attendance data requires least privilege, retention, and correction auditing.",
+  "warning": "Production retention and institutional authorization remain unresolved.",
+  "main_demo": false
+}

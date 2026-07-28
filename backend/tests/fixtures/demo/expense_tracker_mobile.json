@@ -1,0 +1,17 @@
+{
+  "slug": "expense_tracker_mobile",
+  "name": "Offline Expense Tracker",
+  "goal": "Build a mobile expense tracker with offline capture, categorization, and reports.",
+  "desired_outcome": "A platform-defined offline-first expense workflow with explicit synchronization rules.",
+  "weeks": 8,
+  "team_size": 2,
+  "capacity_hours_per_week": 80,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Offline expense capture", "Categories", "Monthly reports", "Synchronization", "Conflict handling"],
+  "exclusions": ["Bank credential storage", "Unconfirmed desktop client"],
+  "clarifications": [{"key": "Q-001", "question": "Which mobile platforms and sync service are required?", "answer": "Android-first demo with a local fake sync service."}],
+  "modules": ["mobile-shell", "offline-store", "sync", "reporting", "quality"],
+  "risk": "Unspecified platform and synchronization semantics can invalidate the offline design.",
+  "warning": "Cross-platform support needs a separately approved scope change.",
+  "main_demo": false
+}

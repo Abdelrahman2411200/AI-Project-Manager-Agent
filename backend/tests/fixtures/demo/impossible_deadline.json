@@ -1,0 +1,17 @@
+{
+  "slug": "impossible_deadline",
+  "name": "Commerce — Impossible Deadline",
+  "goal": "Build complex commerce functionality with one person in five working days.",
+  "desired_outcome": "Truthfully expose infeasibility without compressing estimates or inventing capacity.",
+  "weeks": 1,
+  "team_size": 1,
+  "capacity_hours_per_week": 40,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Catalog", "Cart", "Real payment certification", "Inventory", "Authentication", "Testing", "Production deployment"],
+  "exclusions": ["Estimate compression", "Unapproved overtime"],
+  "clarifications": [{"key": "Q-001", "question": "Can scope, capacity, or deadline change?", "answer": "No; preserve estimates and surface the infeasible schedule."}],
+  "modules": ["foundation", "catalog", "commerce", "operations", "quality"],
+  "risk": "The confirmed scope exceeds one person's five-day capacity.",
+  "warning": "SCHEDULE_INFEASIBLE: change scope, capacity, sequencing, or deadline.",
+  "main_demo": false
+}

@@ -17,12 +17,13 @@ RUN uv sync --frozen --no-dev
 RUN uv run playwright install --with-deps chromium
 
 COPY app ./app
+COPY tests/fixtures/demo ./tests/fixtures/demo
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM base AS development
 

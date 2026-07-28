@@ -1,0 +1,17 @@
+{
+  "slug": "analytics_dashboard",
+  "name": "Analytics Dashboard",
+  "goal": "Build an analytics dashboard from governed source data.",
+  "desired_outcome": "A permission-aware ingestion-to-visualization pipeline with freshness indicators.",
+  "weeks": 8,
+  "team_size": 3,
+  "capacity_hours_per_week": 120,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Source ingestion", "Data validation", "Freshness monitoring", "Permission filters", "Accessible dashboards"],
+  "exclusions": ["Unapproved production data", "Predictive claims"],
+  "clarifications": [{"key": "Q-001", "question": "Which sources, refresh interval, and roles are approved?", "answer": "Seeded CSV, daily refresh, owner and viewer roles."}],
+  "modules": ["governance", "ingestion", "semantic-model", "visualization", "quality"],
+  "risk": "Visualizations cannot be trusted before source, freshness, and permission contracts are validated.",
+  "warning": "Ingestion dependencies must precede dashboard work.",
+  "main_demo": false
+}

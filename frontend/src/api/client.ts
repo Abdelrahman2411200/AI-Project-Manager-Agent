@@ -16,7 +16,7 @@ export class ApiError extends Error {
 }
 
 export const apiBaseUrl =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+  import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 function readCookie(name: string): string | undefined {
   const prefix = `${encodeURIComponent(name)}=`;

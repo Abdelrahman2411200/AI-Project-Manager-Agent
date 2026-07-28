@@ -1,0 +1,141 @@
+name: university-release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  release-contracts:
+    name: 1 · Release contracts and eight fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - working-directory: backend
+        run: uv sync --locked --group dev
+      - name: Verify immutable source, 72 items, reset guards, and fixture persistence
+        working-directory: backend
+        run: uv run pytest tests/demo tests/release -q
+
+  compose-contracts:
+    name: 2 · Production and demo Compose contracts
+    needs: release-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql+psycopg://project_manager:release-ci-password@db:5432/project_manager
+      SESSION_HASH_SECRET: release-ci-session-secret-at-least-32-characters
+      CORS_ORIGINS: '["https://project-manager.example.test"]'
+      POSTGRES_DB: project_manager
+      POSTGRES_USER: project_manager
+      POSTGRES_PASSWORD: release-ci-password
+      BACKUP_PASSPHRASE: release-ci-backup-passphrase
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: docker compose -f compose.demo.yaml config --quiet
+      - run: >
+          docker compose -f compose.production.yaml
+          --profile production --profile operations config --quiet
+
+  production-smoke:
+    name: 3 · Production profile smoke
+    needs: compose-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql+psycopg://project_manager:release-ci-password@db:5432/project_manager
+      SESSION_HASH_SECRET: release-ci-session-secret-at-least-32-characters
+      CORS_ORIGINS: '["https://project-manager.example.test"]'
+      POSTGRES_DB: project_manager
+      POSTGRES_USER: project_manager
+      POSTGRES_PASSWORD: release-ci-password
+      BACKUP_PASSPHRASE: release-ci-backup-passphrase
+      HTTP_PORT: "8080"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build, migrate, and start production profile
+        run: >
+          docker compose -f compose.production.yaml --profile production
+          up -d --build --wait
+      - name: Verify frontend and proxied API health
+        run: |
+          curl --fail --show-error --silent http://127.0.0.1:8080/healthz
+          curl --fail --show-error --silent http://127.0.0.1:8080/api/v1/health/ready
+          docker compose -f compose.production.yaml --profile production ps
+      - name: Retain service logs on failure
+        if: ${{ failure() }}
+        run: >
+          docker compose -f compose.production.yaml --profile production
+          logs --no-color
+      - name: Remove ephemeral production rehearsal volumes
+        if: ${{ always() }}
+        run: >
+          docker compose -f compose.production.yaml --profile production
+          down --volumes --remove-orphans
+
+  clean-demo:
+    name: 4 · Clean demo, restart, PDF, and seeded restore
+    needs: production-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Rehearse clean university release
+        run: |
+          set -o pipefail
+          sh infra/release/verify-demo.sh | tee "${{ runner.temp }}/demo-rehearsal.log"
+      - name: Build backup verifier
+        run: docker build --file infra/backup/Dockerfile --tag aipm-release-backup .
+      - name: Backup seeded state, restore in isolation, and verify
+        run: |
+          set -o pipefail
+          docker run --rm \
+            --network ai-project-manager-university-demo_default \
+            --env ADMIN_DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/postgres \
+            --env DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/project_manager_demo \
+            --env RESTORE_DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/project_manager_demo_restore_check \
+            --env BACKUP_PASSPHRASE=release-ci-seeded-restore-only \
+            aipm-release-backup |
+            tee "${{ runner.temp }}/seeded-restore.log"
+      - name: Retain university release evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: university-release-evidence
+          path: |
+            ${{ runner.temp }}/demo-rehearsal.log
+            ${{ runner.temp }}/seeded-restore.log
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain service logs on failure
+        if: ${{ failure() }}
+        run: docker compose -f compose.demo.yaml logs --no-color
+      - name: Remove ephemeral demo rehearsal volumes
+        if: ${{ always() }}
+        run: docker compose -f compose.demo.yaml down --volumes --remove-orphans
+
+  release-gate:
+    name: 5 · University release gate
+    needs: clean-demo
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All university release contracts, deployment, demo, persistence, and recovery gates passed."

@@ -1,0 +1,105 @@
+name: ai-project-manager-university-demo
+
+x-demo-environment: &demo-environment
+  APP_ENV: demo
+  APP_VERSION: ${APP_VERSION:-0.13.0}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/project_manager_demo}
+  SESSION_HASH_SECRET: ${SESSION_HASH_SECRET:-university-demo-session-secret-32-characters}
+  COOKIE_SECURE: "false"
+  CORS_ORIGINS: '["${DEMO_ORIGIN:-http://localhost:8080}"]'
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-terra}
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-project_manager_demo}
+      POSTGRES_USER: ${POSTGRES_USER:-project_manager_demo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demo-database-only}
+    volumes:
+      - demo_postgres:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./backend
+      target: base
+    command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+    environment: *demo-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  seed:
+    profiles: ["reset"]
+    build:
+      context: ./backend
+      target: base
+    command:
+      - /app/.venv/bin/python
+      - -m
+      - app.cli.demo_reset
+      - --confirm
+      - RESET-DEMO-DATA
+    environment:
+      <<: *demo-environment
+      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:-SyntheticDemoOnly!2026}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      target: base
+    environment: *demo-environment
+    expose: ["8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=2)
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      target: base
+    command: ["/app/.venv/bin/python", "-m", "app.workers.main"]
+    environment: *demo-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  demo_postgres:
