@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, utc_now
 
 JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
+ACTIVE_RUN_STATUSES = frozenset({"queued", "running", "waiting_for_user", "partial"})
 
 
 class AgentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):

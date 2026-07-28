@@ -114,7 +114,11 @@ class ProjectService:
             raise ProjectConflictError(
                 "Project intake contains duplicate or invalid values."
             ) from exc
-        return self.get(project.id)
+        # The committed instance already contains the request-owned child
+        # collections and server-generated values because sessions do not
+        # expire on commit. Avoid four redundant SELECTs on the latency-critical
+        # creation path; later reads still use the fully eager-loaded query.
+        return project
 
     def update(self, project_id: UUID, payload: ProjectUpdate, expected_version: int) -> Project:
         project = self.get(project_id)

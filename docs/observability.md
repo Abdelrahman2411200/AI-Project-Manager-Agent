@@ -14,6 +14,12 @@ database URLs into telemetry.
 | Oldest queued job | below configured threshold | `QUEUE_AGE_HIGH` |
 | Provider failure ratio | below configured ratio | `PROVIDER_FAILURE_RATE_HIGH` |
 | Daily estimated model cost | below configured warning fraction and hard budget | `DAILY_COST_BUDGET_HIGH` |
+
+The reference API latency gate runs in an isolated clean CI job using the
+production topology of one Uvicorn worker per horizontally scalable API
+container, a separate load-generator process, live network requests, and fresh
+PostgreSQL. It measures three rounds of 50 concurrent authenticated requests
+and calculates p95 over all 150 read and 150 write samples.
 | Duplicate job claims | zero | `DUPLICATE_JOB_CLAIM` |
 | Scheduled backup | successful and fresh | `BACKUP_FAILED` |
 

@@ -1,20 +1,21 @@
 """Authenticated operational limits without exposing other users or infrastructure."""
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
-from app.auth.dependencies import AuthContext, require_user
-from app.db.session import get_db
+from app.auth.dependencies import AuthUsageContext, require_user_usage
 from app.schemas.operations import OwnerQuotaView
-from app.services.budgets import BudgetService
+from app.services.budgets import quota_from_totals
 
 router = APIRouter(tags=["operations"])
 
 
 @router.get("/usage/quota", response_model=OwnerQuotaView)
 def get_owner_quota(
-    auth: AuthContext = Depends(require_user),
-    db: Session = Depends(get_db),
+    usage: AuthUsageContext = Depends(require_user_usage),
 ) -> OwnerQuotaView:
-    quota = BudgetService(db, auth.user.id).quota()
+    quota = quota_from_totals(
+        runs_used=usage.runs_used,
+        reserved_or_used=usage.tokens_reserved_or_used,
+        resets_at=usage.resets_at,
+    )
     return OwnerQuotaView.model_validate(quota, from_attributes=True)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import multiprocessing
 import statistics
 import time
 from collections.abc import Callable
@@ -16,7 +17,6 @@ import uvicorn
 from app.auth.security import hash_password
 from app.db.models.identity import User
 from app.db.session import SessionLocal
-from app.main import app
 
 
 def parse_args() -> argparse.Namespace:
@@ -24,9 +24,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--concurrency", type=int, default=50)
     parser.add_argument(
+        "--rounds",
+        type=int,
+        default=3,
+        help="Measured request rounds; p95 is calculated over every sample.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Uvicorn workers in the reference API deployment.",
+    )
+    parser.add_argument(
         "--serve",
         action="store_true",
-        help="Start an in-process Uvicorn server for a self-contained live network gate.",
+        help="Start a disposable Uvicorn process for a self-contained live network gate.",
     )
     return parser.parse_args()
 
@@ -77,7 +89,15 @@ def project_payload(index: int) -> dict[str, object]:
     }
 
 
-async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
+async def run(
+    base_url: str,
+    concurrency: int,
+    rounds: int,
+) -> dict[str, float | int | bool]:
+    if concurrency < 1:
+        raise ValueError("concurrency must be positive")
+    if rounds < 1:
+        raise ValueError("rounds must be positive")
     email, password = seed_owner()
     async with httpx.AsyncClient(base_url=base_url, timeout=30) as client:
         login = await client.post(
@@ -108,25 +128,35 @@ async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
             raise RuntimeError(
                 f"Load warm-up write failed: {warmup.status_code} {warmup.text[:200]}"
             )
-        reads = await timed_requests(
-            client,
-            "GET",
-            "/api/v1/usage/quota",
-            concurrency,
-            expected_status=200,
-        )
-        writes = await timed_requests(
-            client,
-            "POST",
-            "/api/v1/projects",
-            concurrency,
-            payload=project_payload,
-            expected_status=201,
-        )
+        reads: list[float] = []
+        writes: list[float] = []
+        for _ in range(rounds):
+            reads.extend(
+                await timed_requests(
+                    client,
+                    "GET",
+                    "/api/v1/usage/quota",
+                    concurrency,
+                    expected_status=200,
+                )
+            )
+            writes.extend(
+                await timed_requests(
+                    client,
+                    "POST",
+                    "/api/v1/projects",
+                    concurrency,
+                    payload=project_payload,
+                    expected_status=201,
+                )
+            )
     read_p95 = p95(reads)
     write_p95 = p95(writes)
     return {
         "concurrency": concurrency,
+        "rounds": rounds,
+        "read_samples": len(reads),
+        "write_samples": len(writes),
         "read_p95_ms": round(read_p95, 3),
         "write_p95_ms": round(write_p95, 3),
         "passed": read_p95 < 300 and write_p95 < 600,
@@ -136,38 +166,66 @@ async def run(base_url: str, concurrency: int) -> dict[str, float | int | bool]:
 async def run_with_optional_server(
     base_url: str,
     concurrency: int,
+    rounds: int,
+    workers: int,
     *,
     serve: bool,
 ) -> dict[str, float | int | bool]:
+    if workers < 1:
+        raise ValueError("workers must be positive")
     if not serve:
-        return await run(base_url, concurrency)
+        return await run(base_url, concurrency, rounds)
     parsed = httpx.URL(base_url)
     if parsed.host not in {"127.0.0.1", "localhost"} or parsed.port is None:
         raise ValueError("--serve requires an explicit localhost port.")
-    server = uvicorn.Server(
-        uvicorn.Config(
-            app,
-            host=str(parsed.host),
-            port=parsed.port,
-            log_level="warning",
-            access_log=False,
-        )
+    process = multiprocessing.get_context("spawn").Process(
+        target=serve_app,
+        args=(str(parsed.host), parsed.port, workers),
     )
-    server_task = asyncio.create_task(server.serve())
+    process.start()
     try:
-        for _ in range(100):
-            if server.started:
-                break
-            if server_task.done():
-                await server_task
-                raise RuntimeError("Reference Uvicorn server stopped before becoming ready.")
-            await asyncio.sleep(0.05)
-        if not server.started:
-            raise RuntimeError("Reference Uvicorn server did not become ready.")
-        return await run(base_url, concurrency)
+        await wait_until_ready(base_url, process)
+        result = await run(base_url, concurrency, rounds)
+        result["server_workers"] = workers
+        return result
     finally:
-        server.should_exit = True
-        await server_task
+        if process.is_alive():
+            process.terminate()
+        process.join(timeout=10)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=5)
+
+
+def serve_app(host: str, port: int, workers: int) -> None:
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        workers=workers,
+        log_level="warning",
+        access_log=False,
+    )
+
+
+async def wait_until_ready(
+    base_url: str,
+    process: multiprocessing.Process,
+) -> None:
+    async with httpx.AsyncClient(base_url=base_url, timeout=1) as client:
+        for _ in range(200):
+            if not process.is_alive():
+                raise RuntimeError(
+                    f"Reference Uvicorn process exited with code {process.exitcode}."
+                )
+            try:
+                response = await client.get("/api/v1/health/live")
+                if response.status_code == 200:
+                    return
+            except httpx.HTTPError:
+                pass
+            await asyncio.sleep(0.05)
+    raise RuntimeError("Reference Uvicorn process did not become ready.")
 
 
 def main() -> int:
@@ -176,6 +234,8 @@ def main() -> int:
         run_with_optional_server(
             args.base_url,
             args.concurrency,
+            args.rounds,
+            args.workers,
             serve=args.serve,
         )
     )
