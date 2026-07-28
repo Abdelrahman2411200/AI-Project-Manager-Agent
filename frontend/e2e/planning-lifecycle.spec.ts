@@ -30,6 +30,12 @@ async function mockLifecycle(page: Page) {
     const method = request.method();
 
     if (path === "/auth/session" && method === "GET") return json(route, sessionFixture);
+    if (path === "/system/capabilities" && method === "GET") {
+      return json(route, {
+        planning_ai_configured: true,
+        planning_model: "gpt-5.6-terra",
+      });
+    }
     if (path === "/projects" && method === "POST") {
       const payload = request.postDataJSON() as Record<string, unknown>;
       expect(payload.name).toBe("Campus Services Portal");

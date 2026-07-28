@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import { getSystemCapabilities, operationsKeys } from "../api/operations";
 import { cancelAgentRun, getAgentRun, listAgentRunSteps, planningRunPollInterval, runKeys, startPlanningRun } from "../api/runs";
 import { getProject, projectKeys } from "../api/projects";
 import { errorMessage, isPermissionError } from "../api/errorUtils";
@@ -42,6 +43,16 @@ export function PlanningPage() {
     refetchInterval: () =>
       run.data && planningRunPollInterval(run.data) !== false ? 1_000 : false,
   });
+  const capabilities = useQuery({
+    queryKey: operationsKeys.capabilities,
+    queryFn: getSystemCapabilities,
+    enabled:
+      (!runId && project.data?.status === "active") ||
+      run.data?.outcome?.failure_code === "AI_UNCONFIGURED",
+    refetchInterval: (query) =>
+      query.state.data?.planning_ai_configured === true ? false : 5_000,
+  });
+  const planningAiConfigured = capabilities.data?.planning_ai_configured === true;
   const start = useMutation({
     mutationFn: () => startPlanningRun(projectId),
     onSuccess: (createdRun) => {
@@ -123,6 +134,30 @@ export function PlanningPage() {
                 errorMessage(start.error, "Try starting the planning run again.")}
             </FeedbackBanner>
           ) : null}
+          {capabilities.isError ? (
+            <FeedbackBanner
+              tone="danger"
+              title="Planning availability could not be checked"
+              actions={
+                <button
+                  className="button compact secondary"
+                  type="button"
+                  onClick={() => void capabilities.refetch()}
+                >
+                  Check again
+                </button>
+              }
+            >
+              The server did not return its AI-planning status. Starting a run is disabled until
+              the check succeeds.
+            </FeedbackBanner>
+          ) : null}
+          {!capabilities.isPending && !capabilities.isError && !planningAiConfigured ? (
+            <FeedbackBanner tone="warning" title="AI planning needs server configuration">
+              Ask the server operator to configure OPENAI_API_KEY and restart the API and worker.
+              You can still review this project while planning is unavailable.
+            </FeedbackBanner>
+          ) : null}
           <div className="launch-checklist" aria-label="Planning safeguards">
             <span>Schema-constrained output</span>
             <span>Deterministic validation</span>
@@ -131,10 +166,16 @@ export function PlanningPage() {
           <button
             className="button primary"
             type="button"
-            disabled={start.isPending}
+            disabled={start.isPending || capabilities.isPending || !planningAiConfigured}
             onClick={() => start.mutate()}
           >
-            {start.isPending ? "Starting planning…" : "Start planning"}
+            {start.isPending
+              ? "Starting planning…"
+              : capabilities.isPending
+                ? "Checking AI planning…"
+                : planningAiConfigured
+                  ? "Start planning"
+                  : "AI planning unavailable"}
           </button>
         </section>
       </div>
@@ -148,7 +189,9 @@ export function PlanningPage() {
       : null;
   const failureDetail =
     rawFailureCode === "AI_UNCONFIGURED"
-      ? "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run."
+      ? planningAiConfigured
+        ? "OpenAI is now configured. This failed run remains as an audit record; start a new planning run to continue."
+        : "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run."
       : rawFailureCode
         ? `The workflow reported ${rawFailureCode.replaceAll("_", " ")}. No incomplete plan was activated.`
         : "The workflow could not produce a valid plan. No incomplete plan was activated.";
@@ -196,8 +239,28 @@ export function PlanningPage() {
         </FeedbackBanner>
       ) : null}
       {run.data.status === "failed" ? (
-        <FeedbackBanner tone="danger" title="Planning stopped safely">
+        <FeedbackBanner
+          tone={rawFailureCode === "AI_UNCONFIGURED" && planningAiConfigured ? "warning" : "danger"}
+          title="Planning stopped safely"
+          actions={
+            rawFailureCode === "AI_UNCONFIGURED" && planningAiConfigured ? (
+              <button
+                className="button primary"
+                type="button"
+                disabled={start.isPending}
+                onClick={() => start.mutate()}
+              >
+                {start.isPending ? "Starting a new run…" : "Start a new planning run"}
+              </button>
+            ) : undefined
+          }
+        >
           {failureDetail}
+        </FeedbackBanner>
+      ) : null}
+      {run.data.status === "failed" && start.isError ? (
+        <FeedbackBanner tone="danger" title="A new planning run could not start">
+          {errorMessage(start.error, "Check the server configuration and try again.")}
         </FeedbackBanner>
       ) : null}
       {run.data.status === "partial" ? (

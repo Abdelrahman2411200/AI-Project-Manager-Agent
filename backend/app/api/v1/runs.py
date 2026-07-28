@@ -18,6 +18,7 @@ from app.schemas.run import (
 from app.services.budgets import BudgetExceededError
 from app.services.runs import (
     ClarificationValidationError,
+    PlanningProviderUnavailableError,
     PlanningRunService,
     RunConflictError,
     RunNotFoundError,
@@ -62,6 +63,12 @@ def start_planning_run(
         raise _not_found() from error
     except RunConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    except PlanningProviderUnavailableError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=str(error),
+            headers={"Retry-After": "60", "X-Error-Code": "ai_provider_unconfigured"},
+        ) from error
     except BudgetExceededError as error:
         raise HTTPException(
             status_code=429,

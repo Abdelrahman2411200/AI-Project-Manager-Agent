@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
+from app.core.config import get_settings
 from app.db.models.run import AgentJob, AgentRun
 from app.db.session import SessionLocal
 from tests.api.test_projects import (
@@ -45,6 +46,32 @@ def test_planning_start_is_csrf_protected_and_idempotent() -> None:
         run_id = UUID(first.json()["id"])
         assert session.scalar(select(func.count(AgentRun.id))) == 1
         assert session.scalar(select(func.count(AgentJob.id)).where(AgentJob.run_id == run_id)) == 1
+
+
+def test_unconfigured_provider_rejects_before_consuming_a_run(monkeypatch) -> None:
+    monkeypatch.setattr(get_settings(), "openai_api_key", None)
+    _, client, csrf = create_user_and_client("run-provider-missing@example.com")
+    with client:
+        project = client.post(
+            "/api/v1/projects",
+            json=project_payload(),
+            headers=write_headers(csrf),
+        ).json()
+        response = client.post(
+            f"/api/v1/projects/{project['id']}/planning-runs",
+            json={"token_budget": 50000},
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "provider-missing-run",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.headers["X-Error-Code"] == "ai_provider_unconfigured"
+    assert "OPENAI_API_KEY" in response.json()["detail"]
+    with SessionLocal() as session:
+        assert session.scalar(select(func.count(AgentRun.id))) == 0
+        assert session.scalar(select(func.count(AgentJob.id))) == 0
 
 
 def test_run_trace_is_owner_scoped_and_queued_run_can_be_cancelled() -> None:

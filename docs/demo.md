@@ -34,8 +34,21 @@ docker compose --env-file .env.demo -f compose.demo.yaml up -d --build api worke
 
 To exercise a new AI planning run, set `OPENAI_API_KEY` in `.env.demo` before the
 final `up` command and keep that ignored file outside version control. If the key
-is omitted, the run fails explicitly with
-`AI_UNCONFIGURED`; it does not remain queued indefinitely.
+is omitted, the UI disables planning and the API returns
+`503` with `X-Error-Code: ai_provider_unconfigured` before creating a run, job,
+or quota reservation.
+Existing `AI_UNCONFIGURED` failures remain as audit records.
+
+On Windows, configure the ignored file without placing the key in shell history:
+
+```powershell
+& .\infra\release\configure-demo-openai.ps1
+```
+
+The script prompts with hidden input, updates only the ignored `.env.demo`, restarts
+the API and worker, and verifies that the API loaded the key. Never paste an API
+key into the browser, chat, source code, or a committed file. After the capability
+check turns available, an old failed-run screen offers **Start a new planning run**.
 
 Open `http://localhost:8080`.
 

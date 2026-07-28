@@ -68,13 +68,24 @@ describe("application routes", () => {
   });
 
   it("renders the guided project creation contract", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(session)));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(session))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          planning_ai_configured: true,
+          planning_model: "gpt-5.6-terra",
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
     const router = createMemoryRouter(routes, { initialEntries: ["/projects/new"] });
     render(<App router={router} />);
 
     expect(await screen.findByRole("heading", { name: "Create a new project" })).toBeInTheDocument();
     expect(screen.getByLabelText("Project name *")).toBeRequired();
-    expect(screen.getByRole("button", { name: "Save and start planning" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Save and start planning" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save project" })).toBeInTheDocument();
   });
 });

@@ -10,6 +10,11 @@ export interface SessionView {
   csrf_token: string | null;
 }
 
+export interface SystemCapabilitiesView {
+  planning_ai_configured: boolean;
+  planning_model: string;
+}
+
 export interface RequirementView {
   id: string;
   kind: "stated" | "suggestion" | "confirmed" | "excluded";

@@ -6,9 +6,11 @@ os.environ["CORS_ORIGINS"] = '["http://testserver"]'
 os.environ["SESSION_HASH_SECRET"] = "test-session-secret-at-least-32-characters"
 
 import pytest
+from pydantic import SecretStr
 from sqlalchemy import delete, update
 
 from app.auth.security import login_rate_limiter
+from app.core.config import get_settings
 from app.db import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import engine
@@ -33,3 +35,12 @@ def clean_database() -> None:
             connection.execute(update(plan_versions).values(based_on_id=None))
         for table in reversed(Base.metadata.sorted_tables):
             connection.execute(delete(table))
+
+
+@pytest.fixture(autouse=True)
+def configured_test_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "openai_api_key",
+        SecretStr("test-provider-key"),
+    )

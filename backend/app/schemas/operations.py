@@ -13,3 +13,8 @@ class OwnerQuotaView(BaseModel):
     tokens_reserved_or_used: int
     tokens_remaining: int
     resets_at: datetime
+
+
+class SystemCapabilitiesView(BaseModel):
+    planning_ai_configured: bool
+    planning_model: str

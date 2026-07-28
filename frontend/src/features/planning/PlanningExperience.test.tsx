@@ -17,6 +17,11 @@ import {
 } from "../../test/fixtures";
 import { server } from "../../test/server";
 
+const configuredCapabilities = {
+  planning_ai_configured: true,
+  planning_model: "gpt-5.6-terra",
+};
+
 function renderRoute(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   return render(<App router={router} />);
@@ -66,6 +71,9 @@ describe("planning and clarification experience", () => {
     let projectCreations = 0;
     server.use(
       http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json(configuredCapabilities),
+      ),
       http.post("*/api/v1/projects", () => {
         projectCreations += 1;
         return HttpResponse.json(projectFixture, { status: 201 });
@@ -106,6 +114,12 @@ describe("planning and clarification experience", () => {
   it("explains the missing provider when an admitted run fails", async () => {
     server.use(
       http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json({
+          ...configuredCapabilities,
+          planning_ai_configured: false,
+        }),
+      ),
       http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
       http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
         HttpResponse.json({
@@ -128,6 +142,97 @@ describe("planning and clarification experience", () => {
         "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("prevents a new planning run when the provider is not configured", async () => {
+    let planningStarts = 0;
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json({
+          ...configuredCapabilities,
+          planning_ai_configured: false,
+        }),
+      ),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, () => {
+        planningStarts += 1;
+        return HttpResponse.json(runFixture, { status: 201 });
+      }),
+    );
+    renderRoute(`/projects/${ids.project}/planning`);
+
+    expect(
+      await screen.findByText("AI planning needs server configuration"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI planning unavailable" })).toBeDisabled();
+    expect(planningStarts).toBe(0);
+  });
+
+  it("offers a fresh run after the provider is configured", async () => {
+    const recoveredRunId = "10000000-0000-4000-8000-000000000099";
+    let planningStarts = 0;
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json(configuredCapabilities),
+      ),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
+        HttpResponse.json({
+          ...runFixture,
+          status: "failed",
+          outcome: {
+            failure_code: "AI_UNCONFIGURED",
+            failed_step: "validate_request",
+            recoverable: false,
+          },
+          completed_at: "2026-07-23T10:02:00Z",
+        }),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () => HttpResponse.json([])),
+      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, () => {
+        planningStarts += 1;
+        return HttpResponse.json(
+          {
+            ...runFixture,
+            id: recoveredRunId,
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderRoute(`/projects/${ids.project}/planning?run=${ids.run}`);
+
+    expect(
+      await screen.findByText(
+        "OpenAI is now configured. This failed run remains as an audit record; start a new planning run to continue.",
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Start a new planning run" }));
+
+    await waitFor(() => expect(planningStarts).toBe(1));
+    expect(await screen.findByText("Planning is waiting for your decisions")).toBeInTheDocument();
+  });
+
+  it("keeps project-only creation available when AI planning is unavailable", async () => {
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json({
+          ...configuredCapabilities,
+          planning_ai_configured: false,
+        }),
+      ),
+    );
+    renderRoute("/projects/new");
+
+    expect(
+      await screen.findByText("AI planning needs server configuration"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI planning unavailable" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save project" })).toBeEnabled();
   });
 
   it("shows concise accessible run progress without raw model details", async () => {

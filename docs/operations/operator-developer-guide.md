@@ -131,6 +131,20 @@ docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --r
 docker compose --env-file .env.demo -f compose.demo.yaml up -d api worker frontend
 ```
 
+AI-backed planning is intentionally unavailable until the server has an OpenAI
+API key. On Windows, use the hidden-input helper so the key is not saved in shell
+history:
+
+```powershell
+& .\infra\release\configure-demo-openai.ps1
+```
+
+The helper writes the key only to ignored `.env.demo`, force-recreates the API and
+worker, and verifies that the API loaded the value. Do not enter the key in the
+web application, paste it into chat, or commit it. Without the key, project-only
+saves remain available, but the UI disables planning and the API rejects planning
+admission before it creates a run or reserves quota.
+
 Known synthetic credentials:
 
 - Email: `demo.owner@example.com`

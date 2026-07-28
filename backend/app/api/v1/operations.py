@@ -2,11 +2,23 @@
 
 from fastapi import APIRouter, Depends
 
-from app.auth.dependencies import AuthUsageContext, require_user_usage
-from app.schemas.operations import OwnerQuotaView
+from app.auth.dependencies import AuthContext, AuthUsageContext, require_user, require_user_usage
+from app.core.config import get_settings
+from app.schemas.operations import OwnerQuotaView, SystemCapabilitiesView
 from app.services.budgets import quota_from_totals
 
 router = APIRouter(tags=["operations"])
+
+
+@router.get("/system/capabilities", response_model=SystemCapabilitiesView)
+def get_system_capabilities(
+    _auth: AuthContext = Depends(require_user),
+) -> SystemCapabilitiesView:
+    settings = get_settings()
+    return SystemCapabilitiesView(
+        planning_ai_configured=settings.openai_api_key is not None,
+        planning_model=settings.openai_model,
+    )
 
 
 @router.get("/usage/quota", response_model=OwnerQuotaView)

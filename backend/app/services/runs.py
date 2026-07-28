@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ai.prompts.persistence import sync_prompt_catalog
+from app.core.config import get_settings
 from app.core.hashing import canonical_hash
 from app.db.base import utc_now
 from app.db.models.plan import ClarificationQuestion
@@ -29,6 +30,10 @@ class RunNotFoundError(LookupError):
 
 
 class RunConflictError(RuntimeError):
+    pass
+
+
+class PlanningProviderUnavailableError(RuntimeError):
     pass
 
 
@@ -78,6 +83,12 @@ class PlanningRunService:
         )
         if conflict is not None:
             raise RunConflictError("Another planning run is already active for this project.")
+
+        if get_settings().openai_api_key is None:
+            raise PlanningProviderUnavailableError(
+                "AI planning is unavailable until OPENAI_API_KEY is configured "
+                "and the API and worker are restarted."
+            )
 
         BudgetService(self.session, self.owner_id).assert_can_start(payload.token_budget)
         sync_prompt_catalog(self.session)

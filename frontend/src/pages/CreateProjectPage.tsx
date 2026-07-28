@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,9 +7,11 @@ import { z } from "zod";
 
 import { ApiError } from "../api/client";
 import { errorMessage } from "../api/errorUtils";
+import { getSystemCapabilities, operationsKeys } from "../api/operations";
 import { createProject, projectKeys } from "../api/projects";
 import { runKeys, startPlanningRun } from "../api/runs";
 import type { ProjectCreatePayload } from "../api/types";
+import { FeedbackBanner } from "../components/Feedback";
 
 const schema = z
   .object({
@@ -42,6 +44,13 @@ export function CreateProjectPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showErrorSummary, setShowErrorSummary] = useState(false);
+  const capabilities = useQuery({
+    queryKey: operationsKeys.capabilities,
+    queryFn: getSystemCapabilities,
+    refetchInterval: (query) =>
+      query.state.data?.planning_ai_configured === true ? false : 5_000,
+  });
+  const planningAiConfigured = capabilities.data?.planning_ai_configured === true;
   const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: true,
@@ -154,6 +163,30 @@ export function CreateProjectPage() {
       </header>
       <form className="project-form" onSubmit={(event) => void submit(true)(event)} noValidate>
         {serverMessage ? <div className="form-alert" role="alert">{serverMessage}</div> : null}
+        {capabilities.isError ? (
+          <FeedbackBanner
+            tone="danger"
+            title="Planning availability could not be checked"
+            actions={
+              <button
+                className="button compact secondary"
+                type="button"
+                onClick={() => void capabilities.refetch()}
+              >
+                Check again
+              </button>
+            }
+          >
+            You can save the project, but starting AI planning is disabled until the server check
+            succeeds.
+          </FeedbackBanner>
+        ) : null}
+        {!capabilities.isPending && !capabilities.isError && !planningAiConfigured ? (
+          <FeedbackBanner tone="warning" title="AI planning needs server configuration">
+            Ask the server operator to configure OPENAI_API_KEY and restart the API and worker.
+            You can save this project now and start planning after configuration is complete.
+          </FeedbackBanner>
+        ) : null}
         {showErrorSummary && Object.keys(form.formState.errors).length ? (
           <div className="form-error-summary" id="project-error-summary" role="alert" tabIndex={-1}>
             <strong>Review the highlighted project details</strong>
@@ -196,8 +229,18 @@ export function CreateProjectPage() {
           <button className="button secondary" type="button" disabled={mutation.isPending} onClick={(event) => void submit(false)(event)}>
             {mutation.isPending && mutation.variables?.start === false ? "Saving project…" : "Save project"}
           </button>
-          <button className="button primary" type="submit" disabled={mutation.isPending}>
-            {mutation.isPending && mutation.variables?.start === true ? "Starting planning…" : "Save and start planning"}
+          <button
+            className="button primary"
+            type="submit"
+            disabled={mutation.isPending || capabilities.isPending || !planningAiConfigured}
+          >
+            {mutation.isPending && mutation.variables?.start === true
+              ? "Starting planning…"
+              : capabilities.isPending
+                ? "Checking AI planning…"
+                : planningAiConfigured
+                  ? "Save and start planning"
+                  : "AI planning unavailable"}
           </button>
         </div>
       </form>
