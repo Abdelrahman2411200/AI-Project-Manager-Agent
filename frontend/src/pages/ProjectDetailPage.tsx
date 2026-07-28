@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { listPlanVersions, planKeys } from "../api/plans";
 import { getProject, projectKeys } from "../api/projects";
-import { ErrorState, LoadingState, StateBadge } from "../components/Feedback";
+import { ErrorState, FeedbackBanner, LoadingState, StateBadge } from "../components/Feedback";
 
 export function ProjectDetailPage() {
   const { projectId = "" } = useParams();
@@ -15,7 +15,7 @@ export function ProjectDetailPage() {
   const versions = useQuery({
     queryKey: planKeys.project(projectId),
     queryFn: () => listPlanVersions(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId) && project.data?.status === "active",
   });
 
   if (project.isPending) {
@@ -37,7 +37,9 @@ export function ProjectDetailPage() {
         <div><span className="eyebrow">Owner project · intake version {project.data.row_version}</span><h1>{project.data.name}</h1><p>{project.data.goal}</p></div>
         <div className="header-actions">
           <Link className="button secondary" to="/projects">All projects</Link>
-          <Link className="button primary" to={`/projects/${projectId}/planning`}>Start planning run</Link>
+          {project.data.status === "active" ? (
+            <Link className="button primary" to={`/projects/${projectId}/planning`}>Start planning run</Link>
+          ) : null}
         </div>
       </header>
       <section className="intake-summary" aria-label="Project intake summary">
@@ -60,6 +62,12 @@ export function ProjectDetailPage() {
         </section>
       </div>
 
+      {project.data.status === "archived" ? (
+        <FeedbackBanner tone="info" title="This project is archived">
+          Planning and execution changes are disabled. Return to Projects and choose an active
+          project, or create a new one.
+        </FeedbackBanner>
+      ) : (
       <section className="plan-entry-panel" aria-labelledby="plan-entry-title">
         <div>
           <span className="eyebrow">{activeVersion ? "Active plan" : latestVersion ? "Planning in progress" : "Next step"}</span>
@@ -81,6 +89,7 @@ export function ProjectDetailPage() {
           {activeVersion && latestVersion?.id !== activeVersion.id ? <Link className="button secondary" to={`/projects/${projectId}/plan/${activeVersion.id}/review`}>View active version</Link> : null}
         </div>
       </section>
+      )}
     </div>
   );
 }

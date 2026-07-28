@@ -118,10 +118,11 @@ pins its SHA-256 digest.
 Run only against the dedicated demo database:
 
 ```sh
-docker compose -f compose.demo.yaml up -d db
-docker compose -f compose.demo.yaml run --rm migrate
-docker compose -f compose.demo.yaml --profile reset run --rm seed
-docker compose -f compose.demo.yaml up -d api worker frontend
+cp .env.demo.example .env.demo
+docker compose --env-file .env.demo -f compose.demo.yaml up -d db
+docker compose --env-file .env.demo -f compose.demo.yaml run --rm migrate
+docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --rm seed
+docker compose --env-file .env.demo -f compose.demo.yaml up -d api worker frontend
 ```
 
 Known synthetic credentials:

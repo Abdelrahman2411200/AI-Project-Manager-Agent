@@ -16,14 +16,26 @@ This package has two rehearsed paths:
 
 No fixture contains secrets, live provider credentials, or real personal data.
 
+Demo-only workflow quotas default to 100 runs and 2,000,000 reserved/used tokens
+per UTC day so fixture loading and rehearsal do not consume production-sized
+limits. Override `USER_DAILY_RUN_LIMIT` and `USER_DAILY_TOKEN_BUDGET` when
+testing quota behavior.
+
 ## Start and reset
 
 ```sh
-docker compose -f compose.demo.yaml up -d --build db
-docker compose -f compose.demo.yaml run --rm migrate
-docker compose -f compose.demo.yaml --profile reset run --rm seed
-docker compose -f compose.demo.yaml up -d --build api worker frontend
+cp .env.demo.example .env.demo
+# Set OPENAI_API_KEY in .env.demo only when exercising a new planning run.
+docker compose --env-file .env.demo -f compose.demo.yaml up -d --build db
+docker compose --env-file .env.demo -f compose.demo.yaml run --rm migrate
+docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --rm seed
+docker compose --env-file .env.demo -f compose.demo.yaml up -d --build api worker frontend
 ```
+
+To exercise a new AI planning run, set `OPENAI_API_KEY` in `.env.demo` before the
+final `up` command and keep that ignored file outside version control. If the key
+is omitted, the run fails explicitly with
+`AI_UNCONFIGURED`; it does not remain queued indefinitely.
 
 Open `http://localhost:8080`.
 

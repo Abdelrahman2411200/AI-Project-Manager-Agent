@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { ApiError } from "../api/client";
+import { errorMessage } from "../api/errorUtils";
 import { createProject, projectKeys } from "../api/projects";
 import { runKeys, startPlanningRun } from "../api/runs";
 import type { ProjectCreatePayload } from "../api/types";
@@ -62,16 +63,31 @@ export function CreateProjectPage() {
   const mutation = useMutation({
     mutationFn: async ({ payload, start }: { payload: ProjectCreatePayload; start: boolean }) => {
       const project = await createProject(payload);
-      if (!start) return { project, run: null };
-      const run = await startPlanningRun(project.id);
-      return { project, run };
+      if (!start) return { project, run: null, planningStartError: null };
+      try {
+        const run = await startPlanningRun(project.id);
+        return { project, run, planningStartError: null };
+      } catch (error) {
+        return {
+          project,
+          run: null,
+          planningStartError: errorMessage(
+            error,
+            "The project was saved, but its planning run could not start.",
+          ),
+        };
+      }
     },
-    onSuccess: ({ project, run }) => {
+    onSuccess: ({ project, run, planningStartError }) => {
       void queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.setQueryData(projectKeys.detail(project.id), project);
       if (run) {
         queryClient.setQueryData(runKeys.detail(run.id), run);
         void navigate(`/projects/${project.id}/planning?run=${run.id}`);
+      } else if (planningStartError) {
+        void navigate(`/projects/${project.id}/planning`, {
+          state: { planningStartError },
+        });
       } else {
         void navigate(`/projects/${project.id}`);
       }

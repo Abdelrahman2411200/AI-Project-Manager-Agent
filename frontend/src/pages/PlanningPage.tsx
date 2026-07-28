@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { cancelAgentRun, getAgentRun, listAgentRunSteps, planningRunPollInterval, runKeys, startPlanningRun } from "../api/runs";
 import { getProject, projectKeys } from "../api/projects";
@@ -8,12 +8,22 @@ import { errorMessage, isPermissionError } from "../api/errorUtils";
 import { ErrorState, FeedbackBanner, LoadingState } from "../components/Feedback";
 import { RunProgress } from "../features/planning/RunProgress";
 
+function planningStartErrorFromState(state: unknown): string | null {
+  if (typeof state !== "object" || state === null || !("planningStartError" in state)) {
+    return null;
+  }
+  const value = (state as Record<string, unknown>).planningStartError;
+  return typeof value === "string" ? value : null;
+}
+
 export function PlanningPage() {
   const { projectId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const runId = searchParams.get("run") ?? "";
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const navigationStartError = planningStartErrorFromState(location.state as unknown);
   const project = useQuery({
     queryKey: projectKeys.detail(projectId),
     queryFn: () => getProject(projectId),
@@ -76,6 +86,22 @@ export function PlanningPage() {
   if (!project.data) return null;
 
   if (!runId) {
+    if (project.data.status === "archived") {
+      return (
+        <div className="page-stack planning-page">
+          <nav className="breadcrumbs" aria-label="Breadcrumb">
+            <Link to="/projects">Projects</Link><span aria-hidden="true">/</span>
+            <Link to={`/projects/${projectId}`}>{project.data.name}</Link><span aria-hidden="true">/</span>
+            <span aria-current="page">Planning</span>
+          </nav>
+          <ErrorState
+            title="Planning is unavailable for archived projects"
+            detail="Choose an active project or create a new project before starting a planning run."
+            actions={<Link className="button primary" to="/projects">Choose an active project</Link>}
+          />
+        </div>
+      );
+    }
     return (
       <div className="page-stack planning-page">
         <nav className="breadcrumbs" aria-label="Breadcrumb">
@@ -91,9 +117,10 @@ export function PlanningPage() {
             The workflow will identify missing decisions, then generate milestones, leaf tasks,
             estimates, dependencies, a schedule, risks, and a deterministic quality report.
           </p>
-          {start.isError ? (
+          {navigationStartError || start.isError ? (
             <FeedbackBanner tone="danger" title="Planning could not start">
-              {errorMessage(start.error, "Try starting the planning run again.")}
+              {navigationStartError ??
+                errorMessage(start.error, "Try starting the planning run again.")}
             </FeedbackBanner>
           ) : null}
           <div className="launch-checklist" aria-label="Planning safeguards">
@@ -115,10 +142,16 @@ export function PlanningPage() {
   }
 
   if (!run.data) return null;
-  const failureCode =
+  const rawFailureCode =
     run.data.outcome && typeof run.data.outcome.failure_code === "string"
-      ? run.data.outcome.failure_code.replaceAll("_", " ")
+      ? run.data.outcome.failure_code
       : null;
+  const failureDetail =
+    rawFailureCode === "AI_UNCONFIGURED"
+      ? "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run."
+      : rawFailureCode
+        ? `The workflow reported ${rawFailureCode.replaceAll("_", " ")}. No incomplete plan was activated.`
+        : "The workflow could not produce a valid plan. No incomplete plan was activated.";
 
   return (
     <div className="page-stack planning-page">
@@ -164,9 +197,7 @@ export function PlanningPage() {
       ) : null}
       {run.data.status === "failed" ? (
         <FeedbackBanner tone="danger" title="Planning stopped safely">
-          {failureCode
-            ? `The workflow reported ${failureCode}. No incomplete plan was activated.`
-            : "The workflow could not produce a valid plan. No incomplete plan was activated."}
+          {failureDetail}
         </FeedbackBanner>
       ) : null}
       {run.data.status === "partial" ? (

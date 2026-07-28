@@ -228,3 +228,6 @@ def test_seed_creates_full_persisted_university_package_and_survives_reload() ->
         )
         assert len(planning_runs) == 16
         assert all(run.state_snapshot["completed_steps"] for run in planning_runs)
+        seeded_runs = list(session.scalars(select(AgentRun)))
+        assert len(seeded_runs) == 24
+        assert all(run.created_at == run.started_at for run in seeded_runs)

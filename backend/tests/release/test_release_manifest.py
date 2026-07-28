@@ -128,6 +128,9 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     assert 'COOKIE_SECURE: "true"' in production
     assert "127.0.0.1" in production
     assert "no-new-privileges:true" in production
+    demo = _text("compose.demo.yaml")
+    assert "USER_DAILY_RUN_LIMIT: ${USER_DAILY_RUN_LIMIT:-100}" in demo
+    assert "USER_DAILY_TOKEN_BUDGET: ${USER_DAILY_TOKEN_BUDGET:-2000000}" in demo
 
 
 def test_release_documents_prove_version_isolation_and_advanced_fixture_evidence() -> None:

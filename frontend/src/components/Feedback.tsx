@@ -47,9 +47,10 @@ interface ErrorStateProps {
   title: string;
   detail: string;
   onRetry?: () => void;
+  actions?: ReactNode;
 }
 
-export function ErrorState({ title, detail, onRetry }: ErrorStateProps) {
+export function ErrorState({ title, detail, onRetry, actions }: ErrorStateProps) {
   return (
     <section className="content-state" role="alert">
       <span className="state-icon danger" aria-hidden="true">!</span>
@@ -60,6 +61,7 @@ export function ErrorState({ title, detail, onRetry }: ErrorStateProps) {
           Try again
         </button>
       ) : null}
+      {actions}
     </section>
   );
 }

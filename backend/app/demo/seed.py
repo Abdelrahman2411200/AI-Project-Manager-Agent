@@ -306,6 +306,7 @@ def _seed_fixture(
         candidate_data={"fixture": slug, "validated": True, "provider": "fixture"},
         outcome={"quality_gate": "passed", "provider_calls": 0},
         proposed_plan_version_id=_id(slug, "plan"),
+        created_at=_at(day_offset=-7, hour=9),
         started_at=_at(day_offset=-7, hour=9),
         completed_at=_at(day_offset=-7, hour=9, minute=3),
     )
@@ -956,6 +957,7 @@ def _seed_report(
         },
         candidate_data={"fixture": slug, "narrative_mode": "factual_fallback"},
         outcome={"fixture": True},
+        created_at=_at(day_offset=0, hour=9),
         started_at=_at(day_offset=0, hour=9),
         completed_at=_at(day_offset=0, hour=9, minute=1),
     )
@@ -1028,6 +1030,7 @@ def _seed_retained_draft_and_intelligence(
         },
         outcome={"quality_gate": "passed", "provider_calls": 0},
         proposed_plan_version_id=_id(slug, "retained-draft"),
+        created_at=_at(day_offset=-1, hour=10),
         started_at=_at(day_offset=-1, hour=10),
         completed_at=_at(day_offset=-1, hour=10, minute=1),
     )

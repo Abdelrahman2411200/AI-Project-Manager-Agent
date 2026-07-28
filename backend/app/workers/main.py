@@ -13,6 +13,8 @@ from uuid import UUID
 from app.ai.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import StructuredModelProvider
 from app.core.config import Settings, get_settings
+from app.db.base import utc_now
+from app.db.models.run import AgentRun
 from app.db.session import SessionLocal
 from app.services.jobs import JobQueue, StaleJobClaimError
 from app.workflows.engine import NodeFailure
@@ -102,6 +104,29 @@ async def process_one_job(
                     ).execute(run_id)
                 elif provider is None:
                     error_code = "AI_UNCONFIGURED"
+                    run = workflow_session.get(AgentRun, run_id)
+                    if run is not None:
+                        run.status = "failed"
+                        run.outcome = {
+                            "failure_code": error_code,
+                            "failed_step": run.current_step,
+                            "recoverable": False,
+                        }
+                        run.completed_at = utc_now()
+                        state = dict(run.state_snapshot)
+                        failed_steps = list(state.get("failed_steps", []))
+                        if run.current_step not in failed_steps:
+                            failed_steps.append(run.current_step)
+                        state.update(
+                            {
+                                "status": "failed",
+                                "current_step": run.current_step,
+                                "failed_steps": failed_steps,
+                                "updated_at": run.completed_at.isoformat(),
+                            }
+                        )
+                        run.state_snapshot = state
+                        workflow_session.commit()
                 else:
                     await PlanningWorkflow(
                         workflow_session,

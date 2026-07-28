@@ -35,6 +35,28 @@ def test_worker_claims_executes_and_completes_planning_job() -> None:
         assert job.claim_token is None
 
 
+def test_worker_fails_planning_run_when_ai_is_unconfigured() -> None:
+    run_id, _ = _started_run("worker-no-ai@example.com")
+
+    assert asyncio.run(process_one_job(None, get_settings(), worker_id="no-ai-worker"))
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        job = session.scalar(select(AgentJob).where(AgentJob.run_id == run_id))
+        assert run is not None
+        assert run.status == "failed"
+        assert run.completed_at is not None
+        assert run.outcome == {
+            "failure_code": "AI_UNCONFIGURED",
+            "failed_step": "validate_request",
+            "recoverable": False,
+        }
+        assert run.state_snapshot["status"] == "failed"
+        assert run.state_snapshot["failed_steps"] == ["validate_request"]
+        assert job is not None
+        assert job.status == "completed"
+
+
 def test_worker_executes_reporting_without_ai_as_factual_partial_result() -> None:
     user, _, _, project_id, _ = _active_fixture("report-worker@example.com")
     today = date.today()

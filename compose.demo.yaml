@@ -9,6 +9,8 @@ x-demo-environment: &demo-environment
   CORS_ORIGINS: '["${DEMO_ORIGIN:-http://localhost:8080}"]'
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-terra}
+  USER_DAILY_RUN_LIMIT: ${USER_DAILY_RUN_LIMIT:-100}
+  USER_DAILY_TOKEN_BUDGET: ${USER_DAILY_TOKEN_BUDGET:-2000000}
 
 services:
   db:
