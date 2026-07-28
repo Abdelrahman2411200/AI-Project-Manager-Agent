@@ -1,0 +1,17 @@
+{
+  "slug": "marketing_site_small",
+  "name": "Small Marketing Site",
+  "goal": "Ship a concise accessible marketing site in two weeks.",
+  "desired_outcome": "A responsive static site with content workflow, analytics consent, accessibility, and deployment.",
+  "weeks": 2,
+  "team_size": 1,
+  "capacity_hours_per_week": 40,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Responsive pages", "Accessible navigation", "Contact flow", "Consent-aware analytics", "Deployment"],
+  "exclusions": ["Microservices", "Custom CMS", "Account system"],
+  "clarifications": [{"key": "Q-001", "question": "Who approves final copy?", "answer": "The seeded project owner."}],
+  "modules": ["content", "site", "forms", "quality", "delivery"],
+  "risk": "Late content approval can consume the short delivery buffer.",
+  "warning": "The plan intentionally avoids unnecessary services.",
+  "main_demo": false
+}

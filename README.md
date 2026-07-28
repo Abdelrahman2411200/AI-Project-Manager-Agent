@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 12 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the complete full-version experience on top of the hardened MVP and Phase 11 intelligence:
+Phase 13 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) packages the complete university release on top of the hardened MVP and full-version experience:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -88,6 +88,14 @@ Phase 12 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) de
 - Hash-bound factual PDF export from the immutable report representation with escaped print HTML, isolated Playwright/Chromium, no JavaScript or network, bounded concurrency/timeout/size, safe audit events, and Markdown fallback
 - Accessible desktop and 360 px Intelligence routes with table alternatives, reduced-motion support, no page-level overflow, and no color-only or drag-only operation
 - Phase 12 API, PDF-render, ownership, concurrency, axe, keyboard, large-graph, visual snapshot, download, responsive, dependency-audit, and browser acceptance coverage
+- Eight deterministic synthetic university fixtures with stable UUIDs, complete intake, run checkpoints, generated retained drafts, independently approved active plans, execution events, monitoring, grounded recommendations/decisions, and factual weekly reports
+- Persisted representative what-if and selective-regeneration evidence proving immutable active baselines, draft-only proposals, locked-item preservation, and explicit approval boundaries
+- A fail-closed demo reset that requires an allowed environment, a database name containing `demo`, an explicit confirmation literal, and a separately supplied synthetic password
+- Same-origin production API proxying that aligns the built frontend with its CSP and cookie/CSRF boundary
+- Vendor-neutral production and demo Compose packages with ordered migrations, health checks, API/worker isolation, PostgreSQL volumes, and an encrypted backup operation
+- A clean-release rehearsal that builds from source, migrates, seeds, validates the public API and Markdown/PDF exports, restarts services, and proves database persistence
+- Final architecture/72-item traceability review, deployment guide, operator/developer guide, release checklist, expected fixture records, and exact 23-step university demonstration
+- A separate university-release GitHub workflow for source immutability, clean Compose configuration, deterministic seed verification, clean-host browser/API persistence, and seeded backup/restore evidence
 
 Only an unchanged, validated, owner-reviewed content hash can become active. Recommendations are guidance, never implicit plan mutations, and reports remain factual even when AI wording is unavailable or rejected.
 
@@ -144,6 +152,10 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 |-- frontend/                      React web application
 |-- AI_project_manager_os/         Design exploration and screen references
 |-- compose.yaml                   Local service orchestration
+|-- compose.demo.yaml              Reproducible synthetic university demonstration
+|-- compose.production.yaml        Vendor-neutral production profile
+|-- docs/                          Architecture, operations, deployment, demo, release evidence
+|-- infra/                         Backup, observability, and release rehearsal
 |-- IMPLEMENTATION PLAN.MD         Approved engineering plan
 |-- IMPLEMENTATION%20PLAN.MD       Original source specification
 `-- README.md
@@ -223,9 +235,10 @@ Compose configuration:
 
 ```powershell
 docker compose config --quiet
+docker compose -f compose.demo.yaml config --quiet
 ```
 
-Phase 10 operational evidence and full-version architecture:
+University release and prior operational evidence:
 
 - [Architecture review](docs/architecture.md) and [threat model](docs/threat-model.md)
 - [Observability and SLOs](docs/observability.md)
@@ -237,10 +250,27 @@ Phase 10 operational evidence and full-version architecture:
 - [Visualization and PDF architecture](docs/architecture-ui.md)
 - [Phase 12 evaluation baseline](docs/evals/phase-12-baseline.md)
 - [Phase 12 verification matrix](docs/release/phase-12-verification.md)
+- [Vendor-neutral deployment](docs/deploy.md)
+- [Operator and developer guide](docs/operations/operator-developer-guide.md)
+- [University demonstration](docs/demo.md)
+- [Final architecture and 72-item review](docs/release-review.md)
+- [University release checklist](docs/release/university-checklist.md)
 
-The ordered GitHub Actions pipeline runs backend quality and PostgreSQL tests, frontend
-tests/build, desktop/mobile browser acceptance, dependency/SAST/secret scans, and an
-encrypted PostgreSQL restore drill before its release gate can pass.
+The ordered GitHub Actions pipelines run backend quality and PostgreSQL tests,
+reference load, frontend tests/build, desktop/mobile browser acceptance,
+dependency/SAST/secret scans, encrypted PostgreSQL restore, immutable-spec/release
+manifest checks, and a clean demo build/restart/persistence rehearsal before the
+university release can pass.
+
+Run the deterministic university release rehearsal locally:
+
+```powershell
+sh infra/release/verify-demo.sh
+```
+
+The demo is served at `http://localhost:8080`. The public synthetic login is
+`demo.owner@example.com` / `SyntheticDemoOnly!2026`; never reuse these values in
+another environment.
 
 ## Core safety rules
 
@@ -255,4 +285,8 @@ encrypted PostgreSQL restore drill before its release gate can pass.
 
 ## Delivery boundaries
 
-The MVP is completed through Phase 10, full-version intelligence is completed through Phase 11, and the full-version experience is completed through Phase 12 of the implementation plan. The reproducible deployment package, final release review, operator/developer documentation, seeded reset workflow, and 23-step university demonstration remain in Phase 13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.
+The MVP is completed through Phase 10, full-version intelligence through Phase 11,
+the full-version experience through Phase 12, and the reproducible university
+release through Phase 13 of the implementation plan. External integrations,
+multi-user collaboration, portfolios, budgets, and resource assignment remain
+post-MVP.

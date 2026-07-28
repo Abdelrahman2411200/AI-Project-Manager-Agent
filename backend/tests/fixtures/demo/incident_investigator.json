@@ -1,0 +1,17 @@
+{
+  "slug": "incident_investigator",
+  "name": "Incident Investigator",
+  "goal": "Support evidence-led incident investigation without autonomous incident decisions.",
+  "desired_outcome": "Collected evidence, clearly labeled inferences, and human-approved incident conclusions.",
+  "weeks": 8,
+  "team_size": 3,
+  "capacity_hours_per_week": 120,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Evidence collection", "Timeline reconstruction", "Inference labeling", "Human decision gate", "Audit export"],
+  "exclusions": ["Autonomous blame assignment", "Automatic disciplinary action"],
+  "clarifications": [{"key": "Q-001", "question": "Who can approve an incident conclusion?", "answer": "The authenticated project owner acting as incident commander."}],
+  "modules": ["evidence", "timeline", "analysis", "decision-gate", "audit"],
+  "risk": "Unsupported inference could be mistaken for stored incident evidence.",
+  "warning": "All conclusions require a human approval record.",
+  "main_demo": false
+}

@@ -1,0 +1,17 @@
+{
+  "slug": "football_scouting_eight_weeks",
+  "name": "Football Scouting — Eight Weeks",
+  "goal": "Build a football scouting workspace for three developers in eight weeks.",
+  "desired_outcome": "Profiles, reports, search, comparison, authentication, tests, and deployment without inventing a live-data provider.",
+  "weeks": 8,
+  "team_size": 3,
+  "capacity_hours_per_week": 120,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Player profiles", "Scouting reports", "Search", "Player comparison", "Authentication", "Testing", "Deployment"],
+  "exclusions": ["Unconfirmed live match-data provider"],
+  "clarifications": [{"key": "Q-001", "question": "Which licensed live-data provider is available?", "answer": "None; use curated fixture data only."}],
+  "modules": ["identity", "profiles", "reports", "discovery", "quality"],
+  "risk": "Live-data integration remains excluded until a licensed provider is confirmed.",
+  "warning": "Do not invent provider capabilities or credentials.",
+  "main_demo": false
+}

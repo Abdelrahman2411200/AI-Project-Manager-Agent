@@ -1,0 +1,20 @@
+{
+  "slug": "ecommerce_six_weeks",
+  "name": "Commerce MVP — Six Weeks",
+  "goal": "Build an owner-operated e-commerce website in six weeks with a three-person team.",
+  "desired_outcome": "A tested catalog-to-sandbox-checkout vertical slice deployed for shoppers and an administrator.",
+  "weeks": 6,
+  "team_size": 3,
+  "capacity_hours_per_week": 120,
+  "timezone": "Africa/Cairo",
+  "requirements": ["Product catalog", "Persistent cart", "Sandbox checkout", "Authentication", "Automated testing", "Deployment"],
+  "exclusions": ["Marketplace", "Native mobile applications"],
+  "clarifications": [
+    {"key": "Q-001", "question": "Should payment use a real or sandbox provider?", "answer": "Sandbox provider for the university release."},
+    {"key": "Q-002", "question": "How is inventory maintained?", "answer": "Manual inventory administration."}
+  ],
+  "modules": ["foundation", "catalog", "commerce", "operations", "quality"],
+  "risk": "A blocked checkout contract threatens the critical delivery path.",
+  "warning": "Payment scope must be reduced or capacity/deadline changed if real-provider certification is confirmed.",
+  "main_demo": true
+}

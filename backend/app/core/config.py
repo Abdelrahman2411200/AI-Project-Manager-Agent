@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "AI Project Manager API"
-    app_env: Literal["development", "test", "staging", "production"] = "development"
-    app_version: str = "0.12.0"
+    app_env: Literal["development", "demo", "test", "staging", "production"] = "development"
+    app_version: str = "0.13.0"
     api_prefix: str = "/api/v1"
     database_url: str = Field(default="sqlite:///./project_manager.db", min_length=1)
     database_pool_size: int = Field(default=20, ge=1, le=100)
