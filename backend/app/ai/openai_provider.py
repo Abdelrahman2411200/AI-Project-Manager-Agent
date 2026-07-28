@@ -45,6 +45,9 @@ class OpenAIResponsesProvider:
             self._client = AsyncOpenAI(
                 api_key=api_key.get_secret_value(),
                 timeout=self._settings.openai_timeout_seconds,
+                # Durable workflow nodes own retries so every attempt is
+                # checkpointed, auditable, and can respect retryability.
+                max_retries=0,
             )
 
     async def generate[StructuredOutputT: BaseModel](
@@ -65,9 +68,9 @@ class OpenAIResponsesProvider:
                 instructions=request.instructions,
                 input=request.input_text,
                 text_format=request.output_type,
+                text={"verbosity": cast(Any, self._settings.openai_verbosity)},
                 max_output_tokens=request.token_budget,
                 reasoning={"effort": cast(Any, request.reasoning_effort)},
-                verbosity=self._settings.openai_verbosity,
                 safety_identifier=request.safety_identifier,
                 store=False,
                 metadata={
@@ -78,6 +81,15 @@ class OpenAIResponsesProvider:
                 timeout=self._settings.openai_timeout_seconds,
             )
         except RateLimitError as error:
+            if _provider_error_code(error) in {
+                "insufficient_quota",
+                "billing_hard_limit_reached",
+            }:
+                raise StructuredModelError(
+                    ModelFailureCode.QUOTA_EXHAUSTED,
+                    "The OpenAI API account has no available quota.",
+                    retryable=False,
+                ) from error
             raise StructuredModelError(
                 ModelFailureCode.RATE_LIMITED,
                 "The model provider rate limit was reached.",
@@ -160,6 +172,16 @@ class OpenAIResponsesProvider:
             cache_write_input_tokens=int(getattr(input_details, "cache_write_tokens", 0) or 0),
             total_tokens=int(getattr(usage, "total_tokens", 0) or 0),
         )
+
+
+def _provider_error_code(error: APIStatusError) -> str | None:
+    body = error.body
+    if not isinstance(body, dict):
+        return None
+    nested = body.get("error")
+    details = nested if isinstance(nested, dict) else body
+    code = details.get("code") or details.get("type")
+    return code if isinstance(code, str) else None
 
 
 def validate_schema_is_strict(output_type: type[BaseModel]) -> None:

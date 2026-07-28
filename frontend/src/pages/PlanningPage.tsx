@@ -192,6 +192,8 @@ export function PlanningPage() {
       ? planningAiConfigured
         ? "OpenAI is now configured. This failed run remains as an audit record; start a new planning run to continue."
         : "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run."
+      : rawFailureCode === "MODEL_QUOTA_EXHAUSTED"
+        ? "The OpenAI API account has no available quota. Add API billing or credits, or raise the OpenAI project usage limit, before starting another planning run."
       : rawFailureCode
         ? `The workflow reported ${rawFailureCode.replaceAll("_", " ")}. No incomplete plan was activated.`
         : "The workflow could not produce a valid plan. No incomplete plan was activated.";

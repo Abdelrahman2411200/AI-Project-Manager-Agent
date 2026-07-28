@@ -49,6 +49,10 @@ The script prompts with hidden input, updates only the ignored `.env.demo`, rest
 the API and worker, and verifies that the API loaded the key. Never paste an API
 key into the browser, chat, source code, or a committed file. After the capability
 check turns available, an old failed-run screen offers **Start a new planning run**.
+The helper does not purchase or grant API quota. If a valid key belongs to an
+account without available API credits, the run stops once with
+`MODEL_QUOTA_EXHAUSTED` and the UI directs the operator to restore billing or the
+OpenAI project usage limit before starting another run.
 
 Open `http://localhost:8080`.
 

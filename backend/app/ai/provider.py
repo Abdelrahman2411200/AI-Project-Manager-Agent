@@ -18,6 +18,7 @@ class ModelFailureCode(StrEnum):
     REFUSED = "refused"
     TRUNCATED = "truncated"
     RATE_LIMITED = "rate_limited"
+    QUOTA_EXHAUSTED = "quota_exhausted"
     TIMED_OUT = "timed_out"
     UNAVAILABLE = "unavailable"
     INVALID_RESPONSE = "invalid_response"
@@ -105,8 +106,10 @@ class StructuredModelRequest[StructuredOutputT: BaseModel]:
             raise ValueError("Structured model instructions and input cannot be empty.")
         if not 1 <= self.token_budget <= 128_000:
             raise ValueError("token_budget must be between 1 and 128000.")
-        if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", self.safety_identifier):
-            raise ValueError("safety_identifier must be a safe pseudonymous identifier.")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", self.safety_identifier):
+            raise ValueError(
+                "safety_identifier must be a safe pseudonymous identifier up to 64 characters."
+            )
         if self.reasoning_effort not in {"none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Unsupported reasoning_effort.")
         if len(self.metadata) > 16:
@@ -154,4 +157,4 @@ def make_safety_identifier(owner_id: UUID, secret: str) -> str:
         str(owner_id).encode("ascii"),
         hashlib.sha256,
     ).hexdigest()
-    return f"apm_{digest}"
+    return f"apm_{digest[:60]}"

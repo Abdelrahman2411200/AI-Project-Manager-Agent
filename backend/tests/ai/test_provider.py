@@ -137,6 +137,7 @@ def test_fake_provider_captures_scripted_usage_and_metadata() -> None:
         ({"prompt_version": "latest"}, "prompt_version"),
         ({"token_budget": 0}, "token_budget"),
         ({"safety_identifier": "short"}, "safety_identifier"),
+        ({"safety_identifier": "x" * 65}, "safety_identifier"),
         ({"reasoning_effort": "extreme"}, "reasoning_effort"),
     ],
 )
@@ -170,6 +171,7 @@ def test_safety_identifier_is_stable_and_pseudonymous() -> None:
     assert identifier == make_safety_identifier(owner_id, secret)
     assert str(owner_id) not in identifier
     assert identifier.startswith("apm_")
+    assert len(identifier) == 64
     with pytest.raises(ValueError, match="at least 32"):
         make_safety_identifier(owner_id, "too-short")
 
@@ -178,6 +180,23 @@ def test_openai_provider_requires_credentials_only_for_real_client() -> None:
     settings = Settings(openai_api_key=None, _env_file=None)
     with pytest.raises(ValueError, match="OPENAI_API_KEY"):
         OpenAIResponsesProvider(settings)
+
+
+def test_openai_provider_leaves_retries_to_the_durable_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+    fake_client = cast(AsyncOpenAI, FakeClient(FakeResponses(response())))
+
+    def create_client(**kwargs: Any) -> AsyncOpenAI:
+        captured.update(kwargs)
+        return fake_client
+
+    monkeypatch.setattr("app.ai.openai_provider.AsyncOpenAI", create_client)
+    settings = Settings(openai_api_key="test-provider-key", _env_file=None)
+    OpenAIResponsesProvider(settings)
+
+    assert captured["max_retries"] == 0
 
 
 def test_openai_adapter_sends_private_strict_request_and_captures_usage() -> None:
@@ -193,6 +212,8 @@ def test_openai_adapter_sends_private_strict_request_and_captures_usage() -> Non
     assert fake_responses.kwargs["store"] is False
     assert fake_responses.kwargs["safety_identifier"] == "safety_8e17f1"
     assert fake_responses.kwargs["text_format"] is ModuleDraft
+    assert fake_responses.kwargs["text"] == {"verbosity": "low"}
+    assert "verbosity" not in fake_responses.kwargs
     assert fake_responses.kwargs["reasoning"] == {"effort": "low"}
 
 
@@ -244,6 +265,22 @@ def test_openai_adapter_handles_missing_parsed_output() -> None:
             ),
             ModelFailureCode.RATE_LIMITED,
             True,
+        ),
+        (
+            RateLimitError(
+                "quota exhausted",
+                response=httpx.Response(
+                    429,
+                    request=httpx.Request("POST", "https://api.openai.com/v1/responses"),
+                ),
+                body={
+                    "type": "insufficient_quota",
+                    "code": "insufficient_quota",
+                    "message": "sensitive provider billing detail",
+                },
+            ),
+            ModelFailureCode.QUOTA_EXHAUSTED,
+            False,
         ),
         (
             APIConnectionError(

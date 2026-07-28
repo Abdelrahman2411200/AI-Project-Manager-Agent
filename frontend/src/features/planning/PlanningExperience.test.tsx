@@ -144,6 +144,33 @@ describe("planning and clarification experience", () => {
     ).toBeInTheDocument();
   });
 
+  it("explains exhausted provider quota without suggesting an immediate retry", async () => {
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
+        HttpResponse.json({
+          ...runFixture,
+          status: "failed",
+          outcome: {
+            failure_code: "MODEL_QUOTA_EXHAUSTED",
+            failed_step: "detect_gaps",
+            recoverable: false,
+          },
+          completed_at: "2026-07-23T10:02:00Z",
+        }),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () => HttpResponse.json([])),
+    );
+    renderRoute(`/projects/${ids.project}/planning?run=${ids.run}`);
+
+    expect(
+      await screen.findByText(
+        "The OpenAI API account has no available quota. Add API billing or credits, or raise the OpenAI project usage limit, before starting another planning run.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("prevents a new planning run when the provider is not configured", async () => {
     let planningStarts = 0;
     server.use(

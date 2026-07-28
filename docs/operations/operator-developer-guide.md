@@ -163,6 +163,7 @@ incorrect confirmation literal.
 | Login is 403 | request `Origin` and `CORS_ORIGINS` | Use one exact scheme/host/port |
 | Login loops in production | TLS and `COOKIE_SECURE` | Terminate HTTPS before the bound frontend |
 | Jobs remain queued | worker logs, DB connectivity, lease age | Restore worker; expired leases are reclaimable |
+| Planning reports no API quota | OpenAI API billing, credits, project usage limit | Restore provider quota before starting another run |
 | Planning fails safely | run steps and validation codes | Correct input/provider issue and retry idempotently |
 | PDF fails | Chromium availability, timeout, `/tmp`, size | Restore the release image/runtime limits |
 | Hash conflict | reload plan and compare row/content versions | Do not overwrite; review the current immutable state |
