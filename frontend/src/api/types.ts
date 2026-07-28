@@ -452,6 +452,84 @@ export interface ScenarioView {
   created_at: string;
 }
 
+export interface RiskRelationView {
+  id: string;
+  risk_id: string;
+  version_id: string;
+  entity_type: "task" | "milestone" | "dependency" | "requirement";
+  entity_ref: string;
+}
+
+export interface AdvancedRiskView {
+  id: string;
+  version_id: string;
+  stable_key: string;
+  category:
+    | "technical"
+    | "schedule"
+    | "scope"
+    | "dependency"
+    | "security"
+    | "quality"
+    | "external";
+  description: string;
+  probability: "unlikely" | "possible" | "likely";
+  impact: "low" | "medium" | "high" | "critical";
+  severity: number;
+  trigger: string;
+  mitigation: string;
+  contingency: string;
+  source_fact_refs: string[];
+  status: "open" | "mitigated" | "closed";
+  relations: RiskRelationView[];
+}
+
+export interface RiskMutationView {
+  item: AdvancedRiskView;
+  plan_row_version: number;
+  plan_content_hash: string;
+}
+
+export interface RiskDeleteView {
+  stable_key: string;
+  plan_row_version: number;
+  plan_content_hash: string;
+}
+
+export interface RiskPayload {
+  category: AdvancedRiskView["category"];
+  description: string;
+  probability: AdvancedRiskView["probability"];
+  impact: AdvancedRiskView["impact"];
+  trigger: string;
+  mitigation: string;
+  contingency: string;
+  relations: Array<{
+    entity_type: RiskRelationView["entity_type"];
+    entity_ref: string;
+  }>;
+  source_fact_refs: string[];
+}
+
+export interface EvaluationFixtureView {
+  fixture_id: string;
+  metrics: Record<string, number | boolean>;
+  passed: boolean;
+}
+
+export interface EvaluationDashboardView {
+  schema_version: "1.0";
+  dataset_version: string;
+  dataset_hash: string;
+  fixture_source: string;
+  fixture_count: number;
+  pass_count: number;
+  release_status: "passed" | "failed";
+  thresholds: Record<string, string>;
+  summary: Record<string, number>;
+  fixtures: EvaluationFixtureView[];
+}
+
 export interface RegenerationProposalView {
   id: string;
   project_id: string;

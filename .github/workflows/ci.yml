@@ -70,6 +70,9 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - working-directory: backend
         run: uv sync --locked --group dev
+      - name: Install Chromium for isolated PDF verification
+        working-directory: backend
+        run: uv run playwright install --with-deps chromium
       - name: Run backend acceptance suite
         working-directory: backend
         env:
@@ -263,8 +266,8 @@ jobs:
           retention-days: 30
 
   release-gate:
-    name: 7 · MVP release gate
+    name: 7 · Full-version verification gate
     needs: restore-drill
     runs-on: ubuntu-latest
     steps:
-      - run: echo "All ordered MVP verification gates passed."
+      - run: echo "All ordered full-version verification gates passed."

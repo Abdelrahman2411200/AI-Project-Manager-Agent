@@ -49,7 +49,7 @@ export function RootLayout({ user }: RootLayoutProps) {
         </nav>
         <div className="sidebar-status">
           <span className="status-dot" />
-          <div><strong>Active execution</strong><span>Phase 8 of 13</span></div>
+          <div><strong>Full-version experience</strong><span>Phase 12 of 13</span></div>
         </div>
       </aside>
       <div className="workspace">

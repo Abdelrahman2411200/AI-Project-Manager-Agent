@@ -214,6 +214,19 @@ async function mockInsights(page: Page) {
         body: detail.markdown,
       });
     }
+    if (path === `/reports/${reportId}/export.pdf` && method === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: {
+          "Content-Disposition": 'attachment; filename="campus-services-weekly-report.pdf"',
+          "Access-Control-Expose-Headers": "Content-Disposition",
+          "X-Content-Type-Options": "nosniff",
+          "X-Report-Content-Hash": detail.content_hash,
+        },
+        body: Buffer.from("%PDF-1.7\nphase-12-report\n%%EOF"),
+      });
+    }
     return json(route, { detail: `Unhandled ${method} ${path}` }, 404);
   });
 }
@@ -264,6 +277,11 @@ test("owner decides grounded guidance and exports an immutable factual report", 
   await page.getByRole("button", { name: "Download Markdown" }).click();
   expect((await download).suggestedFilename()).toBe(
     "campus-services-weekly-report.md",
+  );
+  const pdfDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  expect((await pdfDownload).suggestedFilename()).toBe(
+    "campus-services-weekly-report.pdf",
   );
   await page.reload();
   await expect(

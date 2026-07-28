@@ -14,7 +14,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /workspace/backend
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv sync --frozen --no-dev
+# The recovery verifier imports persistence code only. Playwright has no musl
+# wheel and Chromium is intentionally excluded from this minimal backup image.
+RUN uv sync --frozen --no-dev --no-install-package playwright
 
 COPY backend/app ./app
 COPY infra/backup /workspace/infra/backup

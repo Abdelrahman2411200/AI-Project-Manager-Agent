@@ -6,7 +6,7 @@ The product combines schema-constrained AI output with deterministic project-man
 
 ## Current status
 
-Phase 11 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers full-version intelligence on top of the hardened MVP:
+Phase 12 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) delivers the complete full-version experience on top of the hardened MVP and Phase 11 intelligence:
 
 - FastAPI service with typed settings, `/api/v1` routing, request IDs, health checks, and consistent error responses
 - React, TypeScript, Vite, TanStack Query, and React Router application shell
@@ -80,6 +80,14 @@ Phase 11 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) de
 - Owner-scoped comparison, scenario, and regeneration REST APIs with permission-safe 404 responses, CSRF, idempotency keys, and `If-Match`
 - Accessible scenario inputs/results, baseline delta tables, version-comparison tables, and regeneration preview/decision controls
 - Phase 11 domain, API, AI-grounding, migration, component, axe, ownership, lock-attack, cross-version, virtual-isolation, and 1,000-node coverage
+- A lazy-loaded React Flow dependency overview with deterministic layout and a complete keyboard/screen-reader edge table
+- A responsive date-only timeline/Gantt with text labels and schedule-table parity for every task, including unscheduled work
+- A dedicated risk register with owner-scoped list/read/create/update/delete APIs, optimistic concurrency, deterministic severity, and draft-only mutation controls
+- A reviewed eight-fixture evaluation baseline exposed through an authenticated endpoint, with threshold/provenance dashboard and fail-closed dataset verification
+- Rich baseline/scenario metric bars with exact value tables and explicit increased/decreased/unchanged labels
+- Hash-bound factual PDF export from the immutable report representation with escaped print HTML, isolated Playwright/Chromium, no JavaScript or network, bounded concurrency/timeout/size, safe audit events, and Markdown fallback
+- Accessible desktop and 360 px Intelligence routes with table alternatives, reduced-motion support, no page-level overflow, and no color-only or drag-only operation
+- Phase 12 API, PDF-render, ownership, concurrency, axe, keyboard, large-graph, visual snapshot, download, responsive, dependency-audit, and browser acceptance coverage
 
 Only an unchanged, validated, owner-reviewed content hash can become active. Recommendations are guidance, never implicit plan mutations, and reports remain factual even when AI wording is unavailable or rejected.
 
@@ -121,9 +129,9 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Area | Foundation |
 |---|---|
 | Backend | Python 3.12, FastAPI, Pydantic Settings, Uvicorn |
-| Frontend | React 19, TypeScript, Vite, TanStack Query, React Router |
+| Frontend | React 19, TypeScript, Vite, TanStack Query, React Router, lazy React Flow |
 | Persistence | PostgreSQL in deployment; SQLite for single-worker local development |
-| Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright, ESLint |
+| Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright/Chromium, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
 | AI boundary | OpenAI Responses adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
 | Hardening | Request limits, owner/run budgets, encrypted restore drills, SLO alerts, ordered CI |
@@ -174,6 +182,7 @@ docker compose run --rm api uv run python -m app.cli.create_user --email owner@e
 ```powershell
 Set-Location backend
 uv sync --group dev
+uv run playwright install chromium
 uv run alembic upgrade head
 uv run python -m app.cli.create_user --email owner@example.com
 uv run uvicorn app.main:app --reload
@@ -216,7 +225,7 @@ Compose configuration:
 docker compose config --quiet
 ```
 
-Phase 10 operational evidence and Phase 11 architecture:
+Phase 10 operational evidence and full-version architecture:
 
 - [Architecture review](docs/architecture.md) and [threat model](docs/threat-model.md)
 - [Observability and SLOs](docs/observability.md)
@@ -225,6 +234,9 @@ Phase 10 operational evidence and Phase 11 architecture:
 - [MVP release checklist](docs/release/mvp-checklist.md)
 - [Advanced intelligence architecture](docs/architecture-advanced.md)
 - [Phase 11 verification matrix](docs/release/phase-11-verification.md)
+- [Visualization and PDF architecture](docs/architecture-ui.md)
+- [Phase 12 evaluation baseline](docs/evals/phase-12-baseline.md)
+- [Phase 12 verification matrix](docs/release/phase-12-verification.md)
 
 The ordered GitHub Actions pipeline runs backend quality and PostgreSQL tests, frontend
 tests/build, desktop/mobile browser acceptance, dependency/SAST/secret scans, and an
@@ -243,4 +255,4 @@ encrypted PostgreSQL restore drill before its release gate can pass.
 
 ## Delivery boundaries
 
-The MVP is completed through Phase 10, and full-version intelligence is completed through Phase 11 of the implementation plan. Dependency visualization, rich Gantt/timeline views, the dedicated risk register, PDF export, the evaluation dashboard, and the university release remain in Phases 12-13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.
+The MVP is completed through Phase 10, full-version intelligence is completed through Phase 11, and the full-version experience is completed through Phase 12 of the implementation plan. The reproducible deployment package, final release review, operator/developer documentation, seeded reset workflow, and 23-step university demonstration remain in Phase 13. External integrations, multi-user collaboration, portfolios, budgets, and resource assignment remain post-MVP.

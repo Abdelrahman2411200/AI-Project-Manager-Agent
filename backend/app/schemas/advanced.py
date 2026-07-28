@@ -235,3 +235,9 @@ class RiskMutationView(BaseModel):
     item: AdvancedRiskView
     plan_row_version: int
     plan_content_hash: str
+
+
+class RiskDeleteView(BaseModel):
+    stable_key: str
+    plan_row_version: int
+    plan_content_hash: str

@@ -23,5 +23,6 @@ pg_restore --clean --if-exists --no-owner --no-acl \
   --dbname "$native_restore_url" "$temporary_dump"
 (
   cd "$repository_root/backend"
-  DATABASE_URL="$RESTORE_DATABASE_URL" uv run --no-dev python -m app.cli.verify_restore
+  DATABASE_URL="$RESTORE_DATABASE_URL" \
+    uv run --no-sync --no-dev python -m app.cli.verify_restore
 )

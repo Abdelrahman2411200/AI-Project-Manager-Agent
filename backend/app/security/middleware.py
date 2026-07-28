@@ -123,7 +123,7 @@ class RequestHardeningMiddleware:
             await send(message)
 
         try:
-            async with asyncio.timeout(self.settings.request_timeout_seconds):
+            async with asyncio.timeout(self._processing_timeout(scope)):
                 await self.app(scope, limited_receive, hardened_send)
         except TimeoutError:
             if not response_started:
@@ -162,6 +162,16 @@ class RequestHardeningMiddleware:
             limit=self.settings.ai_rate_limit_requests,
             window_seconds=self.settings.ai_rate_limit_window_seconds,
         )
+
+    def _processing_timeout(self, scope: Scope) -> float:
+        method = str(scope.get("method", "GET")).upper()
+        path = str(scope.get("path", ""))
+        if method == "GET" and "/reports/" in path and path.endswith("/export.pdf"):
+            return max(
+                self.settings.request_timeout_seconds,
+                float(self.settings.pdf_render_timeout_seconds + 5),
+            )
+        return self.settings.request_timeout_seconds
 
     def _session_cookie(self, scope: Scope) -> str | None:
         headers = dict(scope.get("headers", []))

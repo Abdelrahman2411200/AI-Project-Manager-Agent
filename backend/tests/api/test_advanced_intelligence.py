@@ -281,6 +281,9 @@ def test_full_risk_relations_are_version_scoped_and_severity_is_deterministic() 
         assert updated.status_code == 200
         assert updated.json()["item"]["severity"] == 4
         assert updated.json()["item"]["status"] == "mitigated"
+        detail = client.get(f"/api/v1/plan-versions/{plan_id}/risks/{body['item']['id']}")
+        assert detail.status_code == 200
+        assert detail.json()["stable_key"] == body["item"]["stable_key"]
         listing = client.get(f"/api/v1/plan-versions/{plan_id}/risks").json()
         persisted = next(item for item in listing if item["id"] == body["item"]["id"])
         assert persisted["relations"][0]["version_id"] == str(plan_id)
@@ -301,3 +304,31 @@ def test_full_risk_relations_are_version_scoped_and_severity_is_deterministic() 
             headers=_plan_headers(csrf, current["row_version"]),
         )
         assert unknown.status_code == 409
+
+        deleted = client.delete(
+            f"/api/v1/plan-versions/{plan_id}/risks/{body['item']['id']}",
+            headers=_plan_headers(csrf, current["row_version"]),
+        )
+        assert deleted.status_code == 200
+        assert deleted.json()["stable_key"] == body["item"]["stable_key"]
+        assert (
+            client.get(f"/api/v1/plan-versions/{plan_id}/risks/{body['item']['id']}").status_code
+            == 404
+        )
+
+
+def test_evaluation_dashboard_requires_authentication_and_exposes_all_fixtures() -> None:
+    _, client, _, _, _ = _fixture("evaluation-dashboard@example.com")
+    with client:
+        response = client.get("/api/v1/evaluations/latest")
+        assert response.status_code == 200
+        assert response.json()["fixture_count"] == 8
+        assert response.json()["pass_count"] == 8
+        assert response.json()["release_status"] == "passed"
+
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    with TestClient(app) as anonymous:
+        assert anonymous.get("/api/v1/evaluations/latest").status_code == 401

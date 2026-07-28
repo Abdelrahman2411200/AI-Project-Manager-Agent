@@ -42,7 +42,7 @@ function CitedItems({ title, items }: { title: string; items: CitedStatement[] }
 export function ReportDetailPage() {
   const { reportId = "" } = useParams();
   const [downloadError, setDownloadError] = useState<unknown>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<"md" | "pdf" | null>(null);
   const report = useQuery({
     queryKey: insightKeys.report(reportId),
     queryFn: () => getReport(reportId),
@@ -72,20 +72,36 @@ export function ReportDetailPage() {
         </div>
         <div className="header-actions">
           <StateBadge state={report.data.status} />
-          <button
-            className="button primary"
-            type="button"
-            disabled={downloading}
-            onClick={() => {
-              setDownloading(true);
-              setDownloadError(null);
-              void downloadReport(reportId)
-                .catch(setDownloadError)
-                .finally(() => setDownloading(false));
-            }}
-          >
-            {downloading ? "Preparing…" : "Download Markdown"}
-          </button>
+          <div className="button-row">
+            <button
+              className="button secondary"
+              type="button"
+              disabled={downloading !== null}
+              onClick={() => {
+                setDownloading("md");
+                setDownloadError(null);
+                void downloadReport(reportId, "md")
+                  .catch(setDownloadError)
+                  .finally(() => setDownloading(null));
+              }}
+            >
+              {downloading === "md" ? "Preparing…" : "Download Markdown"}
+            </button>
+            <button
+              className="button primary"
+              type="button"
+              disabled={downloading !== null}
+              onClick={() => {
+                setDownloading("pdf");
+                setDownloadError(null);
+                void downloadReport(reportId, "pdf")
+                  .catch(setDownloadError)
+                  .finally(() => setDownloading(null));
+              }}
+            >
+              {downloading === "pdf" ? "Rendering…" : "Download PDF"}
+            </button>
+          </div>
         </div>
       </header>
       {report.data.status === "partial" ? (

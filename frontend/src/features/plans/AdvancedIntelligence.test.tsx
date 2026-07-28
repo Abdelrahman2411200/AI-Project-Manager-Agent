@@ -110,7 +110,11 @@ describe("advanced intelligence experience", () => {
 
     expect(await screen.findByRole("heading", { name: "More weekly capacity" })).toBeInTheDocument();
     expect(screen.getByText("Baseline remains unchanged")).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Baseline and virtual scenario metrics" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", {
+        name: "Exact baseline and virtual scenario values",
+      }),
+    ).toBeInTheDocument();
     expect(submitted).toEqual({
       name: "More weekly capacity",
       baseline_version_id: ids.plan,

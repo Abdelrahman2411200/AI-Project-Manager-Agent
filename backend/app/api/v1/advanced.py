@@ -19,13 +19,16 @@ from app.schemas.advanced import (
     RegenerationDecision,
     RegenerationProposalView,
     RiskCreate,
+    RiskDeleteView,
     RiskMutationView,
     RiskRelationView,
     RiskUpdate,
     ScenarioCreate,
     ScenarioView,
 )
+from app.schemas.evaluation import EvaluationDashboardView
 from app.services.advanced import AdvancedIntelligenceService
+from app.services.evaluations import EvaluationBaselineError, latest_evaluation
 
 router = APIRouter(tags=["advanced-intelligence"])
 
@@ -128,6 +131,24 @@ def list_risks(
     return [_risk_view(risk, relations) for risk, relations in items]
 
 
+@router.get(
+    "/plan-versions/{version_id}/risks/{risk_id}",
+    response_model=AdvancedRiskView,
+)
+def get_risk(
+    version_id: UUID,
+    risk_id: UUID,
+    request: Request,
+    auth: AuthContext = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> AdvancedRiskView:
+    try:
+        risk, relations = _service(request, auth, db).get_risk(version_id, risk_id)
+    except PlanResourceNotFoundError as error:
+        raise _not_found() from error
+    return _risk_view(risk, relations)
+
+
 @router.post(
     "/plan-versions/{version_id}/risks",
     response_model=RiskMutationView,
@@ -187,6 +208,48 @@ def update_risk(
         plan_row_version=plan.row_version,
         plan_content_hash=plan.content_hash,
     )
+
+
+@router.delete(
+    "/plan-versions/{version_id}/risks/{risk_id}",
+    response_model=RiskDeleteView,
+)
+def delete_risk(
+    version_id: UUID,
+    risk_id: UUID,
+    request: Request,
+    expected_version: int = Depends(_proposal_version),
+    auth: AuthContext = Depends(require_csrf),
+    db: Session = Depends(get_db),
+) -> RiskDeleteView:
+    try:
+        stable_key, plan = _service(request, auth, db).delete_risk(
+            version_id,
+            risk_id,
+            expected_version,
+        )
+    except PlanResourceNotFoundError as error:
+        raise _not_found() from error
+    except PlanLifecycleConflictError as error:
+        raise _conflict(error) from error
+    return RiskDeleteView(
+        stable_key=stable_key,
+        plan_row_version=plan.row_version,
+        plan_content_hash=plan.content_hash,
+    )
+
+
+@router.get("/evaluations/latest", response_model=EvaluationDashboardView)
+def get_latest_evaluation(
+    _: AuthContext = Depends(require_user),
+) -> EvaluationDashboardView:
+    try:
+        return latest_evaluation()
+    except EvaluationBaselineError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="The reviewed evaluation baseline is unavailable.",
+        ) from error
 
 
 @router.post("/projects/{project_id}/scenarios", response_model=ScenarioView, status_code=201)

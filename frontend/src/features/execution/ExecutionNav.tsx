@@ -8,6 +8,7 @@ export function ExecutionNav({ projectId }: { projectId: string }) {
       <NavLink to={`/projects/${projectId}/health`}>Health</NavLink>
       <NavLink to={`/projects/${projectId}/reports`}>Reports</NavLink>
       <NavLink to={`/projects/${projectId}/scenarios/new`}>Scenarios</NavLink>
+      <NavLink to={`/projects/${projectId}/intelligence`}>Intelligence</NavLink>
     </nav>
   );
 }

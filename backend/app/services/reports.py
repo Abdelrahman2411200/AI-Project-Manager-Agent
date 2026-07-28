@@ -33,6 +33,12 @@ from app.db.models.plan import PlanVersion, Risk, Task
 from app.db.models.project import Project
 from app.db.models.run import AgentRun
 from app.domain.grounding import validate_weekly_narrative
+from app.reports.pdf import (
+    PdfRenderer,
+    PdfRenderError,
+    build_report_html,
+    pdf_sha256,
+)
 from app.reports.sanitize import render_markdown, safe_filename
 from app.schemas.insight import (
     EvidenceFact,
@@ -554,6 +560,98 @@ class ReportService:
             report.markdown,
             safe_filename(project.name, report.report_type, report.period_end.isoformat()),
         )
+
+    def export_pdf(
+        self,
+        report_id: UUID,
+        renderer: PdfRenderer,
+    ) -> tuple[bytes, str, str, str]:
+        report = self._owned_report(report_id)
+        project = self._owned_project(report.project_id)
+        expected_hash = canonical_hash(
+            {
+                "data": report.data_json,
+                "narrative": report.narrative_json,
+                "markdown": report.markdown,
+            }
+        )
+        if expected_hash != report.content_hash:
+            self._record_pdf_export(
+                report,
+                action="ReportExportFailed",
+                outcome="export_failed",
+                failure_code="REPORT_HASH_MISMATCH",
+            )
+            raise ReportConflictError(
+                "The persisted report no longer matches its immutable content hash."
+            )
+        try:
+            content = renderer.render(build_report_html(report))
+        except PdfRenderError as error:
+            self._record_pdf_export(
+                report,
+                action="ReportExportFailed",
+                outcome="export_failed",
+                failure_code=error.code,
+            )
+            raise
+        output_hash = pdf_sha256(content)
+        self._record_pdf_export(
+            report,
+            action="ReportExported",
+            outcome="exported",
+            pdf_hash=output_hash,
+        )
+        markdown_name = safe_filename(
+            project.name,
+            report.report_type,
+            report.period_end.isoformat(),
+        )
+        return (
+            content,
+            f"{markdown_name.removesuffix('.md')}.pdf",
+            report.content_hash,
+            output_hash,
+        )
+
+    def _record_pdf_export(
+        self,
+        report: Report,
+        *,
+        action: str,
+        outcome: str,
+        failure_code: str | None = None,
+        pdf_hash: str | None = None,
+    ) -> None:
+        details = {
+            "format": "pdf",
+            "content_hash": report.content_hash,
+            "failure_code": failure_code,
+            "pdf_hash": pdf_hash,
+        }
+        self.audit.append(
+            owner_id=self.owner_id,
+            actor_id=self.owner_id,
+            project_id=report.project_id,
+            action=action,
+            entity_type="Report",
+            entity_id=report.id,
+            request_id=self.request_id,
+            after_ref=details,
+        )
+        self.telemetry.append(
+            name=f"report.{outcome}",
+            owner_id=self.owner_id,
+            request_id=self.request_id,
+            project_id=report.project_id,
+            run_id=report.run_id,
+            attributes={
+                "format": "pdf",
+                "report_type": report.report_type,
+                "failure_code": failure_code,
+            },
+        )
+        self.session.commit()
 
     def _active_plan(self, project_id: UUID) -> tuple[Project, PlanVersion]:
         project = self.session.scalar(

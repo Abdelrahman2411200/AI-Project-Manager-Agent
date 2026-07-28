@@ -7,12 +7,14 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
+RUN uv run playwright install --with-deps chromium
 
 COPY app ./app
 COPY alembic.ini ./alembic.ini

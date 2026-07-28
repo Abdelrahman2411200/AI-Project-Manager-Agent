@@ -15,5 +15,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     exclude: ["e2e/**", "node_modules/**"],
+    // Accessibility scans and router-level flows run concurrently in CI.
+    // Keep a bounded but realistic ceiling for clean, uncached workers.
+    testTimeout: 10_000,
   },
 });

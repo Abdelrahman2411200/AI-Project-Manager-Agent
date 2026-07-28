@@ -3,8 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { requestJson } from "./client";
 import { planKeys } from "./plans";
 import type {
+  AdvancedRiskView,
+  EvaluationDashboardView,
   PlanComparisonView,
   RegenerationProposalView,
+  RiskDeleteView,
+  RiskMutationView,
+  RiskPayload,
   ScenarioOverrides,
   ScenarioView,
 } from "./types";
@@ -15,6 +20,8 @@ export const advancedKeys = {
     [...advancedKeys.all, "scenario", scenarioId] as const,
   comparison: (fromId: string, toId: string) =>
     [...advancedKeys.all, "comparison", fromId, toId] as const,
+  risks: (versionId: string) => [...advancedKeys.all, "risks", versionId] as const,
+  evaluation: () => [...advancedKeys.all, "evaluation", "latest"] as const,
 };
 
 export function createScenario(
@@ -41,6 +48,50 @@ export function comparePlanImpact(
   toId: string,
 ): Promise<PlanComparisonView> {
   return requestJson(`/plan-versions/${fromId}/compare/${toId}/impact`);
+}
+
+export function listRisks(versionId: string): Promise<AdvancedRiskView[]> {
+  return requestJson(`/plan-versions/${versionId}/risks`);
+}
+
+export function createRisk(
+  versionId: string,
+  rowVersion: number,
+  payload: RiskPayload,
+): Promise<RiskMutationView> {
+  return requestJson(`/plan-versions/${versionId}/risks`, {
+    method: "POST",
+    headers: { "If-Match": String(rowVersion) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateRisk(
+  versionId: string,
+  riskId: string,
+  rowVersion: number,
+  payload: Partial<RiskPayload> & { status?: AdvancedRiskView["status"] },
+): Promise<RiskMutationView> {
+  return requestJson(`/plan-versions/${versionId}/risks/${riskId}`, {
+    method: "PATCH",
+    headers: { "If-Match": String(rowVersion) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteRisk(
+  versionId: string,
+  riskId: string,
+  rowVersion: number,
+): Promise<RiskDeleteView> {
+  return requestJson(`/plan-versions/${versionId}/risks/${riskId}`, {
+    method: "DELETE",
+    headers: { "If-Match": String(rowVersion) },
+  });
+}
+
+export function getLatestEvaluation(): Promise<EvaluationDashboardView> {
+  return requestJson("/evaluations/latest");
 }
 
 export function createRegeneration(

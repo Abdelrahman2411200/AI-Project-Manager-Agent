@@ -1,7 +1,7 @@
 {
   "name": "ai-project-manager-web",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@hookform/resolvers": "5.4.0",
     "@tanstack/react-query": "5.101.4",
+    "@xyflow/react": "12.11.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "7.82.0",
