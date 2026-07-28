@@ -28,6 +28,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <span className="eyebrow">Unexpected error</span>
           <h1>The workspace could not be displayed.</h1>
           <p>Refresh the page to retry. Your persisted project data has not been changed.</p>
+          <div className="header-actions">
+            <button
+              className="button primary"
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              Reload workspace
+            </button>
+            <a className="button secondary" href="/projects">
+              Return to projects
+            </a>
+          </div>
         </main>
       );
     }

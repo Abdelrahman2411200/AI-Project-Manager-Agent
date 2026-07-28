@@ -68,6 +68,12 @@ Settings are environment variables validated by `backend/app/core/config.py`.
 Use `.env.example` for development, `.env.demo.example` for the synthetic demo,
 and `.env.production.example` only as a template.
 
+The frontend serves `index.html` with `Cache-Control: no-cache`, caches
+content-hashed assets for one year, and returns HTTP 404 for missing assets.
+Already-open tabs recover once from Vite preload errors after a deployment; a
+cooldown prevents reload loops and a route-level fallback keeps raw developer
+errors out of the user experience.
+
 ## Routine verification commands
 
 ```sh

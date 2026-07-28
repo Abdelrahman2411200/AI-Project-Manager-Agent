@@ -121,6 +121,10 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     assert '"/api/v1"' in client
     assert "location /api/" in nginx
     assert "proxy_pass http://api:8000" in nginx
+    assert "location = /index.html" in nginx
+    assert "expires -1" in nginx
+    assert "location /assets/" in nginx
+    assert "try_files $uri =404" in nginx
     assert "RESET-DEMO-DATA" in reset
     assert {"development", "demo", "test"} == ALLOWED_ENVIRONMENTS
     assert "production" not in ALLOWED_ENVIRONMENTS
@@ -131,6 +135,9 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     demo = _text("compose.demo.yaml")
     assert "USER_DAILY_RUN_LIMIT: ${USER_DAILY_RUN_LIMIT:-100}" in demo
     assert "USER_DAILY_TOKEN_BUDGET: ${USER_DAILY_TOKEN_BUDGET:-2000000}" in demo
+    verifier = _text("infra/release/verify-demo.sh")
+    assert "Cache-Control:.*no-cache" in verifier
+    assert "release-verifier-missing-chunk.js" in verifier
 
 
 def test_release_documents_prove_version_isolation_and_advanced_fixture_evidence() -> None:

@@ -28,6 +28,22 @@ until curl --fail --silent --show-error "$base_url/healthz" >/dev/null &&
   sleep 2
 done
 
+if ! curl --fail --silent --show-error --head "$base_url/" |
+  tr -d '\r' |
+  grep -qi '^Cache-Control:.*no-cache'; then
+  echo "Demo index must be served with Cache-Control: no-cache." >&2
+  exit 1
+fi
+
+missing_asset_status="$(
+  curl --silent --output /dev/null --write-out '%{http_code}' \
+    "$base_url/assets/release-verifier-missing-chunk.js"
+)"
+if [ "$missing_asset_status" != "404" ]; then
+  echo "Missing hashed assets must return HTTP 404, got $missing_asset_status." >&2
+  exit 1
+fi
+
 docker compose -f "$compose_file" exec -T api \
   /app/.venv/bin/python -m app.cli.verify_demo \
   --base-url http://frontend/api/v1 \

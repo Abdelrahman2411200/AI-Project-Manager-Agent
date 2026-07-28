@@ -8,6 +8,7 @@ import { SignInPage } from "../pages/SignInPage";
 import { ScenarioPage } from "../pages/ScenarioPage";
 import { AdvancedExperienceRoute } from "./AdvancedRoutes";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
+import { RouteErrorPage } from "./RouteErrorPage";
 import {
   ExecutionBoardRoute,
   ExecutionHealthRoute,
@@ -21,9 +22,11 @@ export const routes: RouteObject[] = [
   {
     path: "/sign-in",
     element: <SignInPage />,
+    errorElement: <RouteErrorPage />,
   },
   {
     element: <AuthenticatedLayout />,
+    errorElement: <RouteErrorPage />,
     children: [
       { path: "/", element: <Navigate to="/projects" replace /> },
       { path: "/projects", element: <ProjectsPage /> },
