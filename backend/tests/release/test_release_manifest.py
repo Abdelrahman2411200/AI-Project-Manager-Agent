@@ -104,6 +104,7 @@ def test_release_versions_and_required_artifacts_are_consistent() -> None:
         "docs/deploy.md",
         "docs/demo.md",
         "docs/operations/operator-developer-guide.md",
+        "docs/release/final-system-audit.md",
         "docs/release-review.md",
         "docs/release/university-checklist.md",
         "infra/release/verify-demo.sh",

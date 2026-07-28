@@ -254,6 +254,7 @@ University release and prior operational evidence:
 - [Operator and developer guide](docs/operations/operator-developer-guide.md)
 - [University demonstration](docs/demo.md)
 - [Final architecture and 72-item review](docs/release-review.md)
+- [Final 48-requirement system audit](docs/release/final-system-audit.md)
 - [University release checklist](docs/release/university-checklist.md)
 
 The ordered GitHub Actions pipelines run backend quality and PostgreSQL tests,

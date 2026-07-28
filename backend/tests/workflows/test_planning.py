@@ -1,4 +1,6 @@
 import asyncio
+import math
+import time
 from copy import deepcopy
 from uuid import UUID
 
@@ -190,6 +192,56 @@ def test_complete_workflow_persists_one_validated_draft_and_trace() -> None:
         assert [item.name for item in steps] == [item.name for item in PLANNING_SEQUENCE]
         assert all(item.status == "completed" for item in steps)
         assert len(provider.requests) == 8
+
+
+def test_evaluation_tier_planning_latency_meets_the_nfr_009_bounds() -> None:
+    run_ids: list[UUID] = []
+    progress_latencies: list[float] = []
+
+    for index in range(8):
+        _, client, csrf = create_user_and_client(f"latency-owner-{index}@example.com")
+        with client:
+            project_id = UUID(
+                client.post(
+                    "/api/v1/projects",
+                    json=project_payload(f"Evaluation-size planning fixture {index + 1}"),
+                    headers=write_headers(csrf),
+                ).json()["id"]
+            )
+            started = time.perf_counter()
+            response = client.post(
+                f"/api/v1/projects/{project_id}/planning-runs",
+                json={"token_budget": 50000},
+                headers={
+                    **write_headers(csrf),
+                    "Idempotency-Key": f"nfr-009-latency-{index}",
+                },
+            )
+            progress_latencies.append(time.perf_counter() - started)
+            assert response.status_code == 201
+            assert response.json()["status"] == "queued"
+            run_ids.append(UUID(response.json()["id"]))
+
+    completion_latencies: list[float] = []
+    for run_id in run_ids:
+        provider = FakeStructuredModelProvider(_outputs())
+        with SessionLocal() as session:
+            started = time.perf_counter()
+            run = asyncio.run(
+                PlanningWorkflow(
+                    session,
+                    provider,
+                    get_settings(),
+                    sleeper=_no_sleep,
+                ).execute(run_id)
+            )
+            completion_latencies.append(time.perf_counter() - started)
+            assert run.status == "completed"
+            assert run.proposed_plan_version_id is not None
+
+    p95_index = math.ceil(len(completion_latencies) * 0.95) - 1
+    assert max(progress_latencies) < 2
+    assert sorted(completion_latencies)[p95_index] < 5 * 60
 
 
 def test_transient_model_failure_retries_the_node_without_replaying_checkpoints() -> None:
