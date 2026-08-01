@@ -103,7 +103,7 @@ def settings(**overrides: Any) -> Settings:
     return Settings(
         ai_provider="ollama",
         ollama_base_url="http://ollama.test:11434",
-        ollama_model="gemma3:4b",
+        ollama_model="llama3.1:8b",
         ollama_context_tokens=8_192,
         ollama_max_output_tokens=2_048,
         ollama_schema_retries=1,
@@ -123,7 +123,7 @@ def chat_response(
     return httpx.Response(
         200,
         json={
-            "model": "gemma3:4b",
+            "model": "llama3.1:8b",
             "message": {"role": "assistant", "content": json.dumps(output)},
             "done": done,
             "done_reason": done_reason,
@@ -149,13 +149,13 @@ def test_ollama_adapter_sends_native_structured_request_and_tracks_usage() -> No
     asyncio.run(client.aclose())
 
     assert result.provider == "ollama"
-    assert result.model == "gemma3:4b"
+    assert result.model == "llama3.1:8b"
     assert result.output.temp_id == "MOD-001"
     assert result.usage.input_tokens == 12
     assert result.usage.output_tokens == 8
     assert result.usage.total_tokens == 20
     body = captured[0]
-    assert body["model"] == "gemma3:4b"
+    assert body["model"] == "llama3.1:8b"
     assert body["stream"] is False
     assert body["think"] is False
     assert body["format"] == ModuleDraft.model_json_schema()
@@ -194,6 +194,8 @@ def test_ollama_adapter_repairs_one_schema_error_and_diversifies_seed() -> None:
     assert calls[1]["options"]["seed"] == 43
     assert "supplied JSON Schema is the only shape example" in calls[0]["messages"][0]["content"]
     assert "Never copy identifiers" in calls[0]["messages"][0]["content"]
+    assert '"additionalProperties":false' in calls[0]["messages"][0]["content"]
+    assert '"temp_id"' in calls[0]["messages"][0]["content"]
 
 
 def test_ollama_adapter_removes_domain_bearing_prompt_examples() -> None:

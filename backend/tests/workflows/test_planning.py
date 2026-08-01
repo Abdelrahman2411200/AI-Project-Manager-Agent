@@ -2,6 +2,7 @@ import asyncio
 import math
 import time
 from copy import deepcopy
+from dataclasses import replace
 from typing import Any
 from uuid import UUID
 
@@ -72,13 +73,13 @@ def _outputs() -> list[dict[str, Any]]:
     }
     task = {
         **TASK,
-        "title": "Implement durable planning workflow",
+        "title": "Implement owner-scoped project data",
         "description": (
-            "Implement the checkpointed workflow and persist its validated draft atomically."
+            "Implement and verify owner-scoped project data persistence and authorization."
         ),
-        "deliverable": "Checkpointed planning workflow",
-        "acceptance_criteria": ["A complete run persists exactly one validated draft"],
-        "definition_of_done": ["Workflow integration tests pass"],
+        "deliverable": "Verified owner-scoped project data",
+        "acceptance_criteria": ["One owner cannot access another owner's project data"],
+        "definition_of_done": ["Owner authorization integration tests pass"],
         "effort_min_hours": 8,
         "effort_likely_hours": 12,
         "effort_max_hours": 16,
@@ -150,6 +151,120 @@ async def _no_sleep(_: float) -> None:
     return None
 
 
+def test_clarification_generation_discards_questions_answered_by_confirmed_facts() -> None:
+    run_id, _ = _started_run("known-fact-questions-owner@example.com")
+    deadline_question = {
+        "temp_id": "Q-001",
+        "question": "What is the deadline for this project?",
+        "reason": "The deadline was mentioned in the supplied intake.",
+        "affects": ["schedule"],
+        "required": True,
+        "answer_type": "text",
+        "options": [],
+        "default_assumption": None,
+        "source_fact_refs": [],
+    }
+    access_question = {
+        "temp_id": "Q-002",
+        "question": "Is role-based access control required?",
+        "reason": "The supplied requirement mentions role-based access control.",
+        "affects": ["scope"],
+        "required": True,
+        "answer_type": "boolean",
+        "options": [],
+        "default_assumption": None,
+        "source_fact_refs": ["REQ-001"],
+    }
+    identity_provider_question = {
+        "temp_id": "Q-003",
+        "question": "Which identity provider should authenticate portal users?",
+        "reason": "The authentication requirement does not select an identity provider.",
+        "affects": ["architecture"],
+        "required": True,
+        "answer_type": "single_choice",
+        "options": ["University SSO", "Application accounts"],
+        "default_assumption": None,
+        "source_fact_refs": ["REQ-001"],
+    }
+    language_question = {
+        "temp_id": "Q-004",
+        "question": "What is the launch language for this project?",
+        "reason": "The launch language affects the interface.",
+        "affects": ["scope"],
+        "required": True,
+        "answer_type": "text",
+        "options": [],
+        "default_assumption": None,
+        "source_fact_refs": [],
+    }
+    provider = FakeStructuredModelProvider(
+        [
+            {
+                "items": [
+                    deadline_question,
+                    access_question,
+                    identity_provider_question,
+                    language_question,
+                ]
+            }
+        ]
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        facts = replace(
+            facts,
+            intake={**facts.intake, "notes": "English is the launch language."},
+            requirements=[
+                {
+                    "fact_ref": "REQ-001",
+                    "kind": "stated",
+                    "text": "Secure authentication and role-based access control",
+                    "source": "user",
+                    "status": "confirmed",
+                }
+            ],
+            constraints=[],
+            allowed_refs=frozenset({"REQ-001"}),
+            excluded_refs=frozenset(),
+        )
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).detect_gaps(run, facts)
+        )
+
+    assert result.repaired is True
+    assert [item.temp_id for item in result.output.items] == ["Q-003"]
+
+
+def test_analysis_normalizes_invented_fact_identifiers_to_confirmed_input() -> None:
+    run_id, _ = _started_run("analysis-ref-normalization-owner@example.com")
+    analysis = deepcopy(_outputs()[1])
+    analysis["objectives"][0]["fact_ref"] = "OBJ-001"
+    analysis["success_criteria"][0]["fact_ref"] = "SC-001"
+    provider = FakeStructuredModelProvider([analysis])
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).analyze(
+                run,
+                build_planning_facts(project),
+            )
+        )
+
+    assert result.repaired is True
+    assert result.output.objectives[0].fact_ref == "REQ-001"
+    assert result.output.success_criteria[0].fact_ref == "REQ-001"
+    assert len(provider.requests) == 1
+
+
 def test_module_generation_repairs_missing_requirement_coverage_with_original_context() -> None:
     run_id, _ = _started_run("module-coverage-owner@example.com")
     valid = deepcopy(_outputs()[2])
@@ -214,12 +329,42 @@ def test_module_generation_adds_grounded_coverage_after_bounded_repair() -> None
     assert "Owner-scoped project data" in result.output.items[-1].description
 
 
+def test_module_generation_normalizes_model_supplied_identifiers() -> None:
+    run_id, _ = _started_run("module-id-normalization-owner@example.com")
+    generated_module = deepcopy(_outputs()[2])
+    generated_module["items"][0]["temp_id"] = "MOD-12345"
+    provider = FakeStructuredModelProvider([generated_module])
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).modules(
+                run,
+                build_planning_facts(project),
+                ProjectAnalysisOutput.model_validate(_outputs()[1]),
+            )
+        )
+
+    assert result.repaired is True
+    assert [item.temp_id for item in result.output.items] == ["MOD-001"]
+
+
 def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -> None:
     run_id, _ = _started_run("task-batch-owner@example.com")
+    first_module = deepcopy(_outputs()[2]["items"][0])
+    second_module = {
+        **deepcopy(first_module),
+        "temp_id": "MOD-002",
+        "name": "Owner review",
+    }
     first_milestone = deepcopy(_outputs()[3]["items"][0])
     second_milestone = {
         **deepcopy(first_milestone),
         "temp_id": "MS-002",
+        "module_refs": ["MOD-002"],
         "name": "Owner review ready",
         "sequence": 2,
     }
@@ -227,7 +372,7 @@ def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -
     second_task = {
         **deepcopy(first_task),
         "milestone_ref": "MS-002",
-        "title": "Prepare owner review evidence",
+        "title": first_task["title"],
     }
     provider = FakeStructuredModelProvider([{"items": [first_task]}, {"items": [second_task]}])
 
@@ -240,13 +385,119 @@ def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -
             PlanningSemanticNodes(session, provider, get_settings()).tasks(
                 run,
                 build_planning_facts(project),
+                ModuleDraftBatch.model_validate({"items": [first_module, second_module]}),
                 MilestoneDraftBatch.model_validate({"items": [first_milestone, second_milestone]}),
             )
         )
 
     assert [item.temp_id for item in result.output.items] == ["TASK-001", "TASK-002"]
     assert [item.milestone_ref for item in result.output.items] == ["MS-001", "MS-002"]
-    assert [request.prompt_version for request in provider.requests] == ["v4", "v4"]
+    assert [item.title for item in result.output.items] == [
+        first_task["title"],
+        f"{first_task['title']} — Owner review ready",
+    ]
+    assert result.repaired is True
+    assert [request.prompt_version for request in provider.requests] == ["v5", "v5"]
+
+
+def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -> None:
+    run_id, _ = _started_run("task-grounded-fallback-owner@example.com")
+    module = deepcopy(_outputs()[2]["items"][0])
+    module["requirement_refs"] = ["REQ-001", "REQ-002", "REQ-003"]
+    milestone = deepcopy(_outputs()[3]["items"][0])
+    incomplete_task = deepcopy(_outputs()[4]["items"][0])
+    incomplete_task["requirement_refs"] = []
+    provider = FakeStructuredModelProvider(
+        [{"items": [incomplete_task]}, {"items": [deepcopy(incomplete_task)]}]
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        requirements = [
+            {
+                "fact_ref": f"REQ-{index:03d}",
+                "kind": "stated",
+                "text": text,
+                "source": "user",
+                "status": "confirmed",
+            }
+            for index, text in enumerate(
+                [
+                    "Owner authentication",
+                    "Validated project planning",
+                    "Approval-gated activation",
+                ],
+                start=1,
+            )
+        ]
+        facts = replace(
+            facts,
+            requirements=requirements,
+            allowed_refs=frozenset(item["fact_ref"] for item in requirements),
+            excluded_refs=frozenset(),
+        )
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).tasks(
+                run,
+                facts,
+                ModuleDraftBatch.model_validate({"items": [module]}),
+                MilestoneDraftBatch.model_validate({"items": [milestone]}),
+            )
+        )
+
+    assert result.repaired is True
+    assert len(provider.requests) == 2
+    assert [item.temp_id for item in result.output.items] == [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+    ]
+    dedicated_refs = {
+        item.requirement_refs[0] for item in result.output.items if len(item.requirement_refs) == 1
+    }
+    assert dedicated_refs == {"REQ-001", "REQ-002", "REQ-003"}
+    assert all(
+        item.milestone_ref == "MS-001" and 4 <= item.effort_likely_hours <= 24
+        for item in result.output.items
+    )
+
+
+def test_task_generation_removes_semantically_unrelated_requirement_citations() -> None:
+    run_id, _ = _started_run("task-semantic-grounding-owner@example.com")
+    unrelated = {
+        **deepcopy(_outputs()[4]["items"][0]),
+        "title": "Prepare marketing illustrations",
+        "description": "Create decorative campaign artwork for a public launch.",
+        "deliverable": "Marketing illustration set",
+        "requirement_refs": ["REQ-001"],
+    }
+    provider = FakeStructuredModelProvider(
+        [{"items": [unrelated]}, {"items": [deepcopy(unrelated)]}]
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).tasks(
+                run,
+                build_planning_facts(project),
+                ModuleDraftBatch.model_validate(_outputs()[2]),
+                MilestoneDraftBatch.model_validate(_outputs()[3]),
+            )
+        )
+
+    assert result.repaired is True
+    assert result.output.items[0].requirement_refs == []
+    assert result.output.items[1].requirement_refs == ["REQ-001"]
+    assert "Owner-scoped project data" in result.output.items[1].title
 
 
 def test_milestone_generation_batches_each_module_and_assigns_unique_sequences() -> None:
@@ -557,9 +808,7 @@ def test_business_invalid_task_receives_one_minimal_repair() -> None:
 def test_required_quality_failure_never_exposes_a_draft() -> None:
     run_id, _ = _started_run("quality-owner@example.com")
     invalid_outputs = _outputs()
-    for task_output_index in (4, 5):
-        first, second = invalid_outputs[task_output_index]["items"]
-        invalid_outputs[task_output_index] = {"items": [first, {**second, "title": first["title"]}]}
+    invalid_outputs[1]["excluded_scope"] = deepcopy(invalid_outputs[1]["mvp_boundary"])
     provider = FakeStructuredModelProvider(invalid_outputs)
 
     with SessionLocal() as session:

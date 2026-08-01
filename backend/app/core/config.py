@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     pdf_max_concurrency: int = Field(default=2, ge=1, le=8)
     ai_provider: Literal["ollama", "openai", "none"] = "ollama"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
-    ollama_model: str = Field(default="gemma3:4b", min_length=1, max_length=120)
-    ollama_timeout_seconds: float = Field(default=300.0, ge=10.0, le=1_800.0)
+    ollama_model: str = Field(default="llama3.1:8b", min_length=1, max_length=120)
+    ollama_timeout_seconds: float = Field(default=600.0, ge=10.0, le=1_800.0)
     ollama_context_tokens: int = Field(default=8_192, ge=2_048, le=131_072)
     ollama_max_output_tokens: int = Field(default=4_096, ge=128, le=32_768)
     ollama_temperature: float = Field(default=0.0, ge=0.0, le=2.0)

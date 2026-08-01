@@ -82,6 +82,7 @@ class OllamaStructuredProvider:
 
         started = monotonic_ns()
         schema = request.output_type.model_json_schema()
+        schema_text = json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
         messages: list[dict[str, str]] = [
             {
                 "role": "system",
@@ -92,7 +93,8 @@ class OllamaStructuredProvider:
                     "every reference value must appear verbatim in the supplied project data. "
                     "Respect the supplied JSON Schema exactly. When "
                     "an array permits zero items and no valid item can be formed from supplied "
-                    "data, return an empty array instead of fabricating an item."
+                    "data, return an empty array instead of fabricating an item.\n"
+                    f"Output JSON Schema:\n{schema_text}"
                 ),
             },
             {"role": "user", "content": request.input_text},

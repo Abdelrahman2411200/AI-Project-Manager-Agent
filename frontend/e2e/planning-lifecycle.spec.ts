@@ -34,7 +34,7 @@ async function mockLifecycle(page: Page) {
       return json(route, {
         planning_ai_configured: true,
         planning_provider: "ollama",
-        planning_model: "gemma3:4b",
+        planning_model: "llama3.1:8b",
       });
     }
     if (path === "/projects" && method === "POST") {

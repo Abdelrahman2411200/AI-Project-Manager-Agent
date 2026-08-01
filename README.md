@@ -142,7 +142,7 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Persistence | PostgreSQL in deployment; SQLite for single-worker local development |
 | Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright/Chromium, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
-| AI boundary | Local Ollama by default (`gemma3:4b`), optional OpenAI adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
+| AI boundary | Local Ollama by default (`llama3.1:8b`), optional OpenAI adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
 | Hardening | Request limits, owner/run budgets, encrypted restore drills, SLO alerts, ordered CI |
 
 ## Repository layout
@@ -174,7 +174,7 @@ For Windows development with Ollama installed in the Ubuntu WSL distribution, st
 & .\infra\release\start-local-ollama.ps1
 ```
 
-The helper keeps WSL running, verifies that `gemma3:4b` is installed, configures the ignored `.env.demo`, starts Docker Compose, and exercises the same structured provider path used by the worker. Open the URL printed by the script (normally `http://localhost:8080`, or the existing `HTTP_PORT` in `.env.demo`). No hosted API key is required.
+The helper keeps WSL running, verifies that `llama3.1:8b` is installed, configures the ignored `.env.demo`, starts Docker Compose, and exercises the same structured provider path used by the worker. Open the URL printed by the script (normally `http://localhost:8080`, or the existing `HTTP_PORT` in `.env.demo`). No hosted API key is required.
 
 To run services manually, copy the example environment file first:
 

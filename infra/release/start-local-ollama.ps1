@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Distro = "Ubuntu",
-    [string]$Model = "gemma3:4b",
+    [string]$Model = "llama3.1:8b",
     [string]$EnvironmentFile = ".env.demo",
     [switch]$SkipBuild
 )
@@ -84,7 +84,7 @@ if (-not (Test-Path -LiteralPath $environmentPath)) {
 Set-DotEnvValue -Path $environmentPath -Name "AI_PROVIDER" -Value "ollama"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_BASE_URL" -Value "http://host.docker.internal:11434"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MODEL" -Value $Model
-Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "300"
+Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "600"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_CONTEXT_TOKENS" -Value "8192"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MAX_OUTPUT_TOKENS" -Value "4096"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_SCHEMA_RETRIES" -Value "1"

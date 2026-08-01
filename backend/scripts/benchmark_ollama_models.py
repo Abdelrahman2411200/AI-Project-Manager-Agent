@@ -7,13 +7,23 @@ import asyncio
 import json
 import time
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel
 
+from app.ai.ollama_provider import OllamaStructuredProvider
 from app.ai.prompts.registry import get_prompt
+from app.ai.provider import StructuredModelRequest
+from app.ai.schemas.outputs import (
+    DependencySuggestionBatch,
+    MilestoneDraftBatch,
+    ModuleDraftBatch,
+    ProjectAnalysisOutput,
+    TaskDraftBatch,
+)
 from app.ai.validation import ValidationContext, validate_candidate
+from app.core.config import Settings
 
 FACTS: dict[str, Any] = {
     "intake": {
@@ -132,49 +142,42 @@ async def generate(
 ) -> tuple[BaseModel, dict[str, Any]]:
     prompt = get_prompt(identifier)
     instructions, input_text = prompt.render(context)
-    schema = prompt.output_type.model_json_schema()
+    settings = Settings(
+        ai_provider="ollama",
+        ollama_base_url=str(client.base_url),
+        ollama_model=model,
+        ollama_context_tokens=8_192,
+        ollama_max_output_tokens=4_096,
+        ollama_schema_retries=1,
+        _env_file=None,
+    )
+    provider = OllamaStructuredProvider(settings, client=client)
     started = time.perf_counter()
-    response = await client.post(
-        "/api/chat",
-        json={
-            "model": model,
-            "stream": False,
-            "think": False,
-            "keep_alive": "5m",
-            "format": schema,
-            "messages": [
-                {"role": "system", "content": instructions},
-                {
-                    "role": "user",
-                    "content": input_text,
-                },
-            ],
-            "options": {
-                "temperature": 0,
-                "seed": 42,
-                "num_ctx": 8_192,
-                "num_predict": min(prompt.output_token_budget, 2_048),
-            },
-        },
-        timeout=300,
+    generated = await provider.generate(
+        StructuredModelRequest(
+            prompt_key=prompt.key,
+            prompt_version=prompt.version,
+            instructions=instructions,
+            input_text=input_text,
+            output_type=prompt.output_type,
+            token_budget=prompt.output_token_budget,
+            safety_identifier="ollama_benchmark",
+            reasoning_effort=prompt.reasoning_effort,
+            metadata={"purpose": "local_model_benchmark"},
+        )
     )
-    response.raise_for_status()
-    payload = response.json()
-    parsed = prompt.output_type.model_validate_json(payload["message"]["content"])
     result = validate_candidate(
-        parsed.model_dump(mode="json"), prompt.output_type, validation_context
+        generated.output.model_dump(mode="json"), prompt.output_type, validation_context
     )
-    evaluation_seconds = payload.get("eval_duration", 0) / 1_000_000_000
-    return parsed, {
-        "seconds": round(time.perf_counter() - started, 2),
-        "input_tokens": payload.get("prompt_eval_count", 0),
-        "output_tokens": payload.get("eval_count", 0),
-        "tokens_per_second": round(payload.get("eval_count", 0) / evaluation_seconds, 2)
-        if evaluation_seconds
-        else 0,
+    elapsed = time.perf_counter() - started
+    return generated.output, {
+        "seconds": round(elapsed, 2),
+        "input_tokens": generated.usage.input_tokens,
+        "output_tokens": generated.usage.output_tokens,
+        "tokens_per_second": round(generated.usage.output_tokens / elapsed, 2) if elapsed else 0,
         "valid": result.is_valid,
         "issues": [issue.code for issue in result.issues],
-        "done_reason": payload.get("done_reason"),
+        "model": generated.model,
     }
 
 
@@ -183,7 +186,7 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
     analysis, metric = await generate(
         client,
         model,
-        "analysis.v2",
+        "analysis.v3",
         {
             "intake": FACTS["intake"],
             "requirements": FACTS["requirements"],
@@ -193,6 +196,7 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
         ValidationContext(allowed_refs=ALLOWED_REFS, excluded_refs=EXCLUDED_REFS),
     )
     rows.append(("analysis", metric))
+    analysis = cast(ProjectAnalysisOutput, analysis)
     modules, metric = await generate(
         client,
         model,
@@ -202,10 +206,15 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
             "requirements": FACTS["requirements"],
             "excluded_refs": sorted(EXCLUDED_REFS),
         },
-        ValidationContext(allowed_refs=ALLOWED_REFS, excluded_refs=EXCLUDED_REFS),
+        ValidationContext(
+            allowed_refs=ALLOWED_REFS,
+            required_refs=frozenset({"REQ-001", "REQ-002", "REQ-003", "REQ-004"}),
+            excluded_refs=EXCLUDED_REFS,
+        ),
     )
     rows.append(("modules", metric))
-    module_refs = frozenset(item.temp_id for item in modules.items)  # type: ignore[attr-defined]
+    modules = cast(ModuleDraftBatch, modules)
+    module_refs = frozenset(item.temp_id for item in modules.items)
     milestones, metric = await generate(
         client,
         model,
@@ -223,29 +232,25 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
         ),
     )
     rows.append(("milestones", metric))
-    milestone_refs = frozenset(  # type: ignore[attr-defined]
-        item.temp_id for item in milestones.items
-    )
+    milestones = cast(MilestoneDraftBatch, milestones)
+    milestone_refs = frozenset(item.temp_id for item in milestones.items)
     tasks, metric = await generate(
         client,
         model,
-        "tasks.v4",
+        "tasks.v5",
         {
             "milestones": milestones.model_dump(mode="json"),
             "requirements": FACTS["requirements"],
             "decisions": FACTS["decisions"],
             "workstreams": sorted(
-                {
-                    workstream
-                    for item in milestones.items  # type: ignore[attr-defined]
-                    for workstream in item.module_refs
-                }
+                {workstream for item in milestones.items for workstream in item.module_refs}
             ),
         },
         ValidationContext(allowed_refs=ALLOWED_REFS | milestone_refs, excluded_refs=EXCLUDED_REFS),
     )
     rows.append(("tasks", metric))
-    task_refs = frozenset(item.temp_id for item in tasks.items)  # type: ignore[attr-defined]
+    tasks = cast(TaskDraftBatch, tasks)
+    task_refs = frozenset(item.temp_id for item in tasks.items)
     dependencies, metric = await generate(
         client,
         model,
@@ -258,19 +263,20 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
                     "deliverable": item.deliverable,
                     "milestone_ref": item.milestone_ref,
                 }
-                for item in tasks.items  # type: ignore[attr-defined]
+                for item in tasks.items
             ]
         },
         ValidationContext(allowed_refs=task_refs),
     )
     rows.append(("dependencies", metric))
+    dependencies = cast(DependencySuggestionBatch, dependencies)
     return {
         "steps": dict(rows),
         "counts": {
-            "modules": len(modules.items),  # type: ignore[attr-defined]
-            "milestones": len(milestones.items),  # type: ignore[attr-defined]
-            "tasks": len(tasks.items),  # type: ignore[attr-defined]
-            "dependencies": len(dependencies.items),  # type: ignore[attr-defined]
+            "modules": len(modules.items),
+            "milestones": len(milestones.items),
+            "tasks": len(tasks.items),
+            "dependencies": len(dependencies.items),
         },
     }
 
@@ -278,7 +284,7 @@ async def run_pipeline(client: httpx.AsyncClient, model: str) -> dict[str, Any]:
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="http://127.0.0.1:11434")
-    parser.add_argument("models", nargs="+", default=["gemma3:4b", "llama3.1:8b"])
+    parser.add_argument("models", nargs="*", default=["llama3.1:8b"])
     args = parser.parse_args()
     results: dict[str, Any] = {}
     async with httpx.AsyncClient(base_url=args.base_url) as client:

@@ -75,7 +75,7 @@ describe("application routes", () => {
         jsonResponse({
           planning_ai_configured: true,
           planning_provider: "ollama",
-          planning_model: "gemma3:4b",
+          planning_model: "llama3.1:8b",
         }),
       );
     vi.stubGlobal("fetch", fetchMock);

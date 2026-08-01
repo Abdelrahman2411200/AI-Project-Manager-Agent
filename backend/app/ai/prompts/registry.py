@@ -212,10 +212,14 @@ _PROMPTS = (
         ProjectAnalysisOutput,
         6_000,
         120_000,
-        "Analyze confirmed facts, preserve scope boundaries, and cite each objective "
-        "and criterion.",
+        "Analyze confirmed facts and preserve scope boundaries. For every objective, success "
+        "criterion, constraint, assumption, question, and risk citation, copy only exact fact_ref "
+        "values present in the supplied data; never invent identifiers such as OBJ-### or SC-###. "
+        "Return modules, open_questions, and risks as empty arrays because dedicated workflow "
+        "nodes generate them later.",
         ANALYSIS,
         ADVERSARIAL_CASE,
+        version="v3",
     ),
     _prompt(
         "clarification",
@@ -264,13 +268,16 @@ _PROMPTS = (
         8_000,
         100_000,
         "Create specific tasks that cover every supplied milestone. Every milestone temp_id must "
-        "appear as milestone_ref on at least one task. Use unique sequential TASK-### identifiers "
+        "appear as milestone_ref on at least one task. Copy every identifier in "
+        "required_requirement_refs to requirement_refs and create at least one distinct, "
+        "actionable, verifiable task for each supplied requirement. A generic task that claims to "
+        "implement an entire module is not sufficient. Use unique sequential TASK-### identifiers "
         "and 4-24 likely hours for leaf work. Never emit a leaf task above 24 likely hours; split "
         "larger deliverables into multiple distinct, verifiable tasks whose estimates preserve "
         "the milestone's approximate effort.",
         TASK_BATCH_EXAMPLE,
         ADVERSARIAL_CASE,
-        version="v4",
+        version="v5",
     ),
     _prompt(
         "acceptance",

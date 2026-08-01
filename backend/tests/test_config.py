@@ -16,10 +16,11 @@ def test_development_defaults_are_safe_for_local_use() -> None:
     assert settings.database_url.startswith("sqlite")
     assert settings.cors_origin_strings == ["http://localhost:5173"]
     assert settings.ai_provider == "ollama"
-    assert settings.ollama_model == "gemma3:4b"
+    assert settings.ollama_model == "llama3.1:8b"
+    assert settings.ollama_timeout_seconds == 600
     assert settings.ollama_base_url_string == "http://127.0.0.1:11434"
     assert settings.planning_ai_configured is True
-    assert settings.planning_model == "gemma3:4b"
+    assert settings.planning_model == "llama3.1:8b"
     assert settings.openai_api_key is None
     assert settings.app_version == "0.13.0"
     assert settings.request_max_body_bytes == 1_048_576

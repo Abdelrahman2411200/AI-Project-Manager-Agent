@@ -362,7 +362,12 @@ class PlanningWorkflow:
         )
 
     async def _tasks(self, run: AgentRun, facts: PlanningFacts) -> NodeResult:
-        generated = await self.semantic.tasks(run, facts, self._milestones_value(run))
+        generated = await self.semantic.tasks(
+            run,
+            facts,
+            self._modules_value(run),
+            self._milestones_value(run),
+        )
         return _generated_result("tasks", generated.output, generated.usage, generated.repaired)
 
     async def _acceptance(self, run: AgentRun, facts: PlanningFacts) -> NodeResult:

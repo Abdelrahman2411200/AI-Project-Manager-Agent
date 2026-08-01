@@ -137,7 +137,7 @@ On Windows, start the local Ollama-backed demo from the repository root:
 & .\infra\release\start-local-ollama.ps1
 ```
 
-The helper keeps Ubuntu WSL alive, confirms `gemma3:4b` is installed, updates the
+The helper keeps Ubuntu WSL alive, confirms `llama3.1:8b` is installed, updates the
 ignored demo environment, starts the containers, and performs one schema-constrained
 probe through the worker. If Ollama is unavailable, project-only saves remain
 available and planning admission is rejected before a run or quota reservation.

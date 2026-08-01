@@ -23,6 +23,7 @@ from app.ai.provider import (
     make_safety_identifier,
 )
 from app.ai.schemas.outputs import (
+    ClarificationQuestion,
     ClarificationQuestionBatch,
     DependencySuggestionBatch,
     MilestoneDraftBatch,
@@ -60,7 +61,7 @@ class PlanningSemanticNodes:
     async def detect_gaps(
         self, run: AgentRun, facts: PlanningFacts
     ) -> Generated[ClarificationQuestionBatch]:
-        return await self._generate(
+        generated: Generated[ClarificationQuestionBatch] = await self._generate(
             run,
             "clarification.v3",
             {
@@ -73,13 +74,25 @@ class PlanningSemanticNodes:
                 excluded_refs=facts.excluded_refs,
             ),
         )
+        unanswered = [
+            item
+            for item in generated.output.items
+            if not _question_is_answered_by_confirmed_facts(item, facts)
+        ]
+        if len(unanswered) == len(generated.output.items):
+            return generated
+        return Generated(
+            ClarificationQuestionBatch(items=unanswered),
+            generated.usage,
+            repaired=True,
+        )
 
     async def analyze(
         self, run: AgentRun, facts: PlanningFacts
     ) -> Generated[ProjectAnalysisOutput]:
         return await self._generate(
             run,
-            "analysis.v2",
+            "analysis.v3",
             {
                 "intake": facts.intake,
                 "requirements": facts.requirements,
@@ -103,7 +116,7 @@ class PlanningSemanticNodes:
             for item in facts.requirements
             if item["fact_ref"] not in facts.excluded_refs
         )
-        return await self._generate(
+        generated: Generated[ModuleDraftBatch] = await self._generate(
             run,
             "modules.v3",
             {
@@ -117,6 +130,19 @@ class PlanningSemanticNodes:
                 required_refs=required_refs,
                 excluded_refs=facts.excluded_refs,
             ),
+        )
+        normalized_items: list[dict[str, Any]] = []
+        changed = False
+        for index, item in enumerate(generated.output.items, start=1):
+            stable_id = f"MOD-{index:03d}"
+            dumped = item.model_dump(mode="json")
+            changed = changed or item.temp_id != stable_id
+            dumped["temp_id"] = stable_id
+            normalized_items.append(dumped)
+        return Generated(
+            ModuleDraftBatch.model_validate({"items": normalized_items}),
+            generated.usage,
+            repaired=generated.repaired or changed,
         )
 
     async def milestones(
@@ -174,19 +200,31 @@ class PlanningSemanticNodes:
         self,
         run: AgentRun,
         facts: PlanningFacts,
+        modules: ModuleDraftBatch,
         milestones: MilestoneDraftBatch,
     ) -> Generated[TaskDraftBatch]:
         items: list[dict[str, Any]] = []
         usage = ModelUsage()
         repaired = False
         next_task_number = 1
+        module_requirements = {
+            item.temp_id: frozenset(item.requirement_refs) for item in modules.items
+        }
         for milestone in sorted(milestones.items, key=lambda item: item.sequence):
+            required_refs = frozenset(
+                reference
+                for module_ref in milestone.module_refs
+                for reference in module_requirements.get(module_ref, frozenset())
+            )
             generated: Generated[TaskDraftBatch] = await self._generate(
                 run,
-                "tasks.v4",
+                "tasks.v5",
                 {
                     "milestones": {"items": [milestone.model_dump(mode="json")]},
-                    "requirements": facts.requirements,
+                    "requirements": [
+                        item for item in facts.requirements if item["fact_ref"] in required_refs
+                    ],
+                    "required_requirement_refs": sorted(required_refs),
                     "decisions": facts.decisions,
                     "workstreams": sorted(milestone.module_refs),
                     "allocated_temp_id_start": f"TASK-{next_task_number:03d}",
@@ -198,6 +236,7 @@ class PlanningSemanticNodes:
                 },
                 ValidationContext(
                     allowed_refs=facts.allowed_refs | {milestone.temp_id},
+                    required_refs=required_refs,
                     excluded_refs=facts.excluded_refs,
                 ),
             )
@@ -214,10 +253,11 @@ class PlanningSemanticNodes:
             next_task_number += len(generated.output.items)
             usage = _add_usage(usage, generated.usage)
             repaired = repaired or generated.repaired
+        items, titles_changed = _deduplicate_task_titles(items, milestones)
         return Generated(
             TaskDraftBatch.model_validate({"items": items}),
             usage,
-            repaired,
+            repaired or titles_changed,
         )
 
     async def acceptance(
@@ -336,13 +376,30 @@ class PlanningSemanticNodes:
         template = get_prompt(prompt_identifier)
         output_type = cast(type[OutputT], template.output_type)
         first = await self._call(run, template, context, output_type, repair=False)
+        first_output, first_normalized = _normalize_analysis_fact_refs(
+            first.output,
+            output_type,
+            context,
+            validation_context,
+        )
+        first_output, task_refs_normalized = _normalize_task_requirement_refs(
+            first_output,
+            output_type,
+            context,
+            validation_context,
+        )
+        first_normalized = first_normalized or task_refs_normalized
         validation = validate_candidate(
-            first.output.model_dump(mode="json"),
+            first_output.model_dump(mode="json"),
             output_type,
             validation_context,
         )
         if validation.is_valid and validation.candidate is not None:
-            return Generated(validation.candidate, first.usage, repaired=False)
+            return Generated(
+                validation.candidate,
+                first.usage,
+                repaired=first_normalized,
+            )
         errors = [item.as_dict() for item in validation.issues]
         repair_context = {
             "repair_directive": (
@@ -350,7 +407,7 @@ class PlanningSemanticNodes:
                 "preserve valid grounded content, and copy every required reference exactly."
             ),
             "original_context": context,
-            "invalid_candidate": first.output.model_dump(mode="json"),
+            "invalid_candidate": first_output.model_dump(mode="json"),
             "validation_errors": errors,
             "validation_constraints": {
                 "allowed_refs": sorted(validation_context.allowed_refs),
@@ -366,15 +423,27 @@ class PlanningSemanticNodes:
             output_type,
             repair=True,
         )
+        repaired_output, _ = _normalize_analysis_fact_refs(
+            repaired.output,
+            output_type,
+            context,
+            validation_context,
+        )
+        repaired_output, _ = _normalize_task_requirement_refs(
+            repaired_output,
+            output_type,
+            context,
+            validation_context,
+        )
         repaired_validation = validate_candidate(
-            repaired.output.model_dump(mode="json"),
+            repaired_output.model_dump(mode="json"),
             output_type,
             validation_context,
         )
         if not repaired_validation.is_valid or repaired_validation.candidate is None:
             final_errors = [item.as_dict() for item in repaired_validation.issues]
             grounded_modules = _complete_grounded_module_coverage(
-                repaired.output,
+                repaired_output,
                 output_type,
                 context,
                 validation_context,
@@ -386,8 +455,21 @@ class PlanningSemanticNodes:
                     _add_usage(first.usage, repaired.usage),
                     repaired=True,
                 )
+            grounded_tasks = _complete_grounded_task_coverage(
+                repaired_output,
+                output_type,
+                context,
+                validation_context,
+                final_errors,
+            )
+            if grounded_tasks is not None:
+                return Generated(
+                    grounded_tasks,
+                    _add_usage(first.usage, repaired.usage),
+                    repaired=True,
+                )
             salvaged = _discard_invalid_optional_items(
-                repaired.output,
+                repaired_output,
                 output_type,
                 validation_context,
                 final_errors,
@@ -523,6 +605,268 @@ def _add_usage(first: ModelUsage, second: ModelUsage) -> ModelUsage:
     )
 
 
+_QUESTION_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "are",
+        "be",
+        "does",
+        "has",
+        "have",
+        "how",
+        "for",
+        "is",
+        "it",
+        "must",
+        "of",
+        "project",
+        "requirement",
+        "required",
+        "should",
+        "the",
+        "this",
+        "to",
+        "what",
+        "which",
+    }
+)
+
+
+def _question_is_answered_by_confirmed_facts(
+    question: ClarificationQuestion,
+    facts: PlanningFacts,
+) -> bool:
+    normalized = " ".join(question.question.casefold().replace("-", " ").split())
+    known_intake_topics = (
+        (("deadline", "due date", "delivery date"), facts.intake.get("deadline")),
+        (("start date", "project start", "project begin"), facts.intake.get("start_date")),
+        (("timezone", "time zone"), facts.intake.get("timezone")),
+        (
+            ("weekly capacity", "hours per week", "weekly hours"),
+            facts.intake.get("capacity_hours_per_week"),
+        ),
+        (
+            ("team size", "team members", "how many people"),
+            facts.intake.get("team_size"),
+        ),
+        (("project name", "name of the project"), facts.intake.get("name")),
+        (("project goal", "goal of the project"), facts.intake.get("goal")),
+        (("desired outcome",), facts.intake.get("desired_outcome")),
+    )
+    if any(
+        value not in (None, "") and any(phrase in normalized for phrase in phrases)
+        for phrases, value in known_intake_topics
+    ):
+        return True
+    question_tokens = _meaningful_tokens(normalized)
+    if len(question_tokens) < 2:
+        return False
+    confirmed_texts = [
+        _flatten_fact_text(facts.intake.get("notes")),
+        *(
+            item.get("text", "")
+            for item in facts.requirements
+            if item["fact_ref"] not in facts.excluded_refs
+        ),
+        *(
+            _flatten_fact_text(item.get("value"))
+            for item in facts.constraints
+            if item.get("confirmed")
+        ),
+        *(item.get("text", "") for item in facts.decisions),
+    ]
+    for text in confirmed_texts:
+        fact_tokens = _meaningful_tokens(str(text))
+        if len(question_tokens & fact_tokens) / len(question_tokens) >= 0.75:
+            return True
+    return False
+
+
+def _meaningful_tokens(value: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", value.casefold())
+        if token not in _QUESTION_STOPWORDS
+    }
+
+
+def _flatten_fact_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return " ".join(_flatten_fact_text(item) for item in value.values())
+    if isinstance(value, list):
+        return " ".join(_flatten_fact_text(item) for item in value)
+    return str(value) if value is not None else ""
+
+
+def _normalize_analysis_fact_refs[OutputT: BaseModel](
+    candidate: OutputT,
+    output_type: type[OutputT],
+    original_context: dict[str, Any],
+    validation_context: ValidationContext,
+) -> tuple[OutputT, bool]:
+    """Ground Llama-authored analysis citations in confirmed input identifiers."""
+    if output_type is not ProjectAnalysisOutput:
+        return candidate, False
+
+    valid_refs = validation_context.allowed_refs - validation_context.excluded_refs
+    fact_text: dict[str, str] = {}
+    requirement_refs: list[str] = []
+    for collection_name in ("requirements", "constraints", "decisions"):
+        collection = original_context.get(collection_name, [])
+        if not isinstance(collection, list):
+            continue
+        for item in collection:
+            if not isinstance(item, dict):
+                continue
+            reference = item.get("fact_ref")
+            if not isinstance(reference, str) or reference not in valid_refs:
+                continue
+            fact_text[reference] = " ".join(
+                part
+                for part in (
+                    _flatten_fact_text(item.get("text")),
+                    _flatten_fact_text(item.get("value")),
+                    _flatten_fact_text(item.get("value_json")),
+                )
+                if part
+            )
+            if collection_name == "requirements":
+                requirement_refs.append(reference)
+    fallback_refs = requirement_refs or sorted(fact_text)
+    if not fallback_refs:
+        return candidate, False
+
+    raw = candidate.model_dump(mode="json")
+    changed = False
+    for field in ("objectives", "success_criteria", "constraints"):
+        items = raw.get(field, [])
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict) or item.get("fact_ref") in valid_refs:
+                continue
+            item["fact_ref"] = _closest_fact_ref(
+                str(item.get("text", "")),
+                fact_text,
+                fallback_refs[0],
+            )
+            changed = True
+    return output_type.model_validate(raw), changed
+
+
+def _closest_fact_ref(text: str, fact_text: dict[str, str], fallback: str) -> str:
+    target_tokens = _meaningful_tokens(text)
+    ranked = [
+        (
+            len(target_tokens & _meaningful_tokens(source_text)),
+            reference,
+        )
+        for reference, source_text in fact_text.items()
+    ]
+    if not ranked:
+        return fallback
+    overlap, reference = max(ranked, key=lambda item: (item[0], item[1] == fallback))
+    return reference if overlap > 0 else fallback
+
+
+_TASK_GROUNDING_STOPWORDS = frozenset(
+    {
+        "build",
+        "create",
+        "deliver",
+        "feature",
+        "implement",
+        "module",
+        "project",
+        "system",
+        "the",
+        "verify",
+        "with",
+    }
+)
+
+
+def _normalize_task_requirement_refs[OutputT: BaseModel](
+    candidate: OutputT,
+    output_type: type[OutputT],
+    original_context: dict[str, Any],
+    validation_context: ValidationContext,
+) -> tuple[OutputT, bool]:
+    """Remove task citations whose content is unrelated to the cited requirement."""
+    if output_type is not TaskDraftBatch or not validation_context.required_refs:
+        return candidate, False
+    requirement_text = {
+        item.get("fact_ref"): item.get("text")
+        for item in original_context.get("requirements", [])
+        if isinstance(item, dict)
+        and item.get("fact_ref") in validation_context.required_refs
+        and isinstance(item.get("text"), str)
+    }
+    if not requirement_text:
+        return candidate, False
+
+    raw = candidate.model_dump(mode="json")
+    changed = False
+    for item in raw.get("items", []):
+        task_text = " ".join(
+            str(item.get(field, "")) for field in ("title", "description", "deliverable")
+        )
+        grounded_refs = [
+            reference
+            for reference in item.get("requirement_refs", [])
+            if reference in requirement_text
+            and _task_matches_requirement(task_text, cast(str, requirement_text[reference]))
+        ]
+        if grounded_refs != item.get("requirement_refs", []):
+            item["requirement_refs"] = grounded_refs
+            changed = True
+    return output_type.model_validate(raw), changed
+
+
+def _task_matches_requirement(task_text: str, requirement_text: str) -> bool:
+    return bool(_grounding_tokens(task_text) & _grounding_tokens(requirement_text))
+
+
+def _grounding_tokens(value: str) -> set[str]:
+    tokens: set[str] = set()
+    for token in re.findall(r"[a-z0-9]+", value.casefold()):
+        if token in _TASK_GROUNDING_STOPWORDS or len(token) < 3:
+            continue
+        tokens.add(token[:-1] if token.endswith("s") and len(token) > 4 else token)
+    return tokens
+
+
+def _deduplicate_task_titles(
+    items: list[dict[str, Any]],
+    milestones: MilestoneDraftBatch,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Make cross-batch task titles distinct without changing their scope."""
+    milestone_names = {item.temp_id: item.name for item in milestones.items}
+    seen: set[str] = set()
+    changed = False
+    normalized_items: list[dict[str, Any]] = []
+    for item in items:
+        dumped = dict(item)
+        title = str(dumped["title"])
+        normalized = " ".join(title.casefold().split())
+        if normalized in seen:
+            milestone_ref = str(dumped["milestone_ref"])
+            suffix = f" — {milestone_names.get(milestone_ref, milestone_ref)}"
+            unique_title = f"{title[: max(1, 120 - len(suffix))].rstrip()}{suffix}"
+            unique_normalized = " ".join(unique_title.casefold().split())
+            if unique_normalized in seen:
+                suffix = f" — {milestone_ref} {dumped['temp_id']}"
+                unique_title = f"{title[: max(1, 120 - len(suffix))].rstrip()}{suffix}"
+                unique_normalized = " ".join(unique_title.casefold().split())
+            dumped["title"] = unique_title
+            normalized = unique_normalized
+            changed = True
+        seen.add(normalized)
+        normalized_items.append(dumped)
+    return normalized_items, changed
+
+
 def _discard_invalid_optional_items[OutputT: BaseModel](
     candidate: OutputT,
     output_type: type[OutputT],
@@ -601,6 +945,91 @@ def _complete_grounded_module_coverage[OutputT: BaseModel](
             "mvp_required": True,
         }
     )
+    validation = validate_candidate(raw, output_type, validation_context)
+    return validation.candidate if validation.is_valid else None
+
+
+def _complete_grounded_task_coverage[OutputT: BaseModel](
+    candidate: OutputT,
+    output_type: type[OutputT],
+    original_context: dict[str, Any],
+    validation_context: ValidationContext,
+    errors: list[dict[str, str]],
+) -> OutputT | None:
+    """Add traceable tasks when a repaired milestone draft remains under-decomposed."""
+    supported_codes = {
+        "business.task_requirement_coverage",
+        "business.requirement_task_count",
+        "business.dedicated_requirement_task",
+    }
+    if output_type is not TaskDraftBatch or not errors:
+        return None
+    if not {error["code"] for error in errors} <= supported_codes:
+        return None
+
+    batch = cast(TaskDraftBatch, candidate)
+    requirement_text = {
+        item.get("fact_ref"): item.get("text")
+        for item in original_context.get("requirements", [])
+        if isinstance(item, dict)
+    }
+    required_refs = sorted(validation_context.required_refs)
+    if not required_refs or any(
+        not isinstance(requirement_text.get(ref), str) for ref in required_refs
+    ):
+        return None
+    milestones = original_context.get("milestones", {}).get("items", [])
+    if len(milestones) != 1 or not isinstance(milestones[0], dict):
+        return None
+    milestone_ref = milestones[0].get("temp_id")
+    if not isinstance(milestone_ref, str):
+        return None
+
+    dedicated_refs = {
+        item.requirement_refs[0] for item in batch.items if len(item.requirement_refs) == 1
+    }
+    to_add = [reference for reference in required_refs if reference not in dedicated_refs]
+    if len(batch.items) + len(to_add) > 100:
+        return None
+    used_ids = {item.temp_id for item in batch.items}
+    next_number = 1
+    raw = batch.model_dump(mode="json")
+    for reference in to_add:
+        while f"TASK-{next_number:03d}" in used_ids:
+            next_number += 1
+        temp_id = f"TASK-{next_number:03d}"
+        used_ids.add(temp_id)
+        text = cast(str, requirement_text[reference]).strip()
+        title = f"Implement {text}"[:120]
+        acceptance = f"{reference} is implemented and verified: {text}"[:120]
+        raw["items"].append(
+            {
+                "temp_id": temp_id,
+                "milestone_ref": milestone_ref,
+                "parent_ref": None,
+                "title": title,
+                "description": f"Implement and verify the confirmed requirement: {text}"[:2000],
+                "deliverable": f"Verified {text}"[:500],
+                "acceptance_criteria": [acceptance],
+                "definition_of_done": [f"Evidence is recorded for {reference}"],
+                "effort_min_hours": 4,
+                "effort_likely_hours": 8,
+                "effort_max_hours": 12,
+                "complexity": "medium",
+                "workstreams": ["Requirement delivery"],
+                "skill_tags": [],
+                "mvp_necessity": 100,
+                "user_value": 80,
+                "deadline_urgency": 50,
+                "risk_reduction": 50,
+                "user_preference": 100,
+                "source": "ai",
+                "requirement_refs": [reference],
+                "assumption_refs": [],
+                "locked": False,
+            }
+        )
+        next_number += 1
     validation = validate_candidate(raw, output_type, validation_context)
     return validation.candidate if validation.is_valid else None
 

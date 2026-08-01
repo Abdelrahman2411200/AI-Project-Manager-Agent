@@ -87,6 +87,61 @@ def test_leaf_task_size_is_enforced_by_business_validation() -> None:
     assert any(issue.code == "business.leaf_task_size" for issue in result.issues)
 
 
+def test_task_batch_requires_coverage_of_every_assigned_requirement() -> None:
+    result = validate_candidate(
+        {"items": [TASK]},
+        TaskDraftBatch,
+        ValidationContext(
+            allowed_refs=frozenset({"MS-001", "REQ-001", "REQ-002"}),
+            required_refs=frozenset({"REQ-001", "REQ-002"}),
+        ),
+    )
+
+    assert not result.is_valid
+    assert {issue.code for issue in result.issues} == {
+        "business.task_requirement_coverage",
+        "business.requirement_task_count",
+        "business.dedicated_requirement_task",
+    }
+
+
+def test_task_batch_requires_at_least_one_task_per_assigned_requirement() -> None:
+    one_task_covering_two_requirements = {
+        **TASK,
+        "requirement_refs": ["REQ-001", "REQ-002"],
+    }
+    result = validate_candidate(
+        {"items": [one_task_covering_two_requirements]},
+        TaskDraftBatch,
+        ValidationContext(
+            allowed_refs=frozenset({"MS-001", "REQ-001", "REQ-002"}),
+            required_refs=frozenset({"REQ-001", "REQ-002"}),
+        ),
+    )
+
+    assert not result.is_valid
+    assert {issue.code for issue in result.issues} == {
+        "business.requirement_task_count",
+        "business.dedicated_requirement_task",
+    }
+
+
+def test_task_batch_requires_a_distinct_task_for_each_requirement() -> None:
+    shared = {**TASK, "requirement_refs": ["REQ-001", "REQ-002"]}
+    second = {**shared, "temp_id": "TASK-002", "title": "Verify shared delivery"}
+    result = validate_candidate(
+        {"items": [shared, second]},
+        TaskDraftBatch,
+        ValidationContext(
+            allowed_refs=frozenset({"MS-001", "REQ-001", "REQ-002"}),
+            required_refs=frozenset({"REQ-001", "REQ-002"}),
+        ),
+    )
+
+    assert not result.is_valid
+    assert [issue.code for issue in result.issues] == ["business.dedicated_requirement_task"]
+
+
 def test_unsupported_report_fact_is_rejected() -> None:
     unsupported = deepcopy(RECOMMENDATION)
     unsupported["expected_impact"] = "Moves delivery to 2026-09-01."

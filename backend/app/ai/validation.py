@@ -208,6 +208,44 @@ def _validate_business_rules(
                 )
             )
     if isinstance(candidate, TaskDraftBatch):
+        if context.required_refs:
+            covered = {reference for item in candidate.items for reference in item.requirement_refs}
+            missing = sorted(context.required_refs - covered)
+            if missing:
+                issues.append(
+                    ValidationIssue(
+                        ValidationStage.BUSINESS,
+                        "business.task_requirement_coverage",
+                        "$.items",
+                        "Tasks must cover every requirement assigned to the milestone: "
+                        + ", ".join(missing),
+                    )
+                )
+            if len(candidate.items) < len(context.required_refs):
+                issues.append(
+                    ValidationIssue(
+                        ValidationStage.BUSINESS,
+                        "business.requirement_task_count",
+                        "$.items",
+                        "Create at least one actionable task per assigned requirement.",
+                    )
+                )
+            dedicated = {
+                item.requirement_refs[0]
+                for item in candidate.items
+                if len(item.requirement_refs) == 1
+            }
+            missing_dedicated = sorted(context.required_refs - dedicated)
+            if missing_dedicated:
+                issues.append(
+                    ValidationIssue(
+                        ValidationStage.BUSINESS,
+                        "business.dedicated_requirement_task",
+                        "$.items",
+                        "Each assigned requirement needs a distinct task that cites only that "
+                        "requirement: " + ", ".join(missing_dedicated),
+                    )
+                )
         parents = {item.parent_ref for item in candidate.items if item.parent_ref is not None}
         for index, task in enumerate(candidate.items):
             if task.temp_id not in parents and not 4 <= task.effort_likely_hours <= 24:

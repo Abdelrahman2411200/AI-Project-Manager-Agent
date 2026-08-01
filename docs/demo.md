@@ -9,7 +9,7 @@ This package has two rehearsed paths:
   from a clean checkout, loads all eight synthetic fixtures, exercises the public
   API and Markdown/PDF exports, restarts services, and rechecks persistence.
 - The 23-step presentation below demonstrates the interactive product workflow.
-  New planning runs use the local `gemma3:4b` Ollama model by default; validation,
+  New planning runs use the local `llama3.1:8b` Ollama model by default; validation,
   schedule, priority, health, and approval results remain deterministic. The
   pre-seeded “Commerce MVP — Six Weeks” record remains available without a model call.
 
@@ -28,7 +28,7 @@ On Windows with Ollama installed in Ubuntu WSL, run from the repository root:
 & .\infra\release\start-local-ollama.ps1
 ```
 
-The helper keeps Ubuntu alive, verifies `gemma3:4b`, writes only non-secret local
+The helper keeps Ubuntu alive, verifies `llama3.1:8b`, writes only non-secret local
 provider settings to ignored `.env.demo`, starts the stack, and performs a strict
 structured-output probe from the worker container. The first cold model load can
 take about one minute on the reference RTX 3060 Laptop GPU.
