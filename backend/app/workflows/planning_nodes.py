@@ -230,11 +230,7 @@ class PlanningSemanticNodes:
             generated: Generated[TaskDraftBatch] = await self._generate(
                 run,
                 "acceptance.v5",
-                {
-                    "tasks": {
-                        "items": [item.model_dump(mode="json") for item in milestone_tasks]
-                    }
-                },
+                {"tasks": {"items": [item.model_dump(mode="json") for item in milestone_tasks]}},
                 ValidationContext(
                     allowed_refs=facts.allowed_refs | task_refs | {milestone_ref},
                     excluded_refs=facts.excluded_refs,
@@ -523,9 +519,7 @@ def _discard_invalid_optional_items[OutputT: BaseModel](
     if not invalid_indices:
         return None
     raw = candidate.model_dump(mode="json")
-    raw["items"] = [
-        item for index, item in enumerate(raw["items"]) if index not in invalid_indices
-    ]
+    raw["items"] = [item for index, item in enumerate(raw["items"]) if index not in invalid_indices]
     validation = validate_candidate(raw, output_type, context)
     return validation.candidate if validation.is_valid else None
 

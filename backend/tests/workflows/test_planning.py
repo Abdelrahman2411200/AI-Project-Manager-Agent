@@ -160,9 +160,7 @@ def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -
         "milestone_ref": "MS-002",
         "title": "Prepare owner review evidence",
     }
-    provider = FakeStructuredModelProvider(
-        [{"items": [first_task]}, {"items": [second_task]}]
-    )
+    provider = FakeStructuredModelProvider([{"items": [first_task]}, {"items": [second_task]}])
 
     with SessionLocal() as session:
         run = session.get(AgentRun, run_id)
@@ -173,9 +171,7 @@ def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -
             PlanningSemanticNodes(session, provider, get_settings()).tasks(
                 run,
                 build_planning_facts(project),
-                MilestoneDraftBatch.model_validate(
-                    {"items": [first_milestone, second_milestone]}
-                ),
+                MilestoneDraftBatch.model_validate({"items": [first_milestone, second_milestone]}),
             )
         )
 
@@ -278,9 +274,7 @@ def test_optional_invalid_risk_is_discarded_after_bounded_repair() -> None:
             }
         ]
     }
-    provider = FakeStructuredModelProvider(
-        [*_outputs()[:7], invalid_risk, invalid_risk]
-    )
+    provider = FakeStructuredModelProvider([*_outputs()[:7], invalid_risk, invalid_risk])
 
     with SessionLocal() as session:
         completed = asyncio.run(

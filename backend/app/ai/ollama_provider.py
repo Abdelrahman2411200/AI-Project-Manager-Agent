@@ -233,9 +233,7 @@ def _repair_instruction(error: ValidationError) -> str:
     )
 
 
-def _parse_local_output[OutputT: BaseModel](
-    output_type: type[OutputT], content: str
-) -> OutputT:
+def _parse_local_output[OutputT: BaseModel](output_type: type[OutputT], content: str) -> OutputT:
     try:
         raw = json.loads(content)
     except (TypeError, ValueError):
@@ -266,8 +264,7 @@ def _normalize_safe_local_edges(output_type: type[BaseModel], raw: Any) -> Any:
             item
             for item in raw["items"]
             if not (
-                isinstance(item, dict)
-                and item.get("predecessor_ref") == item.get("successor_ref")
+                isinstance(item, dict) and item.get("predecessor_ref") == item.get("successor_ref")
             )
         ]
     elif output_type is TaskDraftBatch:
