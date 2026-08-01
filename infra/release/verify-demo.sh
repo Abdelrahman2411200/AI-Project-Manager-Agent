@@ -9,6 +9,7 @@ http_port="${DEMO_VERIFY_HTTP_PORT:-18080}"
 base_url="http://127.0.0.1:$http_port"
 demo_origin="${DEMO_VERIFY_ORIGIN:-http://localhost:$http_port}"
 export HTTP_PORT="$http_port"
+export DEMO_ORIGIN="$demo_origin"
 
 cd "$repository_root"
 docker compose -p "$project_name" -f "$compose_file" config --quiet

@@ -141,6 +141,7 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     assert "release-verifier-missing-chunk.js" in verifier
     assert "ai-project-manager-release-verification" in verifier
     assert "DEMO_VERIFY_HTTP_PORT:-18080" in verifier
+    assert 'export DEMO_ORIGIN="$demo_origin"' in verifier
 
 
 def test_release_documents_prove_version_isolation_and_advanced_fixture_evidence() -> None:
