@@ -21,7 +21,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, utc_now
 
 JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
-ACTIVE_RUN_STATUSES = frozenset({"queued", "running", "waiting_for_user", "partial"})
+# Only states that can still advance without starting a replacement run are active.
+# A partial run is a terminal, recoverable checkpoint and must not reserve the
+# project forever when there is no resume operation for it.
+ACTIVE_RUN_STATUSES = frozenset({"queued", "running", "waiting_for_user"})
 
 
 class AgentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):

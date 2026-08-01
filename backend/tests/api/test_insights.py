@@ -31,7 +31,7 @@ from app.services.recommendations import (
 from app.services.reports import ReportService
 from app.workflows.reporting import ReportingWorkflow
 from tests.api.test_execution import _active_fixture, _execution_headers
-from tests.api.test_projects import ORIGIN, write_headers
+from tests.api.test_projects import ORIGIN, create_user_and_client, project_payload, write_headers
 
 
 def _project_today() -> date:
@@ -342,6 +342,45 @@ def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped(
         assert plan is not None
 
 
+def test_reporting_publishes_running_checkpoint_before_provider_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, _, _, project_id, _ = _active_fixture("report-checkpoint@example.com")
+    today = _project_today()
+    with SessionLocal() as session:
+        started = ReportService(session, user.id, "report-checkpoint-start").start(
+            project_id,
+            ReportCreateRequest(
+                report_type="project",
+                period_start=today - timedelta(days=1),
+                period_end=today,
+            ),
+            idempotency_key="report-visible-running-checkpoint",
+        )
+
+    async def observe_checkpoint(*_args: object, **_kwargs: object) -> object:
+        with SessionLocal() as observation:
+            visible = observation.get(AgentRun, started.run_id)
+            assert visible is not None
+            assert visible.status == "running"
+            assert visible.current_step == "report.narrate"
+            assert visible.started_at is not None
+        raise ModelRefusalError()
+
+    monkeypatch.setattr(ReportService, "generate_narrative", observe_checkpoint)
+    with SessionLocal() as session:
+        completed = asyncio.run(
+            ReportingWorkflow(
+                session,
+                FakeStructuredModelProvider([]),
+                get_settings(),
+            ).execute(started.run_id)
+        )
+        assert completed.status == "partial"
+        assert completed.outcome is not None
+        assert completed.outcome["narrative_failure_code"] == "REFUSED"
+
+
 def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> None:
     _, client, csrf, project_id, _ = _active_fixture("report-policy@example.com")
     today = _project_today()
@@ -392,6 +431,46 @@ def test_report_start_requires_csrf_valid_period_and_idempotent_payload() -> Non
             },
         )
         assert future.status_code == 409
+
+
+def test_report_start_distinguishes_missing_project_from_missing_active_plan() -> None:
+    _, client, csrf = create_user_and_client("report-prerequisite@example.com")
+    today = _project_today()
+    payload = {
+        "report_type": "weekly",
+        "period_start": (today - timedelta(days=6)).isoformat(),
+        "period_end": today.isoformat(),
+    }
+    with client:
+        project = client.post(
+            "/api/v1/projects",
+            json=project_payload(),
+            headers=write_headers(csrf),
+        ).json()
+        no_active_plan = client.post(
+            f"/api/v1/projects/{project['id']}/reports",
+            json=payload,
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "report-without-active-plan",
+            },
+        )
+        assert no_active_plan.status_code == 409
+        assert no_active_plan.headers["X-Error-Code"] == "active_plan_required"
+        assert no_active_plan.json()["detail"] == (
+            "Approve and activate a plan before generating reports."
+        )
+
+        missing_project = client.post(
+            "/api/v1/projects/00000000-0000-4000-8000-000000000099/reports",
+            json=payload,
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "report-for-missing-project",
+            },
+        )
+        assert missing_project.status_code == 404
+        assert missing_project.json()["detail"] == "Project not found or unavailable."
 
 
 def test_pdf_export_rejects_a_report_hash_mismatch_before_rendering(

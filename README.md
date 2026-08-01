@@ -279,7 +279,9 @@ Run the deterministic university release rehearsal locally:
 sh infra/release/verify-demo.sh
 ```
 
-The demo is served at `http://localhost:8080`. The public synthetic login is
+The rehearsal uses the isolated `ai-project-manager-release-verification` Compose
+project, a separate database volume, and `http://localhost:18080`; it cannot reset
+projects in the interactive local demo. The public synthetic login is
 `demo.owner@example.com` / `SyntheticDemoOnly!2026`; never reuse these values in
 another environment.
 

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { createMemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { App } from "../../app/App";
 import { routes } from "../../app/router";
@@ -29,6 +29,14 @@ function renderRoute(path: string) {
 }
 
 describe("planning and clarification experience", () => {
+  beforeEach(() => {
+    server.use(
+      http.get("*/api/v1/projects/:projectId/planning-runs/active", () =>
+        HttpResponse.json(null),
+      ),
+    );
+  });
+
   it("blocks planning controls for archived projects", async () => {
     const archivedProject = { ...projectFixture, status: "archived" as const };
     server.use(
@@ -109,7 +117,36 @@ describe("planning and clarification experience", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Daily AI workflow run limit has been reached.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start planning" })).toBeInTheDocument();
+    expect(screen.queryByText(/Planning locally with/i)).not.toBeInTheDocument();
     expect(projectCreations).toBe(1);
+  });
+
+  it("reopens the active planning run instead of starting a duplicate", async () => {
+    let planningStarts = 0;
+    const waitingRun = { ...runFixture, status: "waiting_for_user" as const };
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/projects/${ids.project}/planning-runs/active`, () =>
+        HttpResponse.json(waitingRun),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () => HttpResponse.json([])),
+      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, () => {
+        planningStarts += 1;
+        return HttpResponse.json(waitingRun, { status: 201 });
+      }),
+    );
+
+    renderRoute(`/projects/${ids.project}/planning`);
+
+    expect(
+      await screen.findByText("Planning is waiting for your decisions"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Answer questions" })).toHaveAttribute(
+      "href",
+      `/projects/${ids.project}/clarify?run=${ids.run}`,
+    );
+    expect(planningStarts).toBe(0);
   });
 
   it("explains the missing provider when an admitted run fails", async () => {
@@ -226,6 +263,43 @@ describe("planning and clarification experience", () => {
     expect(
       await screen.findByRole("button", { name: "Start a new planning run" }),
     ).toBeEnabled();
+  });
+
+  it("allows a terminal partial checkpoint to start a replacement run", async () => {
+    const replacementId = "10000000-0000-4000-8000-000000000098";
+    let planningStarts = 0;
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
+        HttpResponse.json({
+          ...runFixture,
+          status: "partial",
+          outcome: {
+            failure_code: "MODEL_BUDGET_EXHAUSTED",
+            failed_step: "draft_tasks",
+            recoverable: true,
+          },
+        }),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () => HttpResponse.json([])),
+      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, () => {
+        planningStarts += 1;
+        return HttpResponse.json(
+          { ...runFixture, id: replacementId, status: "queued" },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderRoute(`/projects/${ids.project}/planning?run=${ids.run}`);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Start a new planning run" }),
+    );
+
+    await waitFor(() => expect(planningStarts).toBe(1));
+    expect(await screen.findByText("Planning run queued safely")).toBeInTheDocument();
   });
 
   it("prevents a new planning run when the provider is not configured", async () => {
@@ -346,6 +420,28 @@ describe("planning and clarification experience", () => {
       rules: { "color-contrast": { enabled: false } },
     });
     expect(results.violations).toEqual([]);
+  });
+
+  it("explains a safely persisted queued run without exposing provider details", async () => {
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
+        HttpResponse.json({
+          ...runFixture,
+          status: "queued",
+          current_step: "validate_request",
+          started_at: null,
+        }),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () => HttpResponse.json([])),
+    );
+
+    renderRoute(`/projects/${ids.project}/planning?run=${ids.run}`);
+
+    expect(await screen.findByText("Planning run queued safely")).toBeInTheDocument();
+    expect(screen.getByText(/waiting for an available planning worker/i)).toBeInTheDocument();
+    expect(screen.queryByText(/ollama|llama3\.1/i)).not.toBeInTheDocument();
   });
 
   it("supports keyboard assumption acceptance and submits typed answers", async () => {

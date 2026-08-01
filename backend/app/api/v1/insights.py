@@ -28,6 +28,7 @@ from app.services.recommendations import (
     RecommendationService,
 )
 from app.services.reports import (
+    ActivePlanRequiredError,
     ReportConflictError,
     ReportNotFoundError,
     ReportService,
@@ -147,7 +148,7 @@ def list_reports(
     try:
         return _reports(request, auth, db).list(project_id)
     except ReportNotFoundError as error:
-        raise HTTPException(status_code=404, detail="Report resource not found.") from error
+        raise HTTPException(status_code=404, detail="Project not found or unavailable.") from error
 
 
 @router.post(
@@ -170,7 +171,13 @@ def start_report(
             idempotency_key=idempotency_key,
         )
     except ReportNotFoundError as error:
-        raise HTTPException(status_code=404, detail="Report resource not found.") from error
+        raise HTTPException(status_code=404, detail="Project not found or unavailable.") from error
+    except ActivePlanRequiredError as error:
+        raise HTTPException(
+            status_code=409,
+            detail=str(error),
+            headers={"X-Error-Code": "active_plan_required"},
+        ) from error
     except ReportConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except BudgetExceededError as error:

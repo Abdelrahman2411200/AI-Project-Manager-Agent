@@ -78,6 +78,23 @@ def start_planning_run(
     return AgentRunView.model_validate(run)
 
 
+@router.get(
+    "/projects/{project_id}/planning-runs/active",
+    response_model=AgentRunView | None,
+)
+def get_active_planning_run(
+    project_id: UUID,
+    request: Request,
+    auth: AuthContext = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> AgentRunView | None:
+    try:
+        run = _service(request, auth, db).active(project_id)
+    except RunNotFoundError as error:
+        raise _not_found() from error
+    return AgentRunView.model_validate(run) if run is not None else None
+
+
 @router.get("/agent-runs/{run_id}", response_model=AgentRunView)
 def get_agent_run(
     run_id: UUID,

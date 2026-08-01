@@ -73,6 +73,9 @@ async def process_one_job(
             lease_seconds=settings.job_lease_seconds,
         )
         if job is None:
+            # claim_next also reconciles exhausted leases. Persist that recovery
+            # even when there is no new job to execute.
+            claim_session.commit()
             return False
         job_id = job.id
         run_id = job.run_id

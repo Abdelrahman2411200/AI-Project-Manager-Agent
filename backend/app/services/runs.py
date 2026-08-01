@@ -17,7 +17,7 @@ from app.core.hashing import canonical_hash
 from app.db.base import utc_now
 from app.db.models.plan import ClarificationQuestion
 from app.db.models.project import Project
-from app.db.models.run import AgentRun, AgentRunStep
+from app.db.models.run import ACTIVE_RUN_STATUSES, AgentRun, AgentRunStep
 from app.schemas.run import ClarificationAnswer, PlanningRunRequest
 from app.services.audit import AuditRecorder
 from app.services.budgets import BudgetService
@@ -75,14 +75,12 @@ class PlanningRunService:
                     "Idempotency key was already used with a different planning request."
                 )
             return existing
-        conflict = self.session.scalar(
-            select(AgentRun.id).where(
-                AgentRun.project_id == project_id,
-                AgentRun.status.in_(("queued", "running", "waiting_for_user", "partial")),
-            )
-        )
-        if conflict is not None:
-            raise RunConflictError("Another planning run is already active for this project.")
+        active = self._active_run(project_id)
+        if active is not None:
+            # Starting planning is deliberately start-or-resume. A lost URL,
+            # browser refresh, or second click must reopen the durable run rather
+            # than present a conflict that the owner cannot resolve from this page.
+            return active
 
         if not get_settings().planning_ai_configured:
             raise PlanningProviderUnavailableError(
@@ -139,6 +137,12 @@ class PlanningRunService:
             self.session.rollback()
             raise RunConflictError("Planning run conflicts with persisted state.") from error
         return self.get(run.id)
+
+    def active(self, project_id: UUID) -> AgentRun | None:
+        """Return the owner's resumable planning run for an active project."""
+
+        project = self._project(project_id)
+        return self._active_run(project.id)
 
     def get(self, run_id: UUID) -> AgentRun:
         run = self.session.scalar(
@@ -281,6 +285,17 @@ class PlanningRunService:
         if project is None:
             raise RunNotFoundError
         return project
+
+    def _active_run(self, project_id: UUID) -> AgentRun | None:
+        return self.session.scalar(
+            select(AgentRun)
+            .where(
+                AgentRun.project_id == project_id,
+                AgentRun.workflow == "planning",
+                AgentRun.status.in_(ACTIVE_RUN_STATUSES),
+            )
+            .order_by(AgentRun.created_at.desc(), AgentRun.id.desc())
+        )
 
     @staticmethod
     def _validate_answer(question: ClarificationQuestion, answer: Any) -> None:

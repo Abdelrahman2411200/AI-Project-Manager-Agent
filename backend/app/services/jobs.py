@@ -9,7 +9,7 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from app.db.base import utc_now
-from app.db.models.run import AgentJob
+from app.db.models.run import ACTIVE_RUN_STATUSES, AgentJob, AgentRun
 
 
 class StaleJobClaimError(RuntimeError):
@@ -66,6 +66,7 @@ class JobQueue:
         now: datetime | None = None,
     ) -> AgentJob | None:
         claimed_at = _as_utc(now or utc_now())
+        self._reconcile_exhausted_leases(claimed_at)
         query = (
             select(AgentJob)
             .where(
@@ -135,6 +136,8 @@ class JobQueue:
         else:
             job.status = "failed"
         self._clear_claim(job)
+        if job.status == "failed":
+            self._fail_active_run(job.run_id, error_code)
         self.session.flush()
         return job
 
@@ -162,6 +165,54 @@ class JobQueue:
         ):
             raise StaleJobClaimError("The job lease is stale or no longer owned by this worker.")
         return job
+
+    def _reconcile_exhausted_leases(self, now: datetime) -> int:
+        """Terminalize claims that cannot be reclaimed after their final lease."""
+
+        query = select(AgentJob).where(
+            AgentJob.status == "claimed",
+            AgentJob.attempts >= AgentJob.max_attempts,
+            AgentJob.lease_expires_at.is_not(None),
+            AgentJob.lease_expires_at <= now,
+        )
+        if self.session.bind is not None and self.session.bind.dialect.name == "postgresql":
+            query = query.with_for_update(skip_locked=True)
+        exhausted = list(self.session.scalars(query))
+        for job in exhausted:
+            error_code = job.last_error_code or "JOB_LEASE_EXHAUSTED"
+            job.status = "failed"
+            job.last_error_code = error_code
+            self._clear_claim(job)
+            self._fail_active_run(job.run_id, error_code)
+        if exhausted:
+            self.session.flush()
+        return len(exhausted)
+
+    def _fail_active_run(self, run_id: UUID, error_code: str) -> None:
+        run = self.session.get(AgentRun, run_id)
+        if run is None or run.status not in ACTIVE_RUN_STATUSES:
+            return
+        completed_at = utc_now()
+        run.status = "failed"
+        run.completed_at = completed_at
+        run.outcome = {
+            "failure_code": error_code,
+            "failed_step": run.current_step,
+            "recoverable": False,
+        }
+        state = dict(run.state_snapshot)
+        failed_steps = list(state.get("failed_steps", []))
+        if run.current_step not in failed_steps:
+            failed_steps.append(run.current_step)
+        state.update(
+            {
+                "status": "failed",
+                "current_step": run.current_step,
+                "failed_steps": failed_steps,
+                "updated_at": completed_at.isoformat(),
+            }
+        )
+        run.state_snapshot = state
 
     @staticmethod
     def _clear_claim(job: AgentJob) -> None:

@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { getSystemCapabilities, operationsKeys } from "../api/operations";
-import { cancelAgentRun, getAgentRun, listAgentRunSteps, planningRunPollInterval, runKeys, startPlanningRun } from "../api/runs";
+import { cancelAgentRun, getActivePlanningRun, getAgentRun, listAgentRunSteps, planningRunPollInterval, runKeys, startPlanningRun } from "../api/runs";
 import { getProject, projectKeys } from "../api/projects";
 import { errorMessage, isPermissionError } from "../api/errorUtils";
 import { ErrorState, FeedbackBanner, LoadingState } from "../components/Feedback";
@@ -29,6 +29,11 @@ export function PlanningPage() {
     queryKey: projectKeys.detail(projectId),
     queryFn: () => getProject(projectId),
     enabled: Boolean(projectId),
+  });
+  const activeRun = useQuery({
+    queryKey: runKeys.active(projectId),
+    queryFn: () => getActivePlanningRun(projectId),
+    enabled: Boolean(projectId) && !runId && project.data?.status === "active",
   });
   const run = useQuery({
     queryKey: runKeys.detail(runId),
@@ -57,6 +62,7 @@ export function PlanningPage() {
     mutationFn: () => startPlanningRun(projectId),
     onSuccess: (createdRun) => {
       queryClient.setQueryData(runKeys.detail(createdRun.id), createdRun);
+      queryClient.setQueryData(runKeys.active(projectId), createdRun);
       void navigate(`/projects/${projectId}/planning?run=${createdRun.id}`, { replace: true });
     },
   });
@@ -71,7 +77,21 @@ export function PlanningPage() {
     [project.error, run.error],
   );
 
-  if (project.isPending || (runId && run.isPending)) {
+  useEffect(() => {
+    if (!runId && activeRun.data) {
+      queryClient.setQueryData(runKeys.detail(activeRun.data.id), activeRun.data);
+      void navigate(`/projects/${projectId}/planning?run=${activeRun.data.id}`, {
+        replace: true,
+      });
+    }
+  }, [activeRun.data, navigate, projectId, queryClient, runId]);
+
+  if (
+    project.isPending ||
+    (runId && run.isPending) ||
+    (!runId && project.data?.status === "active" && activeRun.isPending) ||
+    (!runId && Boolean(activeRun.data))
+  ) {
     return <LoadingState title="Opening planning workspace…" detail="Loading the latest owner-scoped run state." />;
   }
   if (permissionFailure) {
@@ -158,11 +178,6 @@ export function PlanningPage() {
               this project while planning is unavailable.
             </FeedbackBanner>
           ) : null}
-          {planningAiConfigured && capabilities.data ? (
-            <p className="muted-copy">
-              Planning locally with {capabilities.data.planning_provider} · {capabilities.data.planning_model}
-            </p>
-          ) : null}
           <div className="launch-checklist" aria-label="Planning safeguards">
             <span>Schema-constrained output</span>
             <span>Deterministic validation</span>
@@ -235,6 +250,12 @@ export function PlanningPage() {
           explicitly accept available assumptions.
         </FeedbackBanner>
       ) : null}
+      {run.data.status === "queued" && !steps.data?.length ? (
+        <FeedbackBanner tone="info" title="Planning run queued safely">
+          The run is persisted and waiting for an available planning worker. This page updates
+          automatically, and you can leave it and return without starting another run.
+        </FeedbackBanner>
+      ) : null}
       {run.data.status === "completed" && run.data.proposed_plan_version_id ? (
         <FeedbackBanner
           tone="success"
@@ -271,13 +292,26 @@ export function PlanningPage() {
           {failureDetail}
         </FeedbackBanner>
       ) : null}
-      {run.data.status === "failed" && start.isError ? (
+      {(run.data.status === "failed" || run.data.status === "partial") && start.isError ? (
         <FeedbackBanner tone="danger" title="A new planning run could not start">
           {errorMessage(start.error, "Check the server configuration and try again.")}
         </FeedbackBanner>
       ) : null}
       {run.data.status === "partial" ? (
-        <FeedbackBanner tone="warning" title="Planning saved a partial checkpoint">
+        <FeedbackBanner
+          tone="warning"
+          title="Planning saved a partial checkpoint"
+          actions={
+            <button
+              className="button primary"
+              type="button"
+              disabled={start.isPending}
+              onClick={() => start.mutate()}
+            >
+              {start.isPending ? "Starting a new run…" : "Start a new planning run"}
+            </button>
+          }
+        >
           The available work is retained, but approval stays unavailable until planning completes.
         </FeedbackBanner>
       ) : null}

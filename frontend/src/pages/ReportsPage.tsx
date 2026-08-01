@@ -8,6 +8,7 @@ import {
   startReport,
 } from "../api/insights";
 import { errorMessage } from "../api/errorUtils";
+import { listPlanVersions, planKeys } from "../api/plans";
 import { getProject, projectKeys } from "../api/projects";
 import { getAgentRun, planningRunPollInterval, runKeys } from "../api/runs";
 import type { ReportType } from "../api/types";
@@ -42,6 +43,11 @@ export function ReportsPage() {
     queryFn: () => listReports(projectId),
     enabled: Boolean(projectId),
   });
+  const versions = useQuery({
+    queryKey: planKeys.project(projectId),
+    queryFn: () => listPlanVersions(projectId),
+    enabled: Boolean(projectId) && project.data?.status === "active",
+  });
   const run = useQuery({
     queryKey: runKeys.detail(runId),
     queryFn: () => getAgentRun(runId),
@@ -64,9 +70,17 @@ export function ReportsPage() {
     }
   }, [navigate, projectId, queryClient, run.data]);
 
-  if (project.isPending || reports.isPending) return <LoadingState title="Loading factual reports…" />;
+  if (
+    project.isPending ||
+    reports.isPending ||
+    (project.data?.status === "active" && versions.isPending)
+  ) return <LoadingState title="Loading factual reports…" />;
   if (project.isError) return <ErrorState title="Project unavailable" detail="This project does not exist or is unavailable to your account." />;
   if (reports.isError) return <ErrorState title="Reports are unavailable" detail={errorMessage(reports.error, "Activate a plan before generating reports.")} onRetry={() => void reports.refetch()} />;
+
+  const activePlan = versions.data?.find((version) => version.state === "active");
+  const latestPlan = versions.data?.[0];
+  const canGenerate = project.data.status === "active" && Boolean(activePlan);
 
   return (
     <div className="page-stack execution-page reports-page">
@@ -84,6 +98,52 @@ export function ReportsPage() {
       </header>
       <ExecutionNav projectId={projectId} />
 
+      {versions.isError ? (
+        <FeedbackBanner
+          tone="danger"
+          title="Plan status could not be checked"
+          actions={
+            <button
+              className="button compact secondary"
+              type="button"
+              onClick={() => void versions.refetch()}
+            >
+              Check again
+            </button>
+          }
+        >
+          Report generation remains disabled until the active plan can be verified.
+        </FeedbackBanner>
+      ) : null}
+      {project.data.status === "archived" ? (
+        <FeedbackBanner tone="info" title="Archived project reports are read-only">
+          Existing immutable reports remain available, but new reports require an active project.
+        </FeedbackBanner>
+      ) : null}
+      {project.data.status === "active" && !versions.isError && !activePlan ? (
+        <FeedbackBanner
+          tone="warning"
+          title="Approve a plan before generating reports"
+          actions={
+            latestPlan ? (
+              <Link
+                className="button primary"
+                to={`/projects/${projectId}/plan/${latestPlan.id}/review`}
+              >
+                Review latest plan
+              </Link>
+            ) : (
+              <Link className="button primary" to={`/projects/${projectId}/planning`}>
+                Start planning
+              </Link>
+            )
+          }
+        >
+          Reports are grounded in an approved, active plan. Complete plan review and approval,
+          then return here to generate the report.
+        </FeedbackBanner>
+      ) : null}
+
       <section className="report-generator detail-panel" aria-labelledby="report-generator-heading">
         <div>
           <span className="eyebrow">On demand</span>
@@ -93,7 +153,7 @@ export function ReportsPage() {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            create.mutate();
+            if (canGenerate) create.mutate();
           }}
         >
           <label>
@@ -114,7 +174,16 @@ export function ReportsPage() {
             Period end
             <input type="date" required min={periodStart} value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} />
           </label>
-          <button className="button primary" type="submit" disabled={create.isPending || Boolean(runId && !run.data?.completed_at)}>
+          <button
+            className="button primary"
+            type="submit"
+            disabled={
+              !canGenerate ||
+              versions.isError ||
+              create.isPending ||
+              Boolean(runId && !run.data?.completed_at)
+            }
+          >
             {create.isPending || (runId && !run.data?.completed_at) ? "Generating…" : "Generate report"}
           </button>
         </form>

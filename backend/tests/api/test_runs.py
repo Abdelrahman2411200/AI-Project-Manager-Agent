@@ -39,6 +39,21 @@ def test_planning_start_is_csrf_protected_and_idempotent() -> None:
         assert second.status_code == 201
         assert second.json()["id"] == first.json()["id"]
 
+        reopened = client.post(
+            path,
+            json={"token_budget": 50000},
+            headers={
+                **write_headers(csrf),
+                "Idempotency-Key": "phase5-reopen-active-run",
+            },
+        )
+        assert reopened.status_code == 201
+        assert reopened.json()["id"] == first.json()["id"]
+
+        active = client.get(f"{path}/active")
+        assert active.status_code == 200
+        assert active.json()["id"] == first.json()["id"]
+
         conflict = client.post(path, json={"token_budget": 60000}, headers=headers)
         assert conflict.status_code == 409
 
@@ -46,6 +61,41 @@ def test_planning_start_is_csrf_protected_and_idempotent() -> None:
         run_id = UUID(first.json()["id"])
         assert session.scalar(select(func.count(AgentRun.id))) == 1
         assert session.scalar(select(func.count(AgentJob.id)).where(AgentJob.run_id == run_id)) == 1
+
+
+def test_partial_planning_checkpoint_does_not_block_a_replacement_run() -> None:
+    _, client, csrf = create_user_and_client("partial-replacement@example.com")
+    with client:
+        project = client.post(
+            "/api/v1/projects",
+            json=project_payload(),
+            headers=write_headers(csrf),
+        ).json()
+        path = f"/api/v1/projects/{project['id']}/planning-runs"
+        first = client.post(
+            path,
+            json={"token_budget": 50000},
+            headers={**write_headers(csrf), "Idempotency-Key": "partial-first-run"},
+        )
+        assert first.status_code == 201
+        with SessionLocal() as session:
+            run = session.get(AgentRun, UUID(first.json()["id"]))
+            assert run is not None
+            run.status = "partial"
+            run.outcome = {
+                "failure_code": "MODEL_BUDGET_EXHAUSTED",
+                "failed_step": run.current_step,
+                "recoverable": True,
+            }
+            session.commit()
+
+        replacement = client.post(
+            path,
+            json={"token_budget": 50000},
+            headers={**write_headers(csrf), "Idempotency-Key": "partial-replacement-run"},
+        )
+        assert replacement.status_code == 201
+        assert replacement.json()["id"] != first.json()["id"]
 
 
 def test_unconfigured_provider_rejects_before_consuming_a_run(monkeypatch) -> None:

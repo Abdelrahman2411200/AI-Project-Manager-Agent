@@ -55,6 +55,11 @@ class ReportingWorkflow:
                 }
             ],
         )
+        # Publish the claimed/running checkpoint before the provider call. The
+        # narrative can take minutes on a local model; holding this transaction
+        # open made every polling client see the stale initial "queued" state.
+        run.current_step = "report.narrate"
+        self.session.commit()
         narrative = None
         failure_code: str | None = None
         claim_errors: list[str] = []
@@ -79,7 +84,6 @@ class ReportingWorkflow:
                 attributes={"workflow": "reporting", "error_code": failure_code},
             )
         else:
-            run.current_step = "report.narrate"
             try:
                 narrative, usage = await service.generate_narrative(
                     data,

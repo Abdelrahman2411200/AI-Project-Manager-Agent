@@ -125,6 +125,10 @@ restarts services, and proves persistence:
 sh infra/release/verify-demo.sh
 ```
 
+The rehearsal defaults to the isolated `ai-project-manager-release-verification`
+Compose project and port `18080`. Its destructive fixture reset is confined to
+that separate volume and cannot remove interactive demo projects.
+
 The reset command is deliberately destructive only inside a database whose name
 contains `demo`, only in `development`, `demo`, or `test`, and only with the exact
 confirmation `RESET-DEMO-DATA`. It refuses production and staging.

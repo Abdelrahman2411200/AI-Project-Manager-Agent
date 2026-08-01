@@ -121,3 +121,47 @@ def test_job_retry_backoff_and_idempotent_enqueue() -> None:
                 idempotency_key="test-idempotent-job",
                 payload_ref={"run_id": str(uuid4())},
             )
+
+
+def test_expired_final_lease_fails_job_and_releases_run() -> None:
+    queued = _queued_job()
+    now = queued.available_at + timedelta(seconds=1)
+    with SessionLocal() as session:
+        queue = JobQueue(session)
+        first = queue.claim_next(worker_id="worker-a", lease_seconds=10, now=now)
+        assert first is not None
+        session.commit()
+        second = queue.claim_next(
+            worker_id="worker-b",
+            lease_seconds=10,
+            now=now + timedelta(seconds=11),
+        )
+        assert second is not None
+        session.commit()
+        third = queue.claim_next(
+            worker_id="worker-c",
+            lease_seconds=10,
+            now=now + timedelta(seconds=22),
+        )
+        assert third is not None
+        assert third.attempts == third.max_attempts
+        session.commit()
+
+        assert (
+            queue.claim_next(
+                worker_id="worker-d",
+                lease_seconds=10,
+                now=now + timedelta(seconds=33),
+            )
+            is None
+        )
+        session.commit()
+        session.refresh(third)
+        assert third.status == "failed"
+        assert third.last_error_code == "JOB_LEASE_EXHAUSTED"
+        run = session.get(AgentRun, queued.run_id)
+        assert run is not None
+        assert run.status == "failed"
+        assert run.completed_at is not None
+        assert run.outcome is not None
+        assert run.outcome["failure_code"] == "JOB_LEASE_EXHAUSTED"

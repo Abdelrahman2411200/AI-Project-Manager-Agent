@@ -63,6 +63,10 @@ class ReportConflictError(RuntimeError):
     pass
 
 
+class ActivePlanRequiredError(RuntimeError):
+    pass
+
+
 class ReportGroundingError(ValueError):
     def __init__(self, errors: list[str]) -> None:
         super().__init__("Report narrative failed claim validation.")
@@ -672,7 +676,7 @@ class ReportService:
             )
         )
         if plan is None:
-            raise ReportNotFoundError
+            raise ActivePlanRequiredError("Approve and activate a plan before generating reports.")
         return project, plan
 
     def _owned_project(self, project_id: UUID) -> Project:

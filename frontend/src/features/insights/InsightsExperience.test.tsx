@@ -9,6 +9,7 @@ import { App } from "../../app/App";
 import { routes } from "../../app/router";
 import type {
   AgentRunView,
+  PlanVersionSummary,
   RecommendationView,
   ReportSummaryView,
   ReportView,
@@ -16,6 +17,7 @@ import type {
 import {
   executionBoardFixture,
   ids,
+  planFixture,
   projectFixture,
   sessionFixture,
 } from "../../test/fixtures";
@@ -23,6 +25,20 @@ import { server } from "../../test/server";
 
 const recommendationId = "b0000000-0000-4000-8000-000000000001";
 const reportId = "c0000000-0000-4000-8000-000000000001";
+
+const activePlanSummary: PlanVersionSummary = {
+  id: planFixture.id,
+  project_id: planFixture.project_id,
+  number: planFixture.number,
+  state: "active",
+  based_on_id: planFixture.based_on_id,
+  reason: planFixture.reason,
+  content_hash: planFixture.content_hash,
+  quality_status: planFixture.quality_status,
+  row_version: planFixture.row_version,
+  created_at: planFixture.created_at,
+  updated_at: planFixture.updated_at,
+};
 
 const recommendation: RecommendationView = {
   id: recommendationId,
@@ -131,6 +147,9 @@ function commonHandlers() {
     http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
     http.get(`*/api/v1/projects/${ids.project}`, () =>
       HttpResponse.json(projectFixture),
+    ),
+    http.get(`*/api/v1/projects/${ids.project}/plan-versions`, () =>
+      HttpResponse.json([activePlanSummary]),
     ),
   );
 }
@@ -253,5 +272,28 @@ describe("grounded monitoring and reporting experience", () => {
       rules: { "color-contrast": { enabled: false } },
     });
     expect(results.violations).toEqual([]);
+  });
+
+  it("explains that report generation requires an active approved plan", async () => {
+    commonHandlers();
+    server.use(
+      http.get(`*/api/v1/projects/${ids.project}/plan-versions`, () =>
+        HttpResponse.json([{ ...activePlanSummary, state: "draft" }]),
+      ),
+      http.get(`*/api/v1/projects/${ids.project}/reports`, () =>
+        HttpResponse.json([]),
+      ),
+    );
+
+    renderPath(`/projects/${ids.project}/reports`);
+
+    expect(
+      await screen.findByText("Approve a plan before generating reports"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate report" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Review latest plan" })).toHaveAttribute(
+      "href",
+      `/projects/${ids.project}/plan/${ids.plan}/review`,
+    );
   });
 });

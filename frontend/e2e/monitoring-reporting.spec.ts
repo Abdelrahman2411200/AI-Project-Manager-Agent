@@ -2,6 +2,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 import type {
   AgentRunView,
+  PlanVersionSummary,
   RecommendationView,
   ReportSummaryView,
   ReportView,
@@ -9,12 +10,27 @@ import type {
 import {
   executionBoardFixture,
   ids,
+  planFixture,
   projectFixture,
   sessionFixture,
 } from "../src/test/fixtures";
 
 const recommendationId = "b0000000-0000-4000-8000-000000000001";
 const reportId = "c0000000-0000-4000-8000-000000000001";
+
+const activePlan: PlanVersionSummary = {
+  id: planFixture.id,
+  project_id: planFixture.project_id,
+  number: planFixture.number,
+  state: "active",
+  based_on_id: planFixture.based_on_id,
+  reason: planFixture.reason,
+  content_hash: planFixture.content_hash,
+  quality_status: planFixture.quality_status,
+  row_version: planFixture.row_version,
+  created_at: planFixture.created_at,
+  updated_at: planFixture.updated_at,
+};
 
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({
@@ -172,6 +188,9 @@ async function mockInsights(page: Page) {
     const method = request.method();
     if (path === "/auth/session" && method === "GET") return json(route, sessionFixture);
     if (path === `/projects/${ids.project}` && method === "GET") return json(route, projectFixture);
+    if (path === `/projects/${ids.project}/plan-versions` && method === "GET") {
+      return json(route, [activePlan]);
+    }
     if (path === `/projects/${ids.project}/execution` && method === "GET") {
       return json(route, executionBoardFixture);
     }

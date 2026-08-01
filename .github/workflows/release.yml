@@ -109,7 +109,7 @@ jobs:
         run: |
           set -o pipefail
           docker run --rm \
-            --network ai-project-manager-university-demo_default \
+            --network ai-project-manager-release-verification_default \
             --env ADMIN_DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/postgres \
             --env DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/project_manager_demo \
             --env RESTORE_DATABASE_URL=postgresql+psycopg://project_manager_demo:demo-database-only@db:5432/project_manager_demo_restore_check \
@@ -128,10 +128,14 @@ jobs:
           retention-days: 30
       - name: Retain service logs on failure
         if: ${{ failure() }}
-        run: docker compose -f compose.demo.yaml logs --no-color
+        run: >
+          docker compose -p ai-project-manager-release-verification
+          -f compose.demo.yaml logs --no-color
       - name: Remove ephemeral demo rehearsal volumes
         if: ${{ always() }}
-        run: docker compose -f compose.demo.yaml down --volumes --remove-orphans
+        run: >
+          docker compose -p ai-project-manager-release-verification
+          -f compose.demo.yaml down --volumes --remove-orphans
 
   release-gate:
     name: 5 · University release gate

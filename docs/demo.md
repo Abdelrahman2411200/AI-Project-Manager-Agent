@@ -40,6 +40,11 @@ guarded reset separately:
 docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --rm seed
 ```
 
+This explicit reset deletes every row in the interactive demo database, including
+projects created manually with the demo owner. The normal startup helper never runs
+it. Use `sh infra/release/verify-demo.sh` for release rehearsal; that script now uses
+an isolated Compose project and database volume on port `18080`.
+
 Existing `AI_UNCONFIGURED` failures remain as audit records; start a new planning
 run after the provider check succeeds.
 
