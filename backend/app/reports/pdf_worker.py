@@ -43,7 +43,18 @@ def render(input_path: Path, output_path: Path) -> None:
             page.set_content(html, wait_until="domcontentloaded")
             output_path.write_bytes(
                 page.pdf(
+                    display_header_footer=True,
+                    footer_template=(
+                        '<div style="box-sizing:border-box;color:#64708a;display:flex;'
+                        "font:8px Arial,sans-serif;justify-content:space-between;"
+                        'padding:0 14mm;width:100%">'
+                        "<span>AI Project Manager - factual report</span>"
+                        '<span>Page <span class="pageNumber"></span> of '
+                        '<span class="totalPages"></span></span>'
+                        "</div>"
+                    ),
                     format="A4",
+                    header_template="<span></span>",
                     outline=True,
                     prefer_css_page_size=True,
                     print_background=True,

@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { downloadReport, getReport, insightKeys } from "../api/insights";
 import { errorMessage } from "../api/errorUtils";
 import { ErrorState, FeedbackBanner, LoadingState, StateBadge } from "../components/Feedback";
+import { ReportEvidenceIndex } from "../features/insights/ReportEvidenceIndex";
 
 interface CitedStatement {
   text: string;
@@ -135,18 +136,7 @@ export function ReportDetailPage() {
           ))}
         </dl>
       </section>
-      <section className="detail-panel">
-        <span className="eyebrow">Claim verification</span>
-        <h2>Evidence index</h2>
-        <ul className="report-evidence-index">
-          {Object.entries(report.data.data.evidence).map(([reference, fact]) => (
-            <li key={reference}>
-              <div><code>{reference}</code><span>{fact.entity_type} · {fact.fact_key.replaceAll("_", " ")}</span></div>
-              <pre>{typeof fact.value === "string" ? fact.value : JSON.stringify(fact.value, null, 2)}</pre>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ReportEvidenceIndex evidence={report.data.data.evidence} />
       <footer className="calculation-footer">
         <strong>Content hash</strong><code>{report.data.content_hash}</code>
         <span>State {report.data.data.state_hash}</span>

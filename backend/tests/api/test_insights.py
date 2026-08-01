@@ -241,6 +241,9 @@ def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped(
     class FakePdfRenderer:
         def render(self, html: str) -> bytes:
             assert "METRIC-PROGRESS" in html
+            assert "Task index" in html
+            assert "Claim verification" in html
+            assert "{&quot;" not in html
             assert "Report content hash" in html
             return b"%PDF-1.7\nphase-12-factual-report\n%%EOF"
 
@@ -282,6 +285,13 @@ def test_report_workflow_persists_factual_fallback_exports_and_is_owner_scoped(
         assert body["narrative"] is None
         assert body["data"]["project_id"] == str(project_id)
         assert body["data"]["evidence"]["METRIC-PROGRESS"]
+        task_facts = [
+            fact for fact in body["data"]["evidence"].values() if fact["entity_type"] == "task"
+        ]
+        assert task_facts
+        assert all(fact["fact_key"] == "task_snapshot" for fact in task_facts)
+        assert all(fact["value"]["title"] for fact in task_facts)
+        assert all("status" in fact["value"] for fact in task_facts)
         assert "AI narrative was unavailable or rejected" in body["markdown"]
         export = client.get(f"/api/v1/reports/{report_id}/export.md")
         assert export.status_code == 200

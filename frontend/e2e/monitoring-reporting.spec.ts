@@ -145,7 +145,11 @@ const detail: ReportView = {
         entity_type: "task",
         entity_ref: "TASK-002",
         fact_key: "blocker",
-        value: { status: "blocked" },
+        value: {
+          title: "Confirm campus access",
+          status: "blocked",
+          reason: "Approval is pending",
+        },
       },
     },
     metrics: {
@@ -291,7 +295,13 @@ test("owner decides grounded guidance and exports an immutable factual report", 
   ).toBeVisible();
   await expect(page.getByText("Weighted project progress is 25%.")).toBeVisible();
   await expect(page.getByText("TASK-002 is blocked.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Task index" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Blocker" })).toBeVisible();
+  await expect(page.getByText("Approval is pending")).toBeVisible();
   await expect(page.getByText("Evidence index")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Weighted Progress" })).toBeVisible();
+  await expect(page.getByText("Display Percent")).toBeVisible();
+  await expect(page.getByText('{"display_percent"')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
   const download = page.waitForEvent("download");

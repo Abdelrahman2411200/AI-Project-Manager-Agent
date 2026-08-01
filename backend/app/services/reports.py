@@ -283,31 +283,28 @@ class ReportService:
                 completed_refs.append(reference)
         blocker_refs: list[str] = []
         next_action_refs: list[str] = []
-        for task, projection in tasks.values():
+        for task, projection in sorted(tasks.values(), key=lambda item: item[0].stable_key):
+            evidence[task.stable_key] = EvidenceFact(
+                entity_type="task",
+                entity_ref=task.stable_key,
+                fact_key="task_snapshot",
+                value={
+                    "title": task.title,
+                    "status": projection.status,
+                    "progress": _percent_display(projection.progress_fraction),
+                    "priority": task.priority_label,
+                    "estimated_hours": str(task.effort_likely_hours),
+                    "planned_start": task.planned_start.isoformat() if task.planned_start else None,
+                    "planned_finish": task.planned_finish.isoformat()
+                    if task.planned_finish
+                    else None,
+                    "blocked_reason": projection.blocked_reason,
+                },
+            )
             if projection.status == "blocked":
                 blocker_refs.append(task.stable_key)
-                evidence[task.stable_key] = EvidenceFact(
-                    entity_type="task",
-                    entity_ref=task.stable_key,
-                    fact_key="blocker",
-                    value={
-                        "title": task.title,
-                        "status": projection.status,
-                        "reason": projection.blocked_reason,
-                    },
-                )
             elif projection.status == "ready":
                 next_action_refs.append(task.stable_key)
-                evidence[task.stable_key] = EvidenceFact(
-                    entity_type="task",
-                    entity_ref=task.stable_key,
-                    fact_key="ready_work",
-                    value={
-                        "title": task.title,
-                        "status": projection.status,
-                        "priority_label": task.priority_label,
-                    },
-                )
         risk_refs: list[str] = []
         for risk in self.session.scalars(
             select(Risk)

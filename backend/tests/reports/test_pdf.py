@@ -36,7 +36,35 @@ def _report() -> Report:
                     "entity_ref": "PROJECT",
                     "fact_key": "weighted_progress",
                     "value": "18%",
-                }
+                },
+                "TASK-002": {
+                    "entity_type": "task",
+                    "entity_ref": "TASK-002",
+                    "fact_key": "task_snapshot",
+                    "value": {
+                        "title": "Confirm campus access",
+                        "status": "blocked",
+                        "priority": "Must",
+                        "progress": "25%",
+                        "planned_start": "2026-07-20",
+                        "planned_finish": "2026-07-22",
+                    },
+                },
+                "FORECAST-CURRENT": {
+                    "entity_type": "forecast",
+                    "entity_ref": "FORECAST-CURRENT",
+                    "fact_key": "remaining_work_schedule",
+                    "value": {
+                        "deadline_feasible": True,
+                        "tasks": {
+                            "opaque-id": {
+                                "stable_key": "TASK-002",
+                                "start_date": "2026-07-20",
+                                "finish_date": "2026-07-22",
+                            }
+                        },
+                    },
+                },
             },
             "metrics": {"weighted_progress_display": "18%"},
             "completed_refs": [],
@@ -72,6 +100,12 @@ def test_pdf_html_escapes_project_content_and_contains_hash_bound_facts() -> Non
     assert "<img src=x" not in html
     assert "&lt;script&gt;" in html
     assert "METRIC-PROGRESS" in html
+    assert "Task index" in html
+    assert "Confirm campus access" in html
+    assert "Claim verification" in html
+    assert "Deadline feasible" in html
+    assert "opaque-id" not in html
+    assert "{&quot;" not in html
     assert "18%" in html
     assert f"sha256:{'2' * 64}" in html
     assert "http://" not in html

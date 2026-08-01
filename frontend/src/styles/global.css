@@ -1291,8 +1291,7 @@ main {
 .recommendation-card-header,
 .recommendation-badges,
 .report-list > li,
-.report-list > li > div:last-child,
-.report-evidence-index > li > div {
+.report-list > li > div:last-child {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1361,13 +1360,12 @@ main {
 
 .recommendation-evidence span,
 .report-list time,
-.report-evidence-index span {
+.report-evidence-header > span {
   color: var(--color-text-muted);
   font-size: 0.78rem;
 }
 
-.evidence-value,
-.report-evidence-index pre {
+.evidence-value {
   max-width: 100%;
   margin: 0;
   overflow-x: auto;
@@ -1519,16 +1517,190 @@ main {
 }
 
 .report-evidence-index {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
-.report-evidence-index > li {
+.report-detail-page .report-evidence-index > li {
   min-width: 0;
   display: grid;
   gap: 0.5rem;
   padding: 0.8rem;
   border: 1px solid var(--execution-border);
   border-radius: 0.65rem;
+}
+
+.section-description {
+  margin-block: -0.2rem 1rem;
+  color: var(--color-text-muted);
+}
+
+.report-task-index {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-detail-page .report-task-index > li {
+  min-width: 0;
+  display: grid;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--execution-border);
+  border-inline-start: 0.24rem solid var(--color-primary);
+  border-radius: 0.65rem;
+  background: var(--color-surface);
+}
+
+.report-task-index header,
+.report-evidence-header,
+.report-evidence-header > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.report-task-index header code {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.report-task-index h3,
+.report-evidence-header h3 {
+  margin-block: 0.45rem 0.75rem;
+  font-size: 1rem;
+}
+
+.report-evidence-header > div {
+  min-width: 0;
+  display: grid;
+  justify-content: start;
+  gap: 0.15rem;
+}
+
+.report-evidence-header h3 {
+  margin: 0;
+}
+
+.task-evidence-status {
+  padding: 0.25rem 0.45rem;
+  border-radius: 99px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.task-evidence-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.task-evidence-facts > div {
+  min-width: 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--execution-border);
+}
+
+.task-evidence-facts dt {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.task-evidence-facts dd {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.evidence-field-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.evidence-field-list > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--execution-border);
+}
+
+.evidence-field-list dt {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.evidence-field-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.evidence-value-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding-inline-start: 1.2rem;
+}
+
+.report-detail-page .detail-panel .evidence-value-list > li {
+  display: list-item;
+  padding: 0;
+  border: 0;
+}
+
+.evidence-compact-values {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.35rem !important;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-detail-page .detail-panel .evidence-compact-values > li {
+  display: inline-flex;
+  padding: 0.2rem 0.45rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: var(--color-surface-subtle);
+  font-size: 0.8rem;
+}
+
+.evidence-record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.evidence-record {
+  min-width: 0;
+  padding: 0.65rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface-subtle);
+}
+
+.evidence-record h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+}
+
+.evidence-record .evidence-field-list > div {
+  grid-template-columns: minmax(6rem, 0.45fr) minmax(0, 1fr);
+}
+
+.evidence-empty-value {
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .report-detail-page .calculation-footer code {
@@ -1608,7 +1780,18 @@ main {
   }
 
   .report-generator form,
-  .report-evidence-index {
+  .report-evidence-index,
+  .report-task-index,
+  .evidence-record-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-field-list > div {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .task-evidence-facts {
     grid-template-columns: 1fr;
   }
 }
