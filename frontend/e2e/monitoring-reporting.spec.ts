@@ -258,7 +258,9 @@ test("owner decides grounded guidance and exports an immutable factual report", 
   await expect(page.getByText("No actionable recommendations")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole("link", { name: "Reports", exact: true }).click();
+  await page
+    .locator(`a[href="/projects/${ids.project}/reports"]`, { hasText: "Reports" })
+    .click();
   await expect(
     page.getByRole("heading", { name: `${projectFixture.name} reports` }),
   ).toBeVisible();
