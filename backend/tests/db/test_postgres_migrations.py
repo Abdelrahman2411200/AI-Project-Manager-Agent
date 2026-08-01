@@ -101,7 +101,20 @@ def test_postgres_migrations_create_current_constraints() -> None:
                 prompt_records = sync_prompt_catalog(session)
                 session.commit()
                 assert len(prompt_records) == 12
-                assert {record.version for record in prompt_records} == {"v2"}
+                assert {f"{record.key}.{record.version}" for record in prompt_records} == {
+                    "analysis.v2",
+                    "clarification.v3",
+                    "modules.v3",
+                    "milestones.v4",
+                    "tasks.v4",
+                    "acceptance.v5",
+                    "dependencies.v3",
+                    "risks.v3",
+                    "recommendations.v2",
+                    "weekly_report.v2",
+                    "change_impact.v2",
+                    "scenario.v2",
+                }
 
                 prompt = get_prompt("analysis.v2")
                 used_prompt = mark_prompt_used(
