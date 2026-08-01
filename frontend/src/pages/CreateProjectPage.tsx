@@ -183,8 +183,8 @@ export function CreateProjectPage() {
         ) : null}
         {!capabilities.isPending && !capabilities.isError && !planningAiConfigured ? (
           <FeedbackBanner tone="warning" title="AI planning needs server configuration">
-            Ask the server operator to configure OPENAI_API_KEY and restart the API and worker.
-            You can save this project now and start planning after configuration is complete.
+            Start the local Ollama service and restart the API and worker. You can save this
+            project now and start planning after the provider check succeeds.
           </FeedbackBanner>
         ) : null}
         {showErrorSummary && Object.keys(form.formState.errors).length ? (

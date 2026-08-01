@@ -135,11 +135,13 @@ def _prompt(
     task: str,
     positive: dict[str, Any],
     adversarial: dict[str, Any],
+    *,
+    version: str = "v2",
 ) -> PromptTemplate:
     output_type.model_validate(positive)
     return PromptTemplate(
         key=key,
-        version="v2",
+        version=version,
         purpose=purpose,
         output_type=output_type,
         output_token_budget=budget,
@@ -148,6 +150,59 @@ def _prompt(
         positive_example=canonical_json(positive),
         adversarial_example=canonical_json(adversarial),
     )
+
+
+TASK_BATCH_EXAMPLE = {
+    "items": [
+        TASK,
+        {
+            **TASK,
+            "temp_id": "TASK-002",
+            "title": "Verify the paginated catalog endpoint",
+            "description": "Exercise pagination and filtering behavior against seeded products.",
+            "deliverable": "Catalog endpoint verification",
+            "acceptance_criteria": ["Pagination and filtering cases pass"],
+            "definition_of_done": ["Integration-test evidence is recorded"],
+            "effort_min_hours": 4,
+            "effort_likely_hours": 8,
+            "effort_max_hours": 12,
+        },
+    ]
+}
+
+MODULE_BATCH_EXAMPLE = {
+    "items": [
+        MODULE,
+        {
+            **MODULE,
+            "temp_id": "MOD-002",
+            "name": "Catalog Quality",
+            "description": "Verification and reliability controls for product discovery.",
+            "objective": "Keep catalog discovery observable and reliable.",
+            "deliverables": ["Catalog verification suite"],
+            "workstreams": ["Quality"],
+            "requirement_refs": ["REQ-002"],
+        },
+    ]
+}
+
+MILESTONE_BATCH_EXAMPLE = {
+    "items": [
+        MILESTONE,
+        {
+            **MILESTONE,
+            "temp_id": "MS-002",
+            "module_refs": ["MOD-002"],
+            "name": "Catalog quality verified",
+            "description": "Catalog verification evidence is complete and reviewable.",
+            "objective": "Demonstrate reliable catalog discovery behavior.",
+            "deliverable": "Catalog verification evidence",
+            "sequence": 2,
+            "planned_effort_hours": 24,
+            "acceptance_criteria": ["Catalog integration tests pass"],
+        },
+    ]
+}
 
 
 _PROMPTS = (
@@ -168,10 +223,13 @@ _PROMPTS = (
         ClarificationQuestionBatch,
         2_000,
         60_000,
-        "Identify consequential gaps. Do not ask for a fact already present in the "
-        "supplied intake.",
+        "Identify only consequential gaps. Do not ask for a fact already present in the supplied "
+        "intake, and never ask about excluded or rejected scope. Use only source_fact_refs that "
+        "appear in the supplied data. If no material unanswered gap remains, return an empty "
+        "items array.",
         {"items": [QUESTION]},
         ADVERSARIAL_CASE,
+        version="v3",
     ),
     _prompt(
         "modules",
@@ -179,30 +237,40 @@ _PROMPTS = (
         ModuleDraftBatch,
         3_000,
         80_000,
-        "Create distinct modules that cover supplied requirements without adding excluded scope.",
-        {"items": [MODULE]},
+        "Create distinct modules that cover every supplied in-scope requirement without adding "
+        "excluded scope. Every supplied requirement fact_ref must appear in at least one module's "
+        "requirement_refs; combine related requirements and return multiple modules as needed.",
+        MODULE_BATCH_EXAMPLE,
         ADVERSARIAL_CASE,
+        version="v3",
     ),
     _prompt(
         "milestones",
-        "Create ordered, deliverable-based milestones.",
+        "Create ordered, deliverable-based milestones for one supplied module.",
         MilestoneDraftBatch,
         4_000,
         80_000,
-        "Create one primary deliverable per milestone with stable module references "
-        "and testable criteria.",
+        "Create at least one milestone for the single supplied module, with one primary "
+        "deliverable, the supplied stable module reference, and testable criteria. Use the "
+        "allocated MS-### identifier and sequence range; do not copy example identifiers.",
         {"items": [MILESTONE]},
         ADVERSARIAL_CASE,
+        version="v4",
     ),
     _prompt(
         "tasks",
-        "Decompose one milestone into sized, verifiable tasks.",
+        "Decompose every supplied milestone into sized, verifiable tasks.",
         TaskDraftBatch,
         8_000,
         100_000,
-        "Create specific tasks for the supplied milestone; use 4-24 likely hours for leaf work.",
-        {"items": [TASK]},
+        "Create specific tasks that cover every supplied milestone. Every milestone temp_id must "
+        "appear as milestone_ref on at least one task. Use unique sequential TASK-### identifiers "
+        "and 4-24 likely hours for leaf work. Never emit a leaf task above 24 likely hours; split "
+        "larger deliverables into multiple distinct, verifiable tasks whose estimates preserve "
+        "the milestone's approximate effort.",
+        TASK_BATCH_EXAMPLE,
         ADVERSARIAL_CASE,
+        version="v4",
     ),
     _prompt(
         "acceptance",
@@ -210,10 +278,12 @@ _PROMPTS = (
         TaskDraftBatch,
         3_000,
         80_000,
-        "Preserve task identity and scope while making acceptance criteria observable "
+        "Return exactly one item for every supplied task. Preserve the exact task identifiers, "
+        "milestone references, scope, and estimates while making acceptance criteria observable "
         "and testable.",
         {"items": [TASK]},
         ADVERSARIAL_CASE,
+        version="v5",
     ),
     _prompt(
         "dependencies",
@@ -221,10 +291,12 @@ _PROMPTS = (
         DependencySuggestionBatch,
         4_000,
         100_000,
-        "Return only necessary finish-to-start edges between supplied tasks with "
-        "explicit evidence.",
+        "Return only necessary finish-to-start edges between supplied tasks with explicit "
+        "evidence. Never emit a self-dependency. If fewer than two tasks are supplied, or no "
+        "edge is justified, return an empty items array.",
         {"items": [DEPENDENCY]},
         ADVERSARIAL_CASE,
+        version="v3",
     ),
     _prompt(
         "risks",
@@ -232,9 +304,12 @@ _PROMPTS = (
         RiskDraftBatch,
         3_000,
         80_000,
-        "Use project facts and deterministic warnings; do not copy generic risk catalogs.",
+        "Use project facts and deterministic warnings; do not copy generic risk catalogs or "
+        "reference identifiers from examples. Every source_fact_ref and related_ref must appear "
+        "in the supplied data. If no grounded risk exists, return an empty items array.",
         {"items": [RISK]},
         ADVERSARIAL_CASE,
+        version="v3",
     ),
     _prompt(
         "recommendations",

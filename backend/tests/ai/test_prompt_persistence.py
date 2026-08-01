@@ -38,7 +38,7 @@ def test_prompt_catalog_syncs_all_versions_and_used_content_is_immutable() -> No
 def test_used_prompt_cannot_be_deleted() -> None:
     with SessionLocal() as session:
         sync_prompt_catalog(session)
-        template = get_prompt("modules.v2")
+        template = get_prompt("modules.v3")
         record = mark_prompt_used(
             session,
             key=template.key,

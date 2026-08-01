@@ -9,10 +9,9 @@ This package has two rehearsed paths:
   from a clean checkout, loads all eight synthetic fixtures, exercises the public
   API and Markdown/PDF exports, restarts services, and rechecks persistence.
 - The 23-step presentation below demonstrates the interactive product workflow.
-  Starting a new planning run requires `OPENAI_API_KEY`; all validation, schedule,
-  priority, health, and approval results remain deterministic. Without a provider
-  key, present the pre-seeded “Commerce MVP — Six Weeks” record, which contains the
-  expected end-state and evidence without making a model call.
+  New planning runs use the local `gemma3:4b` Ollama model by default; validation,
+  schedule, priority, health, and approval results remain deterministic. The
+  pre-seeded “Commerce MVP — Six Weeks” record remains available without a model call.
 
 No fixture contains secrets, live provider credentials, or real personal data.
 
@@ -23,41 +22,26 @@ testing quota behavior.
 
 ## Start and reset
 
-```sh
-cp .env.demo.example .env.demo
-# Set OPENAI_API_KEY in .env.demo only when exercising a new planning run.
-docker compose --env-file .env.demo -f compose.demo.yaml up -d --build db
-docker compose --env-file .env.demo -f compose.demo.yaml run --rm migrate
+On Windows with Ollama installed in Ubuntu WSL, run from the repository root:
+
+```powershell
+& .\infra\release\start-local-ollama.ps1
+```
+
+The helper keeps Ubuntu alive, verifies `gemma3:4b`, writes only non-secret local
+provider settings to ignored `.env.demo`, starts the stack, and performs a strict
+structured-output probe from the worker container. The first cold model load can
+take about one minute on the reference RTX 3060 Laptop GPU.
+
+To reset the synthetic fixtures after the stack is running, execute the dedicated
+guarded reset separately:
+
+```powershell
 docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --rm seed
-docker compose --env-file .env.demo -f compose.demo.yaml up -d --build api worker frontend
 ```
 
-To exercise a new AI planning run, set `OPENAI_API_KEY` in `.env.demo` before the
-final `up` command and keep that ignored file outside version control. If the key
-is omitted, the UI disables planning and the API returns
-`503` with `X-Error-Code: ai_provider_unconfigured` before creating a run, job,
-or quota reservation.
-Existing `AI_UNCONFIGURED` failures remain as audit records.
-
-On Windows, configure the ignored file without placing the key in shell history:
-
-```powershell
-& .\infra\release\configure-demo-openai.ps1
-```
-
-The script prompts with hidden input, updates only the ignored `.env.demo`, restarts
-the API, worker, and frontend, verifies backend configuration, and sends one
-minimal structured provider probe. The probe may consume a small number of API
-tokens. Never paste an API key into the browser, chat, source code, or a committed
-file. After the capability check turns available, an old failed-run screen offers
-**Start a new planning run**. The helper does not purchase or grant API quota. If
-the key has no available API credits, the helper stops with a safe typed result
-before a planning run is created. After restoring API billing, verify the existing
-configuration without re-entering the key:
-
-```powershell
-& .\infra\release\configure-demo-openai.ps1 -ProbeOnly
-```
+Existing `AI_UNCONFIGURED` failures remain as audit records; start a new planning
+run after the provider check succeeds.
 
 Open `http://localhost:8080`.
 

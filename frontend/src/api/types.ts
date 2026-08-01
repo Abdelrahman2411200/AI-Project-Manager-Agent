@@ -12,7 +12,8 @@ export interface SessionView {
 
 export interface SystemCapabilitiesView {
   planning_ai_configured: boolean;
-  planning_model: string;
+  planning_provider: string;
+  planning_model: string | null;
 }
 
 export interface RequirementView {

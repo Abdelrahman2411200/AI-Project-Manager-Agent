@@ -22,6 +22,7 @@ from app.ai.provider import (
     StructuredModelError,
     StructuredModelRequest,
     StructuredModelResult,
+    validate_schema_is_strict,
 )
 from app.core.config import Settings, get_settings
 
@@ -185,19 +186,3 @@ def _provider_error_code(error: APIStatusError) -> str | None:
     details = nested if isinstance(nested, dict) else body
     code = details.get("code") or details.get("type")
     return code if isinstance(code, str) else None
-
-
-def validate_schema_is_strict(output_type: type[BaseModel]) -> None:
-    """Fail startup/tests if a schema permits uncontracted object properties."""
-
-    def walk(node: Any, path: str) -> None:
-        if isinstance(node, dict):
-            if node.get("type") == "object" and node.get("additionalProperties") is not False:
-                raise ValueError(f"Schema object at {path} must forbid additional properties.")
-            for key, value in node.items():
-                walk(value, f"{path}.{key}")
-        elif isinstance(node, list):
-            for index, value in enumerate(node):
-                walk(value, f"{path}[{index}]")
-
-    walk(output_type.model_json_schema(), "$")

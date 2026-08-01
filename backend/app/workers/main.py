@@ -10,7 +10,7 @@ import threading
 from contextlib import suppress
 from uuid import UUID
 
-from app.ai.openai_provider import OpenAIResponsesProvider
+from app.ai.factory import build_structured_model_provider
 from app.ai.provider import StructuredModelProvider
 from app.core.config import Settings, get_settings
 from app.db.base import utc_now
@@ -173,19 +173,28 @@ async def process_one_job(
 
 
 async def _run_loop(settings: Settings) -> None:
-    provider = OpenAIResponsesProvider(settings) if settings.openai_api_key is not None else None
+    provider = build_structured_model_provider(settings)
     if provider is None:
         logger.warning("worker_ai_unconfigured_monitoring_only")
     worker_id = f"{socket.gethostname()}:{threading.get_native_id()}"
     logger.info(
         "worker_started",
-        extra={"environment": settings.app_env, "worker_id": worker_id},
+        extra={
+            "environment": settings.app_env,
+            "worker_id": worker_id,
+            "ai_provider": settings.planning_provider,
+            "ai_model": settings.planning_model,
+        },
     )
-    while not shutdown_requested.is_set():
-        processed = await process_one_job(provider, settings, worker_id=worker_id)
-        if not processed:
-            await asyncio.sleep(settings.job_poll_seconds)
-    logger.info("worker_stopped", extra={"worker_id": worker_id})
+    try:
+        while not shutdown_requested.is_set():
+            processed = await process_one_job(provider, settings, worker_id=worker_id)
+            if not processed:
+                await asyncio.sleep(settings.job_poll_seconds)
+    finally:
+        if provider is not None:
+            await provider.close()
+        logger.info("worker_stopped", extra={"worker_id": worker_id})
 
 
 def run() -> None:

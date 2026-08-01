@@ -39,6 +39,7 @@ def clean_database() -> None:
 
 @pytest.fixture(autouse=True)
 def configured_test_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "ai_provider", "openai")
     monkeypatch.setattr(
         get_settings(),
         "openai_api_key",

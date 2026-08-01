@@ -76,3 +76,6 @@ class FakeStructuredModelProvider:
                 else max(0, (monotonic_ns() - started) // 1_000_000)
             ),
         )
+
+    async def close(self) -> None:
+        return None

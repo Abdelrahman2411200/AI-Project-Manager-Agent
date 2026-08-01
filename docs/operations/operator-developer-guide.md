@@ -26,7 +26,7 @@ deterministic server responsibilities.
 
 ## Development setup
 
-Prerequisites: Python 3.12, `uv` 0.11.29, Node 24, npm, Docker, and Compose.
+Prerequisites: Python 3.12, `uv` 0.11.29, Node 24, npm, Docker, Compose, and Ollama for live local planning.
 
 ```sh
 cd backend
@@ -60,7 +60,7 @@ Settings are environment variables validated by `backend/app/core/config.py`.
 | Database | PostgreSQL is mandatory in production; SQLite is single-worker local only |
 | Sessions | unique 32+ character hash secret, Argon2 passwords, HttpOnly session cookie |
 | Browser | exact CORS origin, CSRF cookie/header, `COOKIE_SECURE=true` in production |
-| Provider | key optional for fixture/offline paths; configurable model and budgets |
+| Provider | local Ollama by default; configurable URL, model, context, timeout, schema repair, and budgets |
 | Worker | database leases, heartbeat, retry limits, resumable checkpoints |
 | PDF | Chromium timeout, output limit, and concurrency bound |
 | Observability | safe structured attributes; no prompts, cookies, passwords, or raw PII |
@@ -131,27 +131,16 @@ docker compose --env-file .env.demo -f compose.demo.yaml --profile reset run --r
 docker compose --env-file .env.demo -f compose.demo.yaml up -d api worker frontend
 ```
 
-AI-backed planning is intentionally unavailable until the server has an OpenAI
-API key. On Windows, use the hidden-input helper so the key is not saved in shell
-history:
+On Windows, start the local Ollama-backed demo from the repository root:
 
 ```powershell
-& .\infra\release\configure-demo-openai.ps1
+& .\infra\release\start-local-ollama.ps1
 ```
 
-The helper writes the key only to ignored `.env.demo`, force-recreates the API,
-worker, and frontend, verifies backend configuration, and performs one minimal
-structured provider request. The probe may consume a small number of API tokens.
-Do not enter the key in the web application, paste it into chat, or commit it.
-After correcting billing or another provider issue, verify the stored key without
-entering it again:
-
-```powershell
-& .\infra\release\configure-demo-openai.ps1 -ProbeOnly
-```
-
-Without the key, project-only saves remain available, but the UI disables planning
-and the API rejects planning admission before it creates a run or reserves quota.
+The helper keeps Ubuntu WSL alive, confirms `gemma3:4b` is installed, updates the
+ignored demo environment, starts the containers, and performs one schema-constrained
+probe through the worker. If Ollama is unavailable, project-only saves remain
+available and planning admission is rejected before a run or quota reservation.
 
 Known synthetic credentials:
 
@@ -171,7 +160,7 @@ incorrect confirmation literal.
 | Login is 403 | request `Origin` and `CORS_ORIGINS` | Use one exact scheme/host/port |
 | Login loops in production | TLS and `COOKIE_SECURE` | Terminate HTTPS before the bound frontend |
 | Jobs remain queued | worker logs, DB connectivity, lease age | Restore worker; expired leases are reclaimable |
-| Planning reports no API quota | OpenAI API billing, credits, project usage limit | Restore provider quota before starting another run |
+| Ollama planning is unavailable | WSL keepalive, `systemctl status ollama`, installed model, worker `OLLAMA_BASE_URL` | Run `start-local-ollama.ps1`, then start a new audited run |
 | Planning fails safely | run steps and validation codes | Correct input/provider issue and retry idempotently |
 | PDF fails | Chromium availability, timeout, `/tmp`, size | Restore the release image/runtime limits |
 | Hash conflict | reload plan and compare row/content versions | Do not overwrite; review the current immutable state |

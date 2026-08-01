@@ -49,7 +49,7 @@ def test_planning_start_is_csrf_protected_and_idempotent() -> None:
 
 
 def test_unconfigured_provider_rejects_before_consuming_a_run(monkeypatch) -> None:
-    monkeypatch.setattr(get_settings(), "openai_api_key", None)
+    monkeypatch.setattr(get_settings(), "ai_provider", "none")
     _, client, csrf = create_user_and_client("run-provider-missing@example.com")
     with client:
         project = client.post(
@@ -68,7 +68,7 @@ def test_unconfigured_provider_rejects_before_consuming_a_run(monkeypatch) -> No
 
     assert response.status_code == 503
     assert response.headers["X-Error-Code"] == "ai_provider_unconfigured"
-    assert "OPENAI_API_KEY" in response.json()["detail"]
+    assert "model provider" in response.json()["detail"]
     with SessionLocal() as session:
         assert session.scalar(select(func.count(AgentRun.id))) == 0
         assert session.scalar(select(func.count(AgentJob.id))) == 0

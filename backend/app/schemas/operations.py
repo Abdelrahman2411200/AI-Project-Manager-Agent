@@ -17,4 +17,5 @@ class OwnerQuotaView(BaseModel):
 
 class SystemCapabilitiesView(BaseModel):
     planning_ai_configured: bool
-    planning_model: str
+    planning_provider: str
+    planning_model: str | None

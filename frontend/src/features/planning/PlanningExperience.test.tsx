@@ -19,7 +19,8 @@ import { server } from "../../test/server";
 
 const configuredCapabilities = {
   planning_ai_configured: true,
-  planning_model: "gpt-5.6-terra",
+  planning_provider: "ollama",
+  planning_model: "gemma3:4b",
 };
 
 function renderRoute(path: string) {
@@ -118,6 +119,8 @@ describe("planning and clarification experience", () => {
         HttpResponse.json({
           ...configuredCapabilities,
           planning_ai_configured: false,
+          planning_provider: "none",
+          planning_model: null,
         }),
       ),
       http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
@@ -139,7 +142,7 @@ describe("planning and clarification experience", () => {
 
     expect(
       await screen.findByText(
-        "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run.",
+        "The local model provider is not configured. Start Ollama and restart the API and worker before starting another planning run.",
       ),
     ).toBeInTheDocument();
   });
@@ -166,7 +169,7 @@ describe("planning and clarification experience", () => {
 
     expect(
       await screen.findByText(
-        "The OpenAI API account has no available quota. Add API billing or credits, or raise the OpenAI project usage limit, before starting another planning run.",
+        "The configured hosted provider has no available quota. Local Ollama runs do not require API credits.",
       ),
     ).toBeInTheDocument();
   });
@@ -179,6 +182,8 @@ describe("planning and clarification experience", () => {
         HttpResponse.json({
           ...configuredCapabilities,
           planning_ai_configured: false,
+          planning_provider: "none",
+          planning_model: null,
         }),
       ),
       http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
@@ -234,7 +239,7 @@ describe("planning and clarification experience", () => {
 
     expect(
       await screen.findByText(
-        "OpenAI is now configured. This failed run remains as an audit record; start a new planning run to continue.",
+        "The model provider is now configured. This failed run remains as an audit record; start a new planning run to continue.",
       ),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Start a new planning run" }));
@@ -250,6 +255,8 @@ describe("planning and clarification experience", () => {
         HttpResponse.json({
           ...configuredCapabilities,
           planning_ai_configured: false,
+          planning_provider: "none",
+          planning_model: null,
         }),
       ),
     );

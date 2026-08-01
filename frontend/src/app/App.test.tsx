@@ -74,7 +74,8 @@ describe("application routes", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           planning_ai_configured: true,
-          planning_model: "gpt-5.6-terra",
+          planning_provider: "ollama",
+          planning_model: "gemma3:4b",
         }),
       );
     vi.stubGlobal("fetch", fetchMock);

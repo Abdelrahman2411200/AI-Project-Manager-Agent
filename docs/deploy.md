@@ -26,7 +26,8 @@ dependencies during deployment.
    `SESSION_HASH_SECRET`, and `BACKUP_PASSPHRASE`.
 3. Make `DATABASE_URL` use the same URL-safe database password.
 4. Set `PUBLIC_ORIGIN` and `CORS_ORIGINS` to the exact HTTPS origin.
-5. Add `OPENAI_API_KEY` only when provider-backed planning is intended.
+5. Set `AI_PROVIDER`. Use `ollama` with a worker-reachable `OLLAMA_BASE_URL` and an
+   installed `OLLAMA_MODEL`, or select another configured adapter explicitly.
 6. Restrict the environment file to the deployment account.
 
 The frontend binds to `127.0.0.1:8080` by default. Terminate TLS in the host

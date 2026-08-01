@@ -84,9 +84,9 @@ class PlanningRunService:
         if conflict is not None:
             raise RunConflictError("Another planning run is already active for this project.")
 
-        if get_settings().openai_api_key is None:
+        if not get_settings().planning_ai_configured:
             raise PlanningProviderUnavailableError(
-                "AI planning is unavailable until OPENAI_API_KEY is configured "
+                "AI planning is unavailable until a model provider is configured "
                 "and the API and worker are restarted."
             )
 

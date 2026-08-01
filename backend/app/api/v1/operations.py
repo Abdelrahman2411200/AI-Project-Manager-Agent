@@ -16,8 +16,9 @@ def get_system_capabilities(
 ) -> SystemCapabilitiesView:
     settings = get_settings()
     return SystemCapabilitiesView(
-        planning_ai_configured=settings.openai_api_key is not None,
-        planning_model=settings.openai_model,
+        planning_ai_configured=settings.planning_ai_configured,
+        planning_provider=settings.planning_provider,
+        planning_model=settings.planning_model,
     )
 
 

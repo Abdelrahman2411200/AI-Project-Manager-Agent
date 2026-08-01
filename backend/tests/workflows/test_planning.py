@@ -2,20 +2,25 @@ import asyncio
 import math
 import time
 from copy import deepcopy
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
 
 from app.ai.fake_provider import FakeStructuredModelProvider
 from app.ai.provider import ModelFailureCode, StructuredModelError
+from app.ai.schemas.outputs import MilestoneDraftBatch, ModuleDraftBatch, TaskDraftBatch
 from app.core.config import get_settings
 from app.db.models.plan import Milestone, PlanVersion, Risk, Task, TaskDependency
+from app.db.models.project import Project
 from app.db.models.run import AgentRun, AgentRunStep
 from app.db.session import SessionLocal
 from app.schemas.run import ClarificationAnswer, PlanningRunRequest
+from app.services.planning_context import build_planning_facts
 from app.services.runs import PlanningRunService
 from app.workflows.engine import NodeFailure
 from app.workflows.planning import PLANNING_SEQUENCE, PlanningWorkflow
+from app.workflows.planning_nodes import PlanningSemanticNodes
 from tests.ai.fixtures import MILESTONE, MODULE, RISK, TASK
 from tests.api.test_projects import (
     create_user_and_client,
@@ -24,7 +29,7 @@ from tests.api.test_projects import (
 )
 
 
-def _outputs() -> list[dict]:
+def _outputs() -> list[dict[str, Any]]:
     analysis = {
         "summary": "A focused owner-facing project planning application for a reliable release.",
         "project_type": "web_application",
@@ -138,6 +143,165 @@ def _started_run(email: str = "workflow-owner@example.com") -> tuple[UUID, UUID]
 
 async def _no_sleep(_: float) -> None:
     return None
+
+
+def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -> None:
+    run_id, _ = _started_run("task-batch-owner@example.com")
+    first_milestone = deepcopy(_outputs()[3]["items"][0])
+    second_milestone = {
+        **deepcopy(first_milestone),
+        "temp_id": "MS-002",
+        "name": "Owner review ready",
+        "sequence": 2,
+    }
+    first_task = deepcopy(_outputs()[4]["items"][0])
+    second_task = {
+        **deepcopy(first_task),
+        "milestone_ref": "MS-002",
+        "title": "Prepare owner review evidence",
+    }
+    provider = FakeStructuredModelProvider(
+        [{"items": [first_task]}, {"items": [second_task]}]
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).tasks(
+                run,
+                build_planning_facts(project),
+                MilestoneDraftBatch.model_validate(
+                    {"items": [first_milestone, second_milestone]}
+                ),
+            )
+        )
+
+    assert [item.temp_id for item in result.output.items] == ["TASK-001", "TASK-002"]
+    assert [item.milestone_ref for item in result.output.items] == ["MS-001", "MS-002"]
+    assert [request.prompt_version for request in provider.requests] == ["v4", "v4"]
+
+
+def test_milestone_generation_batches_each_module_and_assigns_unique_sequences() -> None:
+    run_id, _ = _started_run("milestone-batch-owner@example.com")
+    first_module = deepcopy(_outputs()[2]["items"][0])
+    second_module = {
+        **deepcopy(first_module),
+        "temp_id": "MOD-002",
+        "name": "Planning review",
+        "objective": "Let the project owner review deterministic planning evidence.",
+    }
+    first_milestone = deepcopy(_outputs()[3]["items"][0])
+    second_milestone = {
+        **deepcopy(first_milestone),
+        "module_refs": ["MOD-002"],
+        "name": "Planning review ready",
+    }
+    provider = FakeStructuredModelProvider(
+        [{"items": [first_milestone]}, {"items": [second_milestone]}]
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).milestones(
+                run,
+                build_planning_facts(project),
+                ModuleDraftBatch.model_validate({"items": [first_module, second_module]}),
+            )
+        )
+
+    assert [item.temp_id for item in result.output.items] == ["MS-001", "MS-002"]
+    assert [item.sequence for item in result.output.items] == [1, 2]
+    assert [item.module_refs for item in result.output.items] == [["MOD-001"], ["MOD-002"]]
+    assert [request.prompt_version for request in provider.requests] == ["v4", "v4"]
+
+
+def test_dependency_generation_skips_model_for_a_single_task() -> None:
+    run_id, _ = _started_run("single-task-dependency-owner@example.com")
+    provider = FakeStructuredModelProvider([])
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).dependencies(
+                run,
+                TaskDraftBatch.model_validate({"items": [_outputs()[4]["items"][0]]}),
+            )
+        )
+
+    assert result.output.items == []
+    assert provider.requests == []
+
+
+def test_acceptance_refinement_cannot_remove_or_rewrite_tasks() -> None:
+    run_id, _ = _started_run("acceptance-protection-owner@example.com")
+    original = TaskDraftBatch.model_validate({"items": _outputs()[4]["items"]})
+    refined_first = {
+        **deepcopy(_outputs()[4]["items"][0]),
+        "acceptance_criteria": ["The durable workflow passes its end-to-end test"],
+        "definition_of_done": ["The verified workflow evidence is stored"],
+    }
+    provider = FakeStructuredModelProvider([{"items": [refined_first]}])
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).acceptance(
+                run,
+                build_planning_facts(project),
+                original,
+            )
+        )
+
+    assert [item.temp_id for item in result.output.items] == ["TASK-001", "TASK-002"]
+    assert result.output.items[0].acceptance_criteria == refined_first["acceptance_criteria"]
+    assert result.output.items[1] == original.items[1]
+    assert len(provider.requests) == 1
+
+
+def test_optional_invalid_risk_is_discarded_after_bounded_repair() -> None:
+    run_id, _ = _started_run("risk-salvage-owner@example.com")
+    invalid_risk = {
+        "items": [
+            {
+                **deepcopy(_outputs()[7]["items"][0]),
+                "source_fact_refs": ["CONSTRAINT-NOT-SUPPLIED"],
+            }
+        ]
+    }
+    provider = FakeStructuredModelProvider(
+        [*_outputs()[:7], invalid_risk, invalid_risk]
+    )
+
+    with SessionLocal() as session:
+        completed = asyncio.run(
+            PlanningWorkflow(
+                session,
+                provider,
+                get_settings(),
+                sleeper=_no_sleep,
+            ).execute(run_id)
+        )
+        assert completed.status == "completed"
+        assert completed.proposed_plan_version_id is not None
+        assert (
+            session.scalar(
+                select(func.count(Risk.id)).where(
+                    Risk.version_id == completed.proposed_plan_version_id
+                )
+            )
+            == 0
+        )
+    assert len(provider.requests) == 9
 
 
 def test_complete_workflow_persists_one_validated_draft_and_trace() -> None:
@@ -310,6 +474,8 @@ def test_business_invalid_task_receives_one_minimal_repair() -> None:
         repair_request = provider.requests[5]
         assert '"invalid_candidate"' in repair_request.input_text
         assert '"validation_errors"' in repair_request.input_text
+        assert '"validation_constraints"' in repair_request.input_text
+        assert '"allowed_refs"' in repair_request.input_text
         assert '"intake"' not in repair_request.input_text
         task_step = session.scalar(
             select(AgentRunStep).where(

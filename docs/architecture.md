@@ -11,7 +11,7 @@ flowchart LR
     API -->|enqueue only| Jobs[(Database job table)]
     Worker[Worker process] -->|SKIP LOCKED lease| Jobs
     Worker --> DB
-    Worker -->|schema-constrained requests| Provider[OpenAI provider adapter]
+    Worker -->|schema-constrained requests| Provider[Provider adapter: local Ollama by default]
     DB --> Backup[Encrypted backup]
     API -. correlated request ID .-> Telemetry[Metrics and traces]
     Worker -. run/node/provider IDs .-> Telemetry
@@ -34,8 +34,8 @@ activate, schedule, calculate progress, validate graphs, or mutate an active pla
 - Task dependencies are plan-version local and validated as a DAG before persistence.
 - Reports derive numeric facts from persisted state/events; recommendations require stored
   evidence. Unsupported narrative is rejected without discarding factual data.
-- Provider calls use the adapter, strict output schemas, `store=false`, a safety identifier,
-  bounded context, timeout, usage capture, and configurable model.
+- Provider calls use the adapter, strict output schemas, bounded context, timeout,
+  usage capture, configurable model, and one bounded local schema-repair attempt.
 - SQLite is a single-worker convenience only. PostgreSQL is authoritative for concurrency,
   constraints, migrations, and release verification.
 
@@ -48,7 +48,7 @@ activate, schedule, calculate progress, validate graphs, or mutate an active pla
 | Database-backed jobs | Durable MVP execution without a broker | Celery/Redis | Worker polling and lease monitoring |
 | React/Vite/TanStack Query | Typed, accessible application shell | Next.js, Vue | Static web container |
 | Playwright Chromium | Existing E2E stack; future PDF reuse | Native PDF engine | Browser binary in test/full release |
-| OpenAI provider adapter | Structured output and portability boundary | Direct SDK calls | Provider credentials and cost controls |
+| Provider adapters | Native Ollama keeps development local; OpenAI remains an optional portability boundary | Direct SDK calls in workflows | Ollama requires local compute; hosted providers require credentials and cost controls |
 
 No unresolved Must-level architecture issue remains. Phase 11+ capabilities remain outside
 the MVP boundary and cannot be reached through Phase 10 routes.

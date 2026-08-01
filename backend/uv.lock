@@ -11,6 +11,7 @@ dependencies = [
     { name = "argon2-cffi" },
     { name = "email-validator" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "openai" },
     { name = "playwright" },
     { name = "psycopg", extra = ["binary"] },
@@ -21,7 +22,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -34,6 +34,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = "==25.1.0" },
     { name = "email-validator", specifier = "==2.3.0" },
     { name = "fastapi", specifier = "==0.139.2" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "openai", specifier = "==2.47.0" },
     { name = "playwright", specifier = ">=1.61.0" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
@@ -44,7 +45,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = "==0.28.1" },
     { name = "mypy", specifier = "==2.3.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-cov", specifier = "==7.1.0" },

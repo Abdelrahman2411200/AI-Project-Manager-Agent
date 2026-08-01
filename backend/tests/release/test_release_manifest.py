@@ -120,7 +120,8 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     production = _text("compose.production.yaml")
     assert '"/api/v1"' in client
     assert "location /api/" in nginx
-    assert "proxy_pass http://api:8000" in nginx
+    assert "server api:8000 resolve" in nginx
+    assert "proxy_pass http://api_backend" in nginx
     assert "location = /index.html" in nginx
     assert "expires -1" in nginx
     assert "location /assets/" in nginx

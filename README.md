@@ -22,6 +22,7 @@ Phase 13 of the [engineering implementation plan](./IMPLEMENTATION%20PLAN.MD) pa
 - Completion forecasts and precedence-ordered health classifications with stable rule codes and evidence
 - Property-style fixtures with 98% domain branch coverage and a 1,000-task/approximately 3,000-edge benchmark below two seconds
 - Provider-neutral structured request, result, refusal, usage, and error contracts with an offline fake provider
+- A native local Ollama adapter with JSON-schema output, bounded schema repair, deterministic generation settings, timeouts, and complete token accounting
 - A configurable OpenAI Responses adapter using strict Pydantic output, `store: false`, pseudonymous safety identifiers, explicit timeouts, and complete token accounting
 - Nine semantic output schemas and three versioned workflow-state schemas with fail-closed cross-field invariants
 - Twelve immutable prompt versions with content hashes, output budgets, stable untrusted-data delimiters, positive fixtures, and adversarial regression examples
@@ -141,7 +142,7 @@ The workflow engine is application-owned and persisted. Nodes have typed state, 
 | Persistence | PostgreSQL in deployment; SQLite for single-worker local development |
 | Quality | Pytest, Ruff, mypy, Vitest, Testing Library, MSW, axe-core, Playwright/Chromium, ESLint |
 | Packaging | Dockerfiles and Docker Compose |
-| AI boundary | OpenAI Responses adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
+| AI boundary | Local Ollama by default (`gemma3:4b`), optional OpenAI adapter, strict Pydantic schemas, immutable prompts, offline fake provider |
 | Hardening | Request limits, owner/run budgets, encrypted restore drills, SLO alerts, ordered CI |
 
 ## Repository layout
@@ -167,13 +168,21 @@ The source specification and Stitch exports are retained as project artifacts.
 
 Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js 24, npm 11, and optionally Docker Desktop.
 
-Copy the example environment file before starting services:
+For Windows development with Ollama installed in the Ubuntu WSL distribution, start the complete local demo from the repository root:
+
+```powershell
+& .\infra\release\start-local-ollama.ps1
+```
+
+The helper keeps WSL running, verifies that `gemma3:4b` is installed, configures the ignored `.env.demo`, starts Docker Compose, and exercises the same structured provider path used by the worker. Open the URL printed by the script (normally `http://localhost:8080`, or the existing `HTTP_PORT` in `.env.demo`). No hosted API key is required.
+
+To run services manually, copy the example environment file first:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Never commit real credentials or API keys.
+Never commit credentials or ignored local environment files.
 
 ### Run with Docker Compose
 
@@ -252,6 +261,7 @@ University release and prior operational evidence:
 - [Phase 12 verification matrix](docs/release/phase-12-verification.md)
 - [Vendor-neutral deployment](docs/deploy.md)
 - [Operator and developer guide](docs/operations/operator-developer-guide.md)
+- [Local Ollama model selection and runtime](docs/local-ollama.md)
 - [University demonstration](docs/demo.md)
 - [Final architecture and 72-item review](docs/release-review.md)
 - [Final 48-requirement system audit](docs/release/final-system-audit.md)

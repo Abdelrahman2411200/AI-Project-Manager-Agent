@@ -33,7 +33,8 @@ async function mockLifecycle(page: Page) {
     if (path === "/system/capabilities" && method === "GET") {
       return json(route, {
         planning_ai_configured: true,
-        planning_model: "gpt-5.6-terra",
+        planning_provider: "ollama",
+        planning_model: "gemma3:4b",
       });
     }
     if (path === "/projects" && method === "POST") {

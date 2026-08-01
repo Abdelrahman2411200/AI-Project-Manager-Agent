@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.ai.openai_provider import OpenAIResponsesProvider
+from app.ai.factory import build_structured_model_provider
 from app.ai.provider import (
     ModelFailureCode,
     StructuredModelError,
@@ -72,11 +72,10 @@ async def probe_provider(provider: StructuredModelProvider) -> ProviderProbeResu
 
 async def run_cli() -> int:
     settings = get_settings()
-    if settings.openai_api_key is None:
+    provider = build_structured_model_provider(settings)
+    if provider is None:
         print(ProviderProbeResult(status="unconfigured").model_dump_json())
         return 2
-
-    provider = OpenAIResponsesProvider(settings)
     try:
         result = await probe_provider(provider)
     finally:

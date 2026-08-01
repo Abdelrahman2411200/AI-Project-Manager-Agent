@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     pdf_render_timeout_seconds: int = Field(default=60, ge=5, le=120)
     pdf_max_bytes: int = Field(default=10_485_760, ge=65_536, le=52_428_800)
     pdf_max_concurrency: int = Field(default=2, ge=1, le=8)
+    ai_provider: Literal["ollama", "openai", "none"] = "ollama"
+    ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
+    ollama_model: str = Field(default="gemma3:4b", min_length=1, max_length=120)
+    ollama_timeout_seconds: float = Field(default=300.0, ge=10.0, le=1_800.0)
+    ollama_context_tokens: int = Field(default=8_192, ge=2_048, le=131_072)
+    ollama_max_output_tokens: int = Field(default=4_096, ge=128, le=32_768)
+    ollama_temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    ollama_seed: int = Field(default=42, ge=0, le=2_147_483_647)
+    ollama_keep_alive: str = Field(default="5m", min_length=1, max_length=24)
+    ollama_schema_retries: int = Field(default=1, ge=0, le=2)
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="gpt-5.6-terra", min_length=1, max_length=120)
     openai_timeout_seconds: float = Field(default=90.0, ge=1.0, le=300.0)
@@ -88,6 +98,30 @@ class Settings(BaseSettings):
     @property
     def cors_origin_strings(self) -> list[str]:
         return [str(origin).rstrip("/") for origin in self.cors_origins]
+
+    @property
+    def ollama_base_url_string(self) -> str:
+        return str(self.ollama_base_url).rstrip("/")
+
+    @property
+    def planning_provider(self) -> str:
+        return self.ai_provider
+
+    @property
+    def planning_model(self) -> str | None:
+        if self.ai_provider == "ollama":
+            return self.ollama_model
+        if self.ai_provider == "openai":
+            return self.openai_model
+        return None
+
+    @property
+    def planning_ai_configured(self) -> bool:
+        if self.ai_provider == "ollama":
+            return bool(self.ollama_model and self.ollama_base_url_string)
+        if self.ai_provider == "openai":
+            return self.openai_api_key is not None
+        return False
 
 
 @lru_cache

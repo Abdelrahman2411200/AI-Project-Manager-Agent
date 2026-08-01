@@ -138,6 +138,10 @@ class StructuredModelProvider(Protocol):
         """Return a schema-constrained candidate without performing persistence."""
         ...
 
+    async def close(self) -> None:
+        """Release provider-owned network resources."""
+        ...
+
 
 def public_error_details(error: StructuredModelError) -> dict[str, Any]:
     """Return a log-safe error payload that never includes prompt or model output."""
@@ -158,3 +162,19 @@ def make_safety_identifier(owner_id: UUID, secret: str) -> str:
         hashlib.sha256,
     ).hexdigest()
     return f"apm_{digest[:60]}"
+
+
+def validate_schema_is_strict(output_type: type[BaseModel]) -> None:
+    """Fail startup/tests if a schema permits uncontracted object properties."""
+
+    def walk(node: Any, path: str) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "object" and node.get("additionalProperties") is not False:
+                raise ValueError(f"Schema object at {path} must forbid additional properties.")
+            for key, value in node.items():
+                walk(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{path}[{index}]")
+
+    walk(output_type.model_json_schema(), "$")

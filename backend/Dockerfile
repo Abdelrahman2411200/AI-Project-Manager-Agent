@@ -14,7 +14,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
-RUN uv run playwright install --with-deps chromium
+RUN /app/.venv/bin/playwright install --with-deps chromium
 
 COPY app ./app
 COPY tests/fixtures/demo ./tests/fixtures/demo

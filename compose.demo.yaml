@@ -7,8 +7,15 @@ x-demo-environment: &demo-environment
   SESSION_HASH_SECRET: ${SESSION_HASH_SECRET:-university-demo-session-secret-32-characters}
   COOKIE_SECURE: "false"
   CORS_ORIGINS: '["${DEMO_ORIGIN:-http://localhost:8080}"]'
-  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-terra}
+  AI_PROVIDER: ${AI_PROVIDER:-ollama}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
+  OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-300}
+  OLLAMA_CONTEXT_TOKENS: ${OLLAMA_CONTEXT_TOKENS:-8192}
+  OLLAMA_MAX_OUTPUT_TOKENS: ${OLLAMA_MAX_OUTPUT_TOKENS:-4096}
+  MODEL_INPUT_PRICE_PER_MILLION: ${MODEL_INPUT_PRICE_PER_MILLION:-0}
+  MODEL_CACHED_INPUT_PRICE_PER_MILLION: ${MODEL_CACHED_INPUT_PRICE_PER_MILLION:-0}
+  MODEL_OUTPUT_PRICE_PER_MILLION: ${MODEL_OUTPUT_PRICE_PER_MILLION:-0}
   USER_DAILY_RUN_LIMIT: ${USER_DAILY_RUN_LIMIT:-100}
   USER_DAILY_TOKEN_BUDGET: ${USER_DAILY_TOKEN_BUDGET:-2000000}
 
@@ -31,6 +38,7 @@ services:
     restart: unless-stopped
 
   migrate:
+    image: ai-project-manager-backend:${APP_VERSION:-0.13.0}
     build:
       context: ./backend
       target: base
@@ -42,6 +50,7 @@ services:
     restart: "no"
 
   seed:
+    image: ai-project-manager-backend:${APP_VERSION:-0.13.0}
     profiles: ["reset"]
     build:
       context: ./backend
@@ -61,10 +70,13 @@ services:
     restart: "no"
 
   api:
+    image: ai-project-manager-backend:${APP_VERSION:-0.13.0}
     build:
       context: ./backend
       target: base
     environment: *demo-environment
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     expose: ["8000"]
     depends_on:
       migrate:
@@ -82,11 +94,14 @@ services:
     restart: unless-stopped
 
   worker:
+    image: ai-project-manager-backend:${APP_VERSION:-0.13.0}
     build:
       context: ./backend
       target: base
     command: ["/app/.venv/bin/python", "-m", "app.workers.main"]
     environment: *demo-environment
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       migrate:
         condition: service_completed_successfully

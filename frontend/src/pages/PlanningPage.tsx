@@ -154,9 +154,14 @@ export function PlanningPage() {
           ) : null}
           {!capabilities.isPending && !capabilities.isError && !planningAiConfigured ? (
             <FeedbackBanner tone="warning" title="AI planning needs server configuration">
-              Ask the server operator to configure OPENAI_API_KEY and restart the API and worker.
-              You can still review this project while planning is unavailable.
+              Start the local Ollama service and restart the API and worker. You can still review
+              this project while planning is unavailable.
             </FeedbackBanner>
+          ) : null}
+          {planningAiConfigured && capabilities.data ? (
+            <p className="muted-copy">
+              Planning locally with {capabilities.data.planning_provider} · {capabilities.data.planning_model}
+            </p>
           ) : null}
           <div className="launch-checklist" aria-label="Planning safeguards">
             <span>Schema-constrained output</span>
@@ -190,10 +195,12 @@ export function PlanningPage() {
   const failureDetail =
     rawFailureCode === "AI_UNCONFIGURED"
       ? planningAiConfigured
-        ? "OpenAI is now configured. This failed run remains as an audit record; start a new planning run to continue."
-        : "OpenAI is not configured for this environment. Add OPENAI_API_KEY and restart the API and worker before starting another planning run."
+        ? "The model provider is now configured. This failed run remains as an audit record; start a new planning run to continue."
+        : "The local model provider is not configured. Start Ollama and restart the API and worker before starting another planning run."
       : rawFailureCode === "MODEL_QUOTA_EXHAUSTED"
-        ? "The OpenAI API account has no available quota. Add API billing or credits, or raise the OpenAI project usage limit, before starting another planning run."
+        ? "The configured hosted provider has no available quota. Local Ollama runs do not require API credits."
+      : rawFailureCode === "MODEL_UNAVAILABLE"
+        ? "The local Ollama service is unavailable. Start Ollama in WSL, then restart the worker and begin a new planning run."
       : rawFailureCode
         ? `The workflow reported ${rawFailureCode.replaceAll("_", " ")}. No incomplete plan was activated.`
         : "The workflow could not produce a valid plan. No incomplete plan was activated.";
