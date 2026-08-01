@@ -6,14 +6,21 @@ const publicStepNames: Record<string, string> = {
   detect_gaps: "Identify decisions",
   wait_or_assume: "Resolve clarifications",
   analyze_project: "Analyze project",
+  draft_modules: "Shape project modules",
   identify_modules: "Shape modules",
   draft_milestones: "Draft milestones",
   draft_tasks: "Draft actionable tasks",
+  strengthen_acceptance: "Strengthen acceptance criteria",
   generate_acceptance_criteria: "Verify acceptance criteria",
+  suggest_dependencies: "Suggest dependencies",
   infer_dependencies: "Validate dependencies",
+  validate_graph: "Validate dependency graph",
+  normalize_effort: "Normalize task effort",
+  score_priority: "Score task priorities",
   estimate_and_prioritize: "Estimate and prioritize",
   schedule: "Build the schedule",
   identify_risks: "Identify delivery risks",
+  quality_gate: "Run quality gate",
   validate_plan: "Run quality checks",
   persist_draft: "Save the plan draft",
   await_approval: "Wait for owner review",
@@ -31,6 +38,28 @@ const statusCopy: Record<string, string> = {
 
 function publicName(step: AgentRunStepView): string {
   return publicStepNames[step.name] ?? step.name.replaceAll("_", " ");
+}
+
+interface ValidationDetail {
+  code: string | null;
+  message: string;
+  references: string[];
+}
+
+function validationDetails(step: AgentRunStepView): ValidationDetail[] {
+  return step.validation.flatMap((raw) => {
+    const message = typeof raw.message === "string" ? raw.message : null;
+    if (!message) return [];
+    return [{
+      code: typeof raw.code === "string" ? raw.code : null,
+      message,
+      references: Array.isArray(raw.references)
+        ? raw.references.filter(
+            (reference): reference is string => typeof reference === "string",
+          )
+        : [],
+    }];
+  });
 }
 
 interface RunProgressProps {
@@ -87,7 +116,9 @@ export function RunProgress({ run, steps, cancelling, onCancel }: RunProgressPro
 
       <ol className="run-step-list" aria-label="Planning progress">
         {steps.length ? (
-          steps.map((step) => (
+          steps.map((step) => {
+            const validation = validationDetails(step);
+            return (
             <li className={`run-step ${step.status}`} key={step.id}>
               <span className="step-marker" aria-hidden="true">
                 {step.status === "completed" ? "✓" : step.status === "failed" ? "!" : step.attempt}
@@ -95,12 +126,28 @@ export function RunProgress({ run, steps, cancelling, onCancel }: RunProgressPro
               <div>
                 <strong>{publicName(step)}</strong>
                 <span>{statusCopy[step.status] ?? step.status}</span>
+                {validation.length ? (
+                  <ul
+                    className="run-step-validation"
+                    aria-label={`${publicName(step)} validation details`}
+                  >
+                    {validation.map((issue, index) => (
+                      <li key={`${issue.code ?? "validation"}-${index}`}>
+                        <span>{issue.message}</span>
+                        {issue.references.length ? (
+                          <code>{issue.references.join(", ")}</code>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
               {step.duration_ms !== null ? (
                 <small>{Math.max(1, Math.round(step.duration_ms / 1000))}s</small>
               ) : null}
             </li>
-          ))
+            );
+          })
         ) : (
           <li className="run-step pending">
             <span className="step-marker" aria-hidden="true">1</span>

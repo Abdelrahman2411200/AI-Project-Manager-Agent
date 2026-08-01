@@ -44,8 +44,8 @@ export function RootLayout({ user }: RootLayoutProps) {
         <nav className="nav-list" aria-label="Primary navigation">
           <NavLink to="/projects" end><span className="nav-glyph" aria-hidden="true">P</span>Projects</NavLink>
           <NavLink to="/projects/new"><span className="nav-glyph" aria-hidden="true">+</span>New project</NavLink>
-          <span className="nav-item-disabled" aria-disabled="true"><span className="nav-glyph" aria-hidden="true">T</span>My tasks</span>
-          <span className="nav-item-disabled" aria-disabled="true"><span className="nav-glyph" aria-hidden="true">R</span>Reports</span>
+          <NavLink to="/my-tasks"><span className="nav-glyph" aria-hidden="true">T</span>My tasks</NavLink>
+          <NavLink to="/reports" end><span className="nav-glyph" aria-hidden="true">R</span>Reports</NavLink>
         </nav>
         <div className="sidebar-status">
           <span className="status-dot" />

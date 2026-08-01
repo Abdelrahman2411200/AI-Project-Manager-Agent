@@ -11,7 +11,12 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from app.ai.schemas.outputs import RecommendationDraftBatch, TaskDraftBatch, WeeklyReportNarrative
+from app.ai.schemas.outputs import (
+    ModuleDraftBatch,
+    RecommendationDraftBatch,
+    TaskDraftBatch,
+    WeeklyReportNarrative,
+)
 
 RepairFunction = Callable[[dict[str, Any], list[dict[str, Any]]], Awaitable[dict[str, Any]]]
 DeterministicCheck = Callable[[BaseModel], Iterable["ValidationIssue"]]
@@ -46,6 +51,7 @@ class ValidationIssue:
 @dataclass(frozen=True, slots=True)
 class ValidationContext:
     allowed_refs: frozenset[str] = frozenset()
+    required_refs: frozenset[str] = frozenset()
     protected_refs: frozenset[str] = frozenset()
     excluded_refs: frozenset[str] = frozenset()
     allowed_fact_tokens: frozenset[str] = frozenset()
@@ -189,6 +195,18 @@ def _validate_business_rules(
     candidate: BaseModel, context: ValidationContext
 ) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
+    if isinstance(candidate, ModuleDraftBatch) and context.required_refs:
+        covered = {reference for item in candidate.items for reference in item.requirement_refs}
+        missing = sorted(context.required_refs - covered)
+        if missing:
+            issues.append(
+                ValidationIssue(
+                    ValidationStage.BUSINESS,
+                    "business.requirement_coverage",
+                    "$.items",
+                    "Modules must cover every supplied in-scope requirement: " + ", ".join(missing),
+                )
+            )
     if isinstance(candidate, TaskDraftBatch):
         parents = {item.parent_ref for item in candidate.items if item.parent_ref is not None}
         for index, task in enumerate(candidate.items):

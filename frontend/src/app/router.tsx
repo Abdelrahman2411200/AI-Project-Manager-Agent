@@ -13,7 +13,9 @@ import {
   ExecutionBoardRoute,
   ExecutionHealthRoute,
   ExecutionOverviewRoute,
+  MyTasksRoute,
   ReportDetailRoute,
+  ReportsIndexRoute,
   ReportsRoute,
 } from "./ExecutionRoutes";
 import { ClarificationsRoute, PlanningRoute, PlanReviewRoute } from "./PlanningRoutes";
@@ -31,6 +33,8 @@ export const routes: RouteObject[] = [
       { path: "/", element: <Navigate to="/projects" replace /> },
       { path: "/projects", element: <ProjectsPage /> },
       { path: "/projects/new", element: <CreateProjectPage /> },
+      { path: "/my-tasks", element: <MyTasksRoute /> },
+      { path: "/reports", element: <ReportsIndexRoute /> },
       { path: "/projects/:projectId", element: <ProjectDetailPage /> },
       { path: "/projects/:projectId/planning", element: <PlanningRoute /> },
       { path: "/projects/:projectId/clarify", element: <ClarificationsRoute /> },

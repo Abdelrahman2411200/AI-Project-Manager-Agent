@@ -22,6 +22,7 @@ from app.ai.provider import (
 from app.ai.schemas.outputs import (
     ClarificationQuestionBatch,
     DependencySuggestionBatch,
+    MilestoneDraftBatch,
     ProjectAnalysisOutput,
     TaskDraftBatch,
 )
@@ -85,11 +86,11 @@ class OllamaStructuredProvider:
             {
                 "role": "system",
                 "content": (
-                    f"{request.instructions}\n"
-                    "Local structured-output rules: the valid example illustrates JSON shape, "
-                    "not reusable facts or a required item count. Never copy identifiers or "
-                    "factual values from an example; every reference value must appear verbatim "
-                    "in the supplied project data. Respect the supplied JSON Schema exactly. When "
+                    f"{_local_instructions(request.instructions)}\n"
+                    "Local structured-output rules: the supplied JSON Schema is the only shape "
+                    "example. Never copy identifiers or factual values from unrelated examples; "
+                    "every reference value must appear verbatim in the supplied project data. "
+                    "Respect the supplied JSON Schema exactly. When "
                     "an array permits zero items and no valid item can be formed from supplied "
                     "data, return an empty array instead of fabricating an item."
                 ),
@@ -214,6 +215,20 @@ class OllamaStructuredProvider:
             ) from error
 
 
+def _local_instructions(instructions: str) -> str:
+    """Remove domain-bearing examples that small local models may copy as project facts."""
+
+    marker = "Valid structured-output example:\n"
+    policy, separator, _examples = instructions.partition(marker)
+    if not separator:
+        return instructions
+    return (
+        policy.rstrip()
+        + "\nThe response schema is supplied separately. Derive every semantic value from the "
+        "current untrusted project-data block; do not reuse domain terms from prior requests."
+    )
+
+
 def _repair_instruction(error: ValidationError) -> str:
     issues = [
         {
@@ -267,6 +282,13 @@ def _normalize_safe_local_edges(output_type: type[BaseModel], raw: Any) -> Any:
                 isinstance(item, dict) and item.get("predecessor_ref") == item.get("successor_ref")
             )
         ]
+    elif output_type is MilestoneDraftBatch:
+        for item in raw["items"]:
+            if not isinstance(item, dict):
+                continue
+            effort = item.get("planned_effort_hours")
+            if isinstance(effort, (int, float)) and not isinstance(effort, bool) and effort <= 0:
+                item["planned_effort_hours"] = 1
     elif output_type is TaskDraftBatch:
         parent_refs = {
             item.get("parent_ref")

@@ -25,6 +25,16 @@ export const ReportDetailPage = lazy(async () => {
   return { default: module.ReportDetailPage };
 });
 
+export const MyTasksPage = lazy(async () => {
+  const module = await import("../pages/MyTasksPage");
+  return { default: module.MyTasksPage };
+});
+
+export const ReportsIndexPage = lazy(async () => {
+  const module = await import("../pages/ReportsIndexPage");
+  return { default: module.ReportsIndexPage };
+});
+
 export function ExecutionBoardRoute() {
   return <ExecutionFallback><ExecutionBoardPage /></ExecutionFallback>;
 }
@@ -43,6 +53,14 @@ export function ReportsRoute() {
 
 export function ReportDetailRoute() {
   return <ExecutionFallback><ReportDetailPage /></ExecutionFallback>;
+}
+
+export function MyTasksRoute() {
+  return <ExecutionFallback><MyTasksPage /></ExecutionFallback>;
+}
+
+export function ReportsIndexRoute() {
+  return <ExecutionFallback><ReportsIndexPage /></ExecutionFallback>;
 }
 
 export function ExecutionFallback({ children }: { children: ReactNode }) {

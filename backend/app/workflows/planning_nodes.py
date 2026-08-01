@@ -98,16 +98,23 @@ class PlanningSemanticNodes:
         facts: PlanningFacts,
         analysis: ProjectAnalysisOutput,
     ) -> Generated[ModuleDraftBatch]:
+        required_refs = frozenset(
+            item["fact_ref"]
+            for item in facts.requirements
+            if item["fact_ref"] not in facts.excluded_refs
+        )
         return await self._generate(
             run,
             "modules.v3",
             {
                 "analysis": analysis.model_dump(mode="json"),
                 "requirements": facts.requirements,
+                "required_requirement_refs": sorted(required_refs),
                 "excluded_refs": sorted(facts.excluded_refs),
             },
             ValidationContext(
                 allowed_refs=facts.allowed_refs,
+                required_refs=required_refs,
                 excluded_refs=facts.excluded_refs,
             ),
         )
@@ -338,10 +345,16 @@ class PlanningSemanticNodes:
             return Generated(validation.candidate, first.usage, repaired=False)
         errors = [item.as_dict() for item in validation.issues]
         repair_context = {
+            "repair_directive": (
+                "Return one complete corrected candidate. Resolve every listed validation error, "
+                "preserve valid grounded content, and copy every required reference exactly."
+            ),
+            "original_context": context,
             "invalid_candidate": first.output.model_dump(mode="json"),
             "validation_errors": errors,
             "validation_constraints": {
                 "allowed_refs": sorted(validation_context.allowed_refs),
+                "required_refs": sorted(validation_context.required_refs),
                 "excluded_refs": sorted(validation_context.excluded_refs),
                 "protected_refs": sorted(validation_context.protected_refs),
             },
@@ -360,6 +373,19 @@ class PlanningSemanticNodes:
         )
         if not repaired_validation.is_valid or repaired_validation.candidate is None:
             final_errors = [item.as_dict() for item in repaired_validation.issues]
+            grounded_modules = _complete_grounded_module_coverage(
+                repaired.output,
+                output_type,
+                context,
+                validation_context,
+                final_errors,
+            )
+            if grounded_modules is not None:
+                return Generated(
+                    grounded_modules,
+                    _add_usage(first.usage, repaired.usage),
+                    repaired=True,
+                )
             salvaged = _discard_invalid_optional_items(
                 repaired.output,
                 output_type,
@@ -521,6 +547,61 @@ def _discard_invalid_optional_items[OutputT: BaseModel](
     raw = candidate.model_dump(mode="json")
     raw["items"] = [item for index, item in enumerate(raw["items"]) if index not in invalid_indices]
     validation = validate_candidate(raw, output_type, context)
+    return validation.candidate if validation.is_valid else None
+
+
+def _complete_grounded_module_coverage[OutputT: BaseModel](
+    candidate: OutputT,
+    output_type: type[OutputT],
+    original_context: dict[str, Any],
+    validation_context: ValidationContext,
+    errors: list[dict[str, str]],
+) -> OutputT | None:
+    """Add one traceable module when a repaired draft only omitted requirement refs."""
+    if output_type is not ModuleDraftBatch or not errors:
+        return None
+    if {error["code"] for error in errors} != {"business.requirement_coverage"}:
+        return None
+
+    batch = cast(ModuleDraftBatch, candidate)
+    if len(batch.items) >= 20:
+        return None
+    covered = {reference for item in batch.items for reference in item.requirement_refs}
+    missing = sorted(validation_context.required_refs - covered)
+    requirement_text = {
+        item.get("fact_ref"): item.get("text")
+        for item in original_context.get("requirements", [])
+        if isinstance(item, dict)
+    }
+    if not missing or any(not isinstance(requirement_text.get(ref), str) for ref in missing):
+        return None
+
+    missing_text = [cast(str, requirement_text[ref]).strip() for ref in missing]
+    used_ids = {item.temp_id for item in batch.items}
+    next_number = next(
+        number for number in range(1, 100_000) if f"MOD-{number:03d}" not in used_ids
+    )
+    joined = "; ".join(missing_text)
+    deliverables = [f"Verified {text}"[:120] for text in missing_text[:8]]
+    if len(missing_text) > 8:
+        deliverables[-1] = "Verified remaining confirmed requirements"
+    raw = batch.model_dump(mode="json")
+    raw["items"].append(
+        {
+            "temp_id": f"MOD-{next_number:03d}",
+            "name": "Confirmed requirement coverage",
+            "description": (
+                "Deliver and verify the confirmed project requirements omitted by the model: "
+                f"{joined}"
+            )[:2000],
+            "objective": "Complete traceable delivery of every confirmed in-scope requirement.",
+            "deliverables": deliverables,
+            "workstreams": ["Cross-cutting delivery"],
+            "requirement_refs": missing,
+            "mvp_required": True,
+        }
+    )
+    validation = validate_candidate(raw, output_type, validation_context)
     return validation.candidate if validation.is_valid else None
 
 

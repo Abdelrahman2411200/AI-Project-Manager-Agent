@@ -174,6 +174,60 @@ describe("planning and clarification experience", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows quality-gate reasons and offers a corrected new run", async () => {
+    server.use(
+      http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
+      http.get("*/api/v1/system/capabilities", () =>
+        HttpResponse.json(configuredCapabilities),
+      ),
+      http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
+      http.get(`*/api/v1/agent-runs/${ids.run}`, () =>
+        HttpResponse.json({
+          ...runFixture,
+          status: "failed",
+          current_step: "quality_gate",
+          outcome: {
+            failure_code: "QUALITY_GATE_FAILED",
+            failed_step: "quality_gate",
+            recoverable: false,
+          },
+          completed_at: "2026-07-23T10:02:00Z",
+        }),
+      ),
+      http.get(`*/api/v1/agent-runs/${ids.run}/steps`, () =>
+        HttpResponse.json([
+          {
+            ...runStepsFixture[0],
+            name: "quality_gate",
+            status: "failed",
+            failure_code: "QUALITY_GATE_FAILED",
+            validation: [
+              {
+                code: "REQUIREMENT_COVERAGE_GAP",
+                message: "Every in-scope requirement must be covered by a module or task.",
+                references: ["REQ-011", "REQ-014"],
+              },
+            ],
+          },
+        ]),
+      ),
+    );
+    renderRoute(`/projects/${ids.project}/planning?run=${ids.run}`);
+
+    expect(
+      await screen.findByText(
+        "The generated draft omitted or contradicted confirmed project requirements. Review the failed check below; no incomplete plan was saved or activated.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Every in-scope requirement must be covered by a module or task."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("REQ-011, REQ-014")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Start a new planning run" }),
+    ).toBeEnabled();
+  });
+
   it("prevents a new planning run when the provider is not configured", async () => {
     let planningStarts = 0;
     server.use(

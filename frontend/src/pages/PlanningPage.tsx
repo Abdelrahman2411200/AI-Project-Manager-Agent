@@ -48,7 +48,7 @@ export function PlanningPage() {
     queryFn: getSystemCapabilities,
     enabled:
       (!runId && project.data?.status === "active") ||
-      run.data?.outcome?.failure_code === "AI_UNCONFIGURED",
+      run.data?.status === "failed",
     refetchInterval: (query) =>
       query.state.data?.planning_ai_configured === true ? false : 5_000,
   });
@@ -201,6 +201,10 @@ export function PlanningPage() {
         ? "The configured hosted provider has no available quota. Local Ollama runs do not require API credits."
       : rawFailureCode === "MODEL_UNAVAILABLE"
         ? "The local Ollama service is unavailable. Start Ollama in WSL, then restart the worker and begin a new planning run."
+      : rawFailureCode === "QUALITY_GATE_FAILED"
+        ? "The generated draft omitted or contradicted confirmed project requirements. Review the failed check below; no incomplete plan was saved or activated."
+      : rawFailureCode === "MODEL_OUTPUT_REJECTED"
+        ? "The local model response could not be repaired without violating project facts or scope. No incomplete plan was saved or activated."
       : rawFailureCode
         ? `The workflow reported ${rawFailureCode.replaceAll("_", " ")}. No incomplete plan was activated.`
         : "The workflow could not produce a valid plan. No incomplete plan was activated.";
@@ -252,7 +256,7 @@ export function PlanningPage() {
           tone={rawFailureCode === "AI_UNCONFIGURED" && planningAiConfigured ? "warning" : "danger"}
           title="Planning stopped safely"
           actions={
-            rawFailureCode === "AI_UNCONFIGURED" && planningAiConfigured ? (
+            planningAiConfigured ? (
               <button
                 className="button primary"
                 type="button"

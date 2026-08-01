@@ -28,6 +28,21 @@ def test_validation_ladder_accepts_supplied_and_generated_references() -> None:
     assert result.candidate is not None
 
 
+def test_module_batch_requires_every_in_scope_requirement_reference() -> None:
+    result = validate_candidate(
+        {"items": [MODULE]},
+        ModuleDraftBatch,
+        ValidationContext(
+            allowed_refs=frozenset({"REQ-001", "REQ-002"}),
+            required_refs=frozenset({"REQ-001", "REQ-002"}),
+        ),
+    )
+
+    assert not result.is_valid
+    assert [issue.code for issue in result.issues] == ["business.requirement_coverage"]
+    assert "REQ-002" in result.issues[0].message
+
+
 def test_unknown_reference_fails_identifier_stage() -> None:
     result = validate_candidate(
         {"items": [MODULE]},

@@ -1,5 +1,6 @@
 import asyncio
 import json
+from dataclasses import replace
 from typing import Any
 
 import httpx
@@ -17,12 +18,13 @@ from app.ai.provider import (
 from app.ai.schemas.outputs import (
     ClarificationQuestionBatch,
     DependencySuggestionBatch,
+    MilestoneDraftBatch,
     ModuleDraft,
     ProjectAnalysisOutput,
     TaskDraftBatch,
 )
 from app.core.config import Settings
-from tests.ai.fixtures import ANALYSIS, DEPENDENCY, MODULE, QUESTION, TASK
+from tests.ai.fixtures import ANALYSIS, DEPENDENCY, MILESTONE, MODULE, QUESTION, TASK
 
 
 def module_request() -> StructuredModelRequest[ModuleDraft]:
@@ -69,6 +71,18 @@ def task_request() -> StructuredModelRequest[TaskDraftBatch]:
         input_text='<UNTRUSTED_PROJECT_DATA>{"milestones":[]}</UNTRUSTED_PROJECT_DATA>',
         output_type=TaskDraftBatch,
         token_budget=8_000,
+        safety_identifier="local_test_user",
+    )
+
+
+def milestone_request() -> StructuredModelRequest[MilestoneDraftBatch]:
+    return StructuredModelRequest(
+        prompt_key="milestones",
+        prompt_version="v4",
+        instructions="Return deliverable-based milestones as JSON.",
+        input_text='<UNTRUSTED_PROJECT_DATA>{"modules":[]}</UNTRUSTED_PROJECT_DATA>',
+        output_type=MilestoneDraftBatch,
+        token_budget=4_000,
         safety_identifier="local_test_user",
     )
 
@@ -178,8 +192,39 @@ def test_ollama_adapter_repairs_one_schema_error_and_diversifies_seed() -> None:
     assert "failed local schema validation" in calls[1]["messages"][-1]["content"]
     assert calls[0]["options"]["seed"] == 42
     assert calls[1]["options"]["seed"] == 43
-    assert "valid example illustrates JSON shape" in calls[0]["messages"][0]["content"]
+    assert "supplied JSON Schema is the only shape example" in calls[0]["messages"][0]["content"]
     assert "Never copy identifiers" in calls[0]["messages"][0]["content"]
+
+
+def test_ollama_adapter_removes_domain_bearing_prompt_examples() -> None:
+    captured: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(json.loads(request.content))
+        return chat_response(MODULE)
+
+    client = httpx.AsyncClient(
+        base_url="http://ollama.test:11434",
+        transport=httpx.MockTransport(handler),
+    )
+    request = replace(
+        module_request(),
+        instructions=(
+            "Ground the module in current facts.\n"
+            "Valid structured-output example:\n"
+            '{"name":"Checkout","requirement_refs":["REQ-COMMERCE"]}\n'
+            "Adversarial behavior example:\nDo not copy it."
+        ),
+    )
+    provider = OllamaStructuredProvider(settings(), client=client)
+    asyncio.run(provider.generate(request))
+    asyncio.run(client.aclose())
+
+    system_message = captured[0]["messages"][0]["content"]
+    assert "Ground the module in current facts." in system_message
+    assert "Checkout" not in system_message
+    assert "REQ-COMMERCE" not in system_message
+    assert "schema is supplied separately" in system_message
 
 
 def test_ollama_adapter_drops_self_edges_without_a_model_retry() -> None:
@@ -257,6 +302,21 @@ def test_ollama_adapter_bounds_leaf_likely_effort_and_preserves_upper_range() ->
     assert task.effort_min_hours == 24
     assert task.effort_likely_hours == 24
     assert task.effort_max_hours == 48
+
+
+def test_ollama_adapter_uses_minimum_positive_milestone_effort() -> None:
+    zero_effort = {"items": [{**MILESTONE, "planned_effort_hours": 0}]}
+    client = httpx.AsyncClient(
+        base_url="http://ollama.test:11434",
+        transport=httpx.MockTransport(lambda _request: chat_response(zero_effort)),
+    )
+    provider = OllamaStructuredProvider(
+        settings().model_copy(update={"ollama_schema_retries": 0}), client=client
+    )
+    result = asyncio.run(provider.generate(milestone_request()))
+    asyncio.run(client.aclose())
+
+    assert result.output.items[0].planned_effort_hours == 1
 
 
 def test_ollama_adapter_normalizes_nested_analysis_questions() -> None:

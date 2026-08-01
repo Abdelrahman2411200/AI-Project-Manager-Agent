@@ -9,7 +9,12 @@ from sqlalchemy import func, select
 
 from app.ai.fake_provider import FakeStructuredModelProvider
 from app.ai.provider import ModelFailureCode, StructuredModelError
-from app.ai.schemas.outputs import MilestoneDraftBatch, ModuleDraftBatch, TaskDraftBatch
+from app.ai.schemas.outputs import (
+    MilestoneDraftBatch,
+    ModuleDraftBatch,
+    ProjectAnalysisOutput,
+    TaskDraftBatch,
+)
 from app.core.config import get_settings
 from app.db.models.plan import Milestone, PlanVersion, Risk, Task, TaskDependency
 from app.db.models.project import Project
@@ -143,6 +148,70 @@ def _started_run(email: str = "workflow-owner@example.com") -> tuple[UUID, UUID]
 
 async def _no_sleep(_: float) -> None:
     return None
+
+
+def test_module_generation_repairs_missing_requirement_coverage_with_original_context() -> None:
+    run_id, _ = _started_run("module-coverage-owner@example.com")
+    valid = deepcopy(_outputs()[2])
+    incomplete = {
+        "items": [
+            {
+                **deepcopy(valid["items"][0]),
+                "requirement_refs": ["CONSTRAINT-001"],
+            }
+        ]
+    }
+    provider = FakeStructuredModelProvider([incomplete, valid])
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).modules(
+                run,
+                facts,
+                ProjectAnalysisOutput.model_validate(_outputs()[1]),
+            )
+        )
+
+    assert result.repaired is True
+    assert result.output.items[0].requirement_refs == ["REQ-001"]
+    repair_input = provider.requests[1].input_text
+    assert '"original_context"' in repair_input
+    assert '"requirements"' in repair_input
+    assert '"required_requirement_refs":["REQ-001"]' in repair_input
+    assert '"required_refs":["REQ-001"]' in repair_input
+    assert '"repair_directive"' in repair_input
+
+
+def test_module_generation_adds_grounded_coverage_after_bounded_repair() -> None:
+    run_id, _ = _started_run("module-grounded-fallback-owner@example.com")
+    incomplete = deepcopy(_outputs()[2])
+    incomplete["items"][0]["requirement_refs"] = ["CONSTRAINT-001"]
+    provider = FakeStructuredModelProvider([incomplete, deepcopy(incomplete)])
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).modules(
+                run,
+                facts,
+                ProjectAnalysisOutput.model_validate(_outputs()[1]),
+            )
+        )
+
+    assert result.repaired is True
+    assert len(provider.requests) == 2
+    assert result.output.items[-1].name == "Confirmed requirement coverage"
+    assert result.output.items[-1].requirement_refs == ["REQ-001"]
+    assert "Owner-scoped project data" in result.output.items[-1].description
 
 
 def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -> None:
@@ -469,7 +538,9 @@ def test_business_invalid_task_receives_one_minimal_repair() -> None:
         assert '"invalid_candidate"' in repair_request.input_text
         assert '"validation_errors"' in repair_request.input_text
         assert '"validation_constraints"' in repair_request.input_text
+        assert '"original_context"' in repair_request.input_text
         assert '"allowed_refs"' in repair_request.input_text
+        assert '"milestones"' in repair_request.input_text
         assert '"intake"' not in repair_request.input_text
         task_step = session.scalar(
             select(AgentRunStep).where(
@@ -486,21 +557,9 @@ def test_business_invalid_task_receives_one_minimal_repair() -> None:
 def test_required_quality_failure_never_exposes_a_draft() -> None:
     run_id, _ = _started_run("quality-owner@example.com")
     invalid_outputs = _outputs()
-    invalid_outputs[2] = {
-        "items": [
-            {
-                **invalid_outputs[2]["items"][0],
-                "requirement_refs": ["CONSTRAINT-001"],
-            }
-        ]
-    }
     for task_output_index in (4, 5):
-        invalid_outputs[task_output_index] = {
-            "items": [
-                {**item, "requirement_refs": []}
-                for item in invalid_outputs[task_output_index]["items"]
-            ]
-        }
+        first, second = invalid_outputs[task_output_index]["items"]
+        invalid_outputs[task_output_index] = {"items": [first, {**second, "title": first["title"]}]}
     provider = FakeStructuredModelProvider(invalid_outputs)
 
     with SessionLocal() as session:
