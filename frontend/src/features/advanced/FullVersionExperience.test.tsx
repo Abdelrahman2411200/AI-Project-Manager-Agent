@@ -330,6 +330,21 @@ describe("Phase 12 full-version experience", () => {
     expect(elapsed).toBeLessThan(1_000);
   });
 
+  it("wraps tasks without dependency edges into a readable grid", () => {
+    const tasks = Array.from({ length: 18 }, (_, index) => ({
+      ...planFixture.tasks[0],
+      id: `edge-free-task-${index}`,
+      stable_key: `TASK-${String(index + 1).padStart(3, "0")}`,
+      title: `Independent task ${index + 1}`,
+    }));
+    const graph = buildDependencyGraph({ ...planFixture, tasks, dependencies: [] });
+    const positions = graph.nodes.map(({ position }) => `${position.x}:${position.y}`);
+
+    expect(new Set(positions).size).toBe(tasks.length);
+    expect(new Set(graph.nodes.map(({ position }) => position.x)).size).toBeGreaterThan(1);
+    expect(new Set(graph.nodes.map(({ position }) => position.y)).size).toBeLessThan(tasks.length);
+  });
+
   it("keeps the timeline visual structure under reviewed snapshot coverage", () => {
     const view = render(<ScheduleTimeline plan={planFixture} />);
     expect(view.container.innerHTML).toMatchSnapshot();

@@ -11,6 +11,7 @@ import "@xyflow/react/dist/style.css";
 import { useMemo } from "react";
 
 import type { DependencyView, PlanGraphView, TaskView } from "../../api/types";
+import { useTheme } from "../theme/themeContext";
 
 const MAX_INTERACTIVE_NODES = 200;
 
@@ -18,6 +19,24 @@ export interface GraphData {
   nodes: Node[];
   edges: Edge[];
   taskById: Map<string, TaskView>;
+}
+
+function taskNode(task: TaskView, position: { x: number; y: number }): Node {
+  return {
+    id: task.id,
+    position,
+    data: {
+      label: (
+        <span className="graph-node-label">
+          <strong>{task.stable_key}</strong>
+          <span>{task.title}</span>
+          <small>{task.status.replaceAll("_", " ")}</small>
+        </span>
+      ),
+    },
+    ariaLabel: `${task.stable_key}: ${task.title}. Status ${task.status.replaceAll("_", " ")}.`,
+    className: `dependency-node status-${task.status}`,
+  };
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -52,29 +71,22 @@ export function buildDependencyGraph(plan: PlanGraphView): GraphData {
     }
   }
   const rows = new Map<number, number>();
-  const nodes: Node[] = plan.tasks
+  const orderedTasks = plan.tasks
     .slice()
-    .sort((left, right) => left.stable_key.localeCompare(right.stable_key))
-    .map((task) => {
-      const column = level.get(task.id) ?? 0;
-      const row = rows.get(column) ?? 0;
-      rows.set(column, row + 1);
-      return {
-        id: task.id,
-        position: { x: column * 280, y: row * 124 },
-        data: {
-          label: (
-            <span className="graph-node-label">
-              <strong>{task.stable_key}</strong>
-              <span>{task.title}</span>
-              <small>{task.status.replaceAll("_", " ")}</small>
-            </span>
-          ),
-        },
-        ariaLabel: `${task.stable_key}: ${task.title}. Status ${task.status.replaceAll("_", " ")}.`,
-        className: `dependency-node status-${task.status}`,
-      };
-    });
+    .sort((left, right) => left.stable_key.localeCompare(right.stable_key));
+  const edgeFreeColumns = Math.max(1, Math.ceil(Math.sqrt(orderedTasks.length)));
+  const nodes: Node[] = orderedTasks.map((task, index) => {
+    if (plan.dependencies.length === 0) {
+      return taskNode(task, {
+        x: (index % edgeFreeColumns) * 260,
+        y: Math.floor(index / edgeFreeColumns) * 124,
+      });
+    }
+    const column = level.get(task.id) ?? 0;
+    const row = rows.get(column) ?? 0;
+    rows.set(column, row + 1);
+    return taskNode(task, { x: column * 280, y: row * 124 });
+  });
   const edges: Edge[] = plan.dependencies.map((dependency) => ({
     id: dependency.id,
     source: dependency.predecessor_id,
@@ -98,6 +110,7 @@ function dependencyLabel(
 export function DependencyGraph({ plan }: { plan: PlanGraphView }) {
   const graph = useMemo(() => buildDependencyGraph(plan), [plan]);
   const interactive = graph.nodes.length <= MAX_INTERACTIVE_NODES;
+  const { resolvedTheme } = useTheme();
 
   return (
     <section className="advanced-section dependency-experience" aria-labelledby="dependency-heading">
@@ -129,6 +142,7 @@ export function DependencyGraph({ plan }: { plan: PlanGraphView }) {
           <ReactFlow
             nodes={graph.nodes}
             edges={graph.edges}
+            colorMode={resolvedTheme}
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable
