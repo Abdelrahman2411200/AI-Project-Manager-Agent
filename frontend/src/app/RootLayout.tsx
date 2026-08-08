@@ -4,16 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { logout } from "../api/auth";
 import type { UserView } from "../api/types";
 import { ThemeToggle } from "../features/theme/ThemeToggle";
-
-function ProductMark() {
-  return (
-    <span className="product-mark" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-    </span>
-  );
-}
+import { ProductLogo, SidebarIcon } from "./SidebarIcons";
 
 interface RootLayoutProps {
   user: UserView;
@@ -39,14 +30,14 @@ export function RootLayout({ user }: RootLayoutProps) {
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="sidebar" aria-label="Application sidebar">
         <div className="brand">
-          <ProductMark />
+          <ProductLogo />
           <div><strong>AI Project Manager</strong><span>Project intelligence</span></div>
         </div>
         <nav className="nav-list" aria-label="Primary navigation">
-          <NavLink to="/projects" end><span className="nav-glyph" aria-hidden="true">P</span>Projects</NavLink>
-          <NavLink to="/projects/new"><span className="nav-glyph" aria-hidden="true">+</span>New project</NavLink>
-          <NavLink to="/my-tasks"><span className="nav-glyph" aria-hidden="true">T</span>My tasks</NavLink>
-          <NavLink to="/reports" end><span className="nav-glyph" aria-hidden="true">R</span>Reports</NavLink>
+          <NavLink to="/projects" end><SidebarIcon name="projects" />Projects</NavLink>
+          <NavLink to="/projects/new"><SidebarIcon name="new-project" />New project</NavLink>
+          <NavLink to="/my-tasks"><SidebarIcon name="tasks" />My tasks</NavLink>
+          <NavLink to="/reports" end><SidebarIcon name="reports" />Reports</NavLink>
         </nav>
         <div className="sidebar-status">
           <span className="status-dot" />

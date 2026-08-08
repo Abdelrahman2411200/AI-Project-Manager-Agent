@@ -65,6 +65,18 @@ describe("application routes", () => {
     expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Start project intake" })).toHaveAttribute("href", "/projects/new");
     expect(screen.getByText("owner@example.com")).toBeInTheDocument();
+
+    const sidebar = screen.getByLabelText("Application sidebar");
+    expect(sidebar.querySelector('[data-icon="product-logo"] svg')).toBeInTheDocument();
+    for (const [linkName, iconName] of [
+      ["Projects", "projects"],
+      ["New project", "new-project"],
+      ["My tasks", "tasks"],
+      ["Reports", "reports"],
+    ]) {
+      expect(screen.getByRole("link", { name: linkName }).querySelector(`[data-icon="${iconName}"]`))
+        .toBeInTheDocument();
+    }
   });
 
   it("renders the guided project creation contract", async () => {
