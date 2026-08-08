@@ -108,26 +108,34 @@ h3 {
 
 .product-mark {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
   place-items: center;
-  grid-template-columns: repeat(2, 6px);
-  gap: 3px;
   border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 11px;
+  border-radius: 13px;
+  color: white;
   background: linear-gradient(145deg, var(--color-cobalt-500), var(--color-violet-600));
   box-shadow: 0 8px 20px rgb(53 99 233 / 30%);
 }
 
-.product-mark span {
-  width: 6px;
-  height: 6px;
-  border-radius: 2px;
-  background: white;
+.product-mark svg {
+  width: 25px;
+  height: 25px;
+  overflow: visible;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
 }
 
-.product-mark span:last-child {
-  grid-column: 1 / -1;
+.product-mark circle {
+  fill: color-mix(in srgb, currentcolor 24%, transparent);
+}
+
+.product-mark .product-spark {
+  stroke-width: 2;
 }
 
 .nav-list {
@@ -1941,13 +1949,38 @@ main {
 
 .nav-glyph {
   display: inline-grid;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   place-items: center;
-  border-radius: 7px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 9px;
+  color: #b7c3d9;
   background: rgb(255 255 255 / 8%);
-  font-size: 11px;
-  font-weight: 900;
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.nav-glyph svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.nav-list a:hover .nav-glyph {
+  color: white;
+  background: rgb(255 255 255 / 13%);
+  transform: translateY(-1px);
+}
+
+.nav-list a.active .nav-glyph {
+  border-color: rgb(255 255 255 / 18%);
+  color: white;
+  background: linear-gradient(145deg, var(--color-cobalt-500), var(--color-violet-600));
+  box-shadow: 0 5px 14px rgb(53 99 233 / 28%);
 }
 
 .route-state,
