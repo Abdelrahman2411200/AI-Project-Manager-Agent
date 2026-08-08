@@ -357,7 +357,13 @@ def _seed_fixture(
     _seed_execution(session, owner, project, plan, fixture)
     session.flush()
 
-    snapshot = MonitoringService(session, owner.id).ensure_current(project.id)
+    monitoring = MonitoringService(session, owner.id)
+    snapshot = monitoring.recalculate(
+        project,
+        plan,
+        expected_state_hash=monitoring.current_state_hash(project, plan),
+        as_of=DEMO_REFERENCE_DATE,
+    )
     recommendations = RecommendationService(
         session,
         owner.id,

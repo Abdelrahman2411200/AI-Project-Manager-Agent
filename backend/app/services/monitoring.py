@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
@@ -162,6 +162,7 @@ class MonitoringService:
         plan: PlanVersion,
         *,
         expected_state_hash: str | None = None,
+        as_of: date | None = None,
     ) -> MonitoringSnapshot:
         state_hash = self.current_state_hash(project, plan)
         if expected_state_hash is not None and state_hash != expected_state_hash:
@@ -201,7 +202,7 @@ class MonitoringService:
         if set(projections) != {item.id for item in tasks}:
             raise MonitoringStaleStateError("Execution projections do not match the active plan.")
 
-        as_of = datetime.now(ZoneInfo(project.timezone)).date()
+        as_of = as_of or datetime.now(ZoneInfo(project.timezone)).date()
         graph_tasks = tuple(
             GraphTask(
                 id=task.id,
