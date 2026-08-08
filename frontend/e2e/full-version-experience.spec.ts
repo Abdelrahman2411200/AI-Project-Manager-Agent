@@ -168,4 +168,20 @@ test("full-version intelligence remains accessible and responsive", async ({
       },
     );
   }
+
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".react-flow")).toHaveClass(/dark/);
+  await expect(page.locator(".dependency-node").first()).toHaveCSS(
+    "background-color",
+    "rgb(25, 35, 56)",
+  );
+  await expect(page.locator(".dependency-node").first()).toHaveCSS(
+    "color",
+    "rgb(233, 238, 248)",
+  );
+  await expect(page.locator(".react-flow__minimap")).toHaveCSS(
+    "background-color",
+    "rgb(25, 35, 56)",
+  );
 });

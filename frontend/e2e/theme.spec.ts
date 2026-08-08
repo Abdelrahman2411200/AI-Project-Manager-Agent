@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { ids, projectFixture, sessionFixture } from "../src/test/fixtures";
+
 test("dark theme is available on sign-in and persists across reloads", async ({ page }) => {
   await page.goto("/sign-in");
 
@@ -12,6 +14,55 @@ test("dark theme is available on sign-in and persists across reloads", async ({ 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test("planning launch uses readable dark-theme surfaces and text", async ({ page }) => {
+  await page.route("**/api/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname.replace("/api/v1", "");
+    const responses = new Map<string, unknown>([
+      ["/auth/session", sessionFixture],
+      [`/projects/${ids.project}`, projectFixture],
+      [`/projects/${ids.project}/planning-runs/active`, null],
+      [
+        "/system/capabilities",
+        {
+          planning_ai_configured: true,
+          planning_provider: "test",
+          planning_model: "test-model",
+        },
+      ],
+    ]);
+    if (responses.has(path)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(responses.get(path)),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: `Unhandled GET ${path}` }),
+    });
+  });
+
+  await page.goto(`/projects/${ids.project}/planning`);
+  await expect(
+    page.getByRole("heading", { name: "Turn the project intake into an actionable plan" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+
+  const launch = page.locator(".planning-launch");
+  await expect(launch).toHaveCSS("background-color", "rgb(20, 29, 46)");
+  await expect(launch.getByRole("heading", { level: 1 })).toHaveCSS(
+    "color",
+    "rgb(233, 238, 248)",
+  );
+  await expect(launch.locator(":scope > p")).toHaveCSS("color", "rgb(169, 181, 201)");
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);

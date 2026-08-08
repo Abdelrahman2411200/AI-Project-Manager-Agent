@@ -2696,6 +2696,24 @@ main {
 }
 
 .dependency-canvas {
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color: var(--color-border-strong);
+  --xy-controls-button-background-color: var(--color-surface-raised);
+  --xy-controls-button-background-color-hover: var(--color-surface-subtle);
+  --xy-controls-button-border-color: var(--color-border);
+  --xy-controls-button-color: var(--color-text);
+  --xy-controls-button-color-hover: var(--color-primary);
+  --xy-edge-label-background-color: var(--color-surface-raised);
+  --xy-edge-label-color: var(--color-text);
+  --xy-edge-stroke: var(--color-text-muted);
+  --xy-handle-background-color: var(--color-text-muted);
+  --xy-handle-border-color: var(--color-surface-raised);
+  --xy-minimap-background-color: var(--color-surface-raised);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--color-surface-subtle) 76%, transparent);
+  --xy-minimap-node-background-color: var(--color-primary);
+  --xy-node-background-color: var(--color-surface-raised);
+  --xy-node-color: var(--color-text);
+
   height: min(64vh, 42rem);
   min-height: 28rem;
   overflow: hidden;
@@ -2710,7 +2728,7 @@ main {
   font-size: 0.65rem;
 }
 
-.dependency-node {
+.dependency-canvas .react-flow__node-default.dependency-node {
   width: 13.5rem;
   padding: 0;
   overflow: hidden;
@@ -2718,19 +2736,19 @@ main {
   border-left: 4px solid var(--color-primary);
   border-radius: var(--radius-md);
   color: var(--color-text);
-  background: var(--color-surface);
+  background-color: var(--color-surface-raised);
   box-shadow: var(--shadow-sm);
 }
 
-.dependency-node.status-completed {
+.dependency-canvas .dependency-node.status-completed {
   border-left-color: var(--color-success);
 }
 
-.dependency-node.status-blocked {
+.dependency-canvas .dependency-node.status-blocked {
   border-left-color: var(--color-danger);
 }
 
-.dependency-node.status-in_progress {
+.dependency-canvas .dependency-node.status-in_progress {
   border-left-color: var(--color-warning);
 }
 
@@ -2749,6 +2767,7 @@ main {
 
 .graph-node-label span {
   overflow: hidden;
+  color: var(--color-text);
   font-size: var(--text-sm);
   font-weight: 700;
   text-overflow: ellipsis;
@@ -3249,7 +3268,7 @@ main {
 }
 
 .danger-text {
-  color: #a91f3e;
+  color: var(--color-danger);
 }
 
 .icon-button {
@@ -3551,9 +3570,9 @@ main {
   padding: 70px;
   text-align: center;
   background:
-    radial-gradient(circle at 20% 20%, rgb(53 99 233 / 8%), transparent 30%),
-    radial-gradient(circle at 80% 80%, rgb(115 87 216 / 8%), transparent 30%),
-    white;
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 30%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--color-violet-600) 12%, transparent), transparent 30%),
+    var(--color-surface);
 }
 
 .launch-mark {
@@ -3573,6 +3592,7 @@ main {
   max-width: 680px;
   margin: 12px 0 16px;
   font-size: clamp(34px, 5vw, 52px);
+  color: var(--color-text);
   line-height: 1.08;
 }
 
@@ -3752,7 +3772,7 @@ main {
 .run-step-validation code {
   display: block;
   margin-top: 6px;
-  color: #9d2443;
+  color: var(--color-danger);
   font-size: 11px;
   white-space: normal;
 }
@@ -4116,14 +4136,14 @@ main {
 }
 
 .assumption-option strong {
-  color: #5134ae;
+  color: var(--color-violet-600);
   font-size: 11px;
   text-transform: uppercase;
 }
 
 .assumption-option span {
   margin-top: 4px;
-  color: #5f5876;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -4269,7 +4289,7 @@ main {
 
 .analysis-summary {
   margin: 22px 0;
-  color: #3e4a62;
+  color: var(--color-text-muted);
   font-size: 15px;
   line-height: 1.75;
 }
@@ -4320,7 +4340,7 @@ main {
 .details-columns ul {
   margin: 0;
   padding-left: 18px;
-  color: #4a566d;
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -4403,7 +4423,7 @@ main {
 
 .assumption-list p {
   margin: 4px 0 0;
-  color: #4a566d;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -4674,7 +4694,7 @@ main {
 }
 
 .approval-facts .negative {
-  color: #a91f3e;
+  color: var(--color-danger);
 }
 
 .hash-panel {
