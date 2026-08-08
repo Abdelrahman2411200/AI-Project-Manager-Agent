@@ -5,6 +5,7 @@ import { RouterProvider, type RouterProviderProps } from "react-router-dom";
 import { createQueryClient } from "./queryClient";
 import { createAppRouter } from "./router";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { ThemeProvider } from "../features/theme/ThemeProvider";
 
 interface AppProps {
   router?: RouterProviderProps["router"];
@@ -15,10 +16,12 @@ export function App({ router }: AppProps) {
   const [defaultRouter] = useState(createAppRouter);
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router ?? defaultRouter} />
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router ?? defaultRouter} />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }

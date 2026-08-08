@@ -1,123 +1,20 @@
 import type { EvidenceFact } from "../../api/types";
-
-type EvidenceRecord = Record<string, unknown>;
-
-function isRecord(value: unknown): value is EvidenceRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function textValue(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "Not recorded";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
-    return String(value);
-  }
-  return "Unsupported value";
-}
-
-function evidenceLabel(value: string): string {
-  return value
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-function recordTitle(key: string, value: EvidenceRecord): string {
-  for (const candidate of ["stable_key", "task_ref", "reference", "code", "title", "name"]) {
-    const candidateValue = value[candidate];
-    if (typeof candidateValue === "string" && candidateValue) {
-      return candidateValue;
-    }
-  }
-  return evidenceLabel(key);
-}
-
-function recordTitleKey(value: EvidenceRecord): string | null {
-  return ["stable_key", "task_ref", "reference", "code", "title", "name"].find(
-    (candidate) => typeof value[candidate] === "string" && value[candidate],
-  ) ?? null;
-}
-
-function isRecordCollection(value: EvidenceRecord): boolean {
-  const entries = Object.values(value);
-  return entries.length > 0 && entries.every(isRecord);
-}
-
-export function EvidenceValue({ value }: { value: unknown }) {
-  if (Array.isArray(value)) {
-    const items: unknown[] = value;
-    if (!items.length) return <span className="evidence-empty-value">None recorded</span>;
-    const scalarItems = items.every((item) => !Array.isArray(item) && !isRecord(item));
-    if (scalarItems) {
-      return (
-        <ul className="evidence-compact-values">
-          {items.map((item, index) => <li key={`${index}-${textValue(item)}`}>{textValue(item)}</li>)}
-        </ul>
-      );
-    }
-    return (
-      <ol className="evidence-value-list">
-        {items.map((item, index) => (
-          <li key={isRecord(item) ? recordTitle(String(index + 1), item) : `${index}-${textValue(item)}`}>
-            <EvidenceValue value={item} />
-          </li>
-        ))}
-      </ol>
-    );
-  }
-
-  if (isRecord(value)) {
-    const entries = Object.entries(value);
-    if (!entries.length) return <span className="evidence-empty-value">None recorded</span>;
-    if (isRecordCollection(value)) {
-      return (
-        <div className="evidence-record-grid">
-          {entries
-            .sort(([, left], [, right]) =>
-              recordTitle("", left as EvidenceRecord).localeCompare(
-                recordTitle("", right as EvidenceRecord),
-                undefined,
-                { numeric: true },
-              ),
-            )
-            .map(([key, item]) => (
-              <section className="evidence-record" key={key}>
-                <h4>{recordTitle(key, item as EvidenceRecord)}</h4>
-                <EvidenceValue
-                  value={Object.fromEntries(
-                    Object.entries(item as EvidenceRecord).filter(
-                      ([field]) => field !== recordTitleKey(item as EvidenceRecord),
-                    ),
-                  )}
-                />
-              </section>
-            ))}
-        </div>
-      );
-    }
-    return (
-      <dl className="evidence-field-list">
-        {entries.map(([key, item]) => (
-          <div key={key}>
-            <dt>{evidenceLabel(key)}</dt>
-            <dd><EvidenceValue value={item} /></dd>
-          </div>
-        ))}
-      </dl>
-    );
-  }
-
-  return <span>{textValue(value)}</span>;
-}
+import { StructuredValue } from "../../components/StructuredValue";
+import {
+  displayScalar,
+  evidenceReferenceLabel,
+  humanizeLabel,
+  isDisplayRecord,
+} from "../../utils/display";
 
 function taskTitle(fact: EvidenceFact): string {
-  return isRecord(fact.value) && typeof fact.value.title === "string"
+  return isDisplayRecord(fact.value) && typeof fact.value.title === "string"
     ? fact.value.title
-    : evidenceLabel(fact.fact_key);
+    : humanizeLabel(fact.fact_key);
 }
 
 function taskStatus(fact: EvidenceFact): string | null {
-  return isRecord(fact.value) && typeof fact.value.status === "string"
+  return isDisplayRecord(fact.value) && typeof fact.value.status === "string"
     ? fact.value.status
     : null;
 }
@@ -130,9 +27,9 @@ interface TaskSchedule {
 function taskScheduleIndex(evidence: Record<string, EvidenceFact>): Record<string, TaskSchedule> {
   const result: Record<string, TaskSchedule> = {};
   for (const fact of Object.values(evidence)) {
-    if (fact.entity_type !== "forecast" || !isRecord(fact.value) || !isRecord(fact.value.tasks)) continue;
+    if (fact.entity_type !== "forecast" || !isDisplayRecord(fact.value) || !isDisplayRecord(fact.value.tasks)) continue;
     for (const item of Object.values(fact.value.tasks)) {
-      if (!isRecord(item) || typeof item.stable_key !== "string") continue;
+      if (!isDisplayRecord(item) || typeof item.stable_key !== "string") continue;
       result[item.stable_key] = { start: item.start_date, finish: item.finish_date };
     }
   }
@@ -140,17 +37,17 @@ function taskScheduleIndex(evidence: Record<string, EvidenceFact>): Record<strin
 }
 
 function TaskEvidenceDetails({ fact, schedule }: { fact: EvidenceFact; schedule?: TaskSchedule }) {
-  if (!isRecord(fact.value)) return <EvidenceValue value={fact.value} />;
+  if (!isDisplayRecord(fact.value)) return <StructuredValue value={fact.value} />;
   const value = fact.value;
   const scheduleStart = value.planned_start ?? value.start_date ?? schedule?.start;
   const scheduleFinish = value.planned_finish ?? value.finish_date ?? schedule?.finish;
   const scheduleDisplay = scheduleStart || scheduleFinish
-    ? [textValue(scheduleStart), textValue(scheduleFinish)].join(" to ")
+    ? [displayScalar(scheduleStart), displayScalar(scheduleFinish)].join(" to ")
     : null;
   const fields = [
     ["Priority", value.priority ?? value.priority_label],
     ["Progress", value.progress ?? value.progress_display],
-    ["Estimated effort", value.estimated_hours ? `${textValue(value.estimated_hours)} hours` : null],
+    ["Estimated effort", value.estimated_hours ? `${displayScalar(value.estimated_hours)} hours` : null],
     ["Schedule", scheduleDisplay],
     ["Blocked reason", value.blocked_reason ?? value.reason],
   ].filter((field): field is [string, unknown] => field[1] !== null && field[1] !== undefined && field[1] !== "");
@@ -160,7 +57,7 @@ function TaskEvidenceDetails({ fact, schedule }: { fact: EvidenceFact; schedule?
       {fields.map(([label, item]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd><EvidenceValue value={item} /></dd>
+          <dd><StructuredValue value={item} fieldName={label} /></dd>
         </div>
       ))}
     </dl>
@@ -205,7 +102,7 @@ export function ReportEvidenceIndex({ evidence }: { evidence: Record<string, Evi
                 <li key={reference}>
                   <header>
                     <code>{reference}</code>
-                    {status ? <span className={`task-evidence-status status-${status}`}>{evidenceLabel(status)}</span> : null}
+                    {status ? <span className={`task-evidence-status status-${status}`}>{humanizeLabel(status)}</span> : null}
                   </header>
                   <h3>{taskTitle(fact)}</h3>
                   <TaskEvidenceDetails fact={fact} schedule={schedules[reference]} />
@@ -226,12 +123,12 @@ export function ReportEvidenceIndex({ evidence }: { evidence: Record<string, Evi
               <li key={reference}>
                 <header className="report-evidence-header">
                   <div>
-                    <code>{reference}</code>
-                    <h3>{evidenceLabel(fact.fact_key)}</h3>
+                    <code title={reference}>{evidenceReferenceLabel(reference)}</code>
+                    <h3>{humanizeLabel(fact.fact_key)}</h3>
                   </div>
-                  <span>{evidenceLabel(fact.entity_type)}</span>
+                  <span>{humanizeLabel(fact.entity_type)}</span>
                 </header>
-                <EvidenceValue value={fact.value} />
+                <StructuredValue value={fact.value} />
               </li>
             ))}
           </ol>

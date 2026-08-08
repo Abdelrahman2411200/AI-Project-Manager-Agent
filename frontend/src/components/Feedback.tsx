@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { humanizeLabel } from "../utils/display";
+
 interface FeedbackBannerProps {
   tone?: "danger" | "warning" | "success" | "info";
   title: string;
@@ -81,5 +83,5 @@ export function SourceBadge({
 }
 
 export function StateBadge({ state }: { state: string }) {
-  return <span className={`state-badge ${state}`}>{state.replaceAll("_", " ")}</span>;
+  return <span className={`state-badge ${state}`}>{humanizeLabel(state)}</span>;
 }

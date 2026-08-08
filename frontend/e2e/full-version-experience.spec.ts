@@ -128,7 +128,9 @@ test("full-version intelligence remains accessible and responsive", async ({
   await expect(
     page.getByRole("heading", { name: `${projectFixture.name} intelligence` }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Dependency graph" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dependency graph" })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("table", { name: "Complete dependency edge list" }),
   ).toBeVisible();

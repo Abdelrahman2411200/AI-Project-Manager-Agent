@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { advancedKeys, getLatestEvaluation } from "../../api/advanced";
 import { errorMessage } from "../../api/errorUtils";
 import { ErrorState, LoadingState, StateBadge } from "../../components/Feedback";
+import { displayScalar, humanizeLabel } from "../../utils/display";
 
 function metricLabel(value: string): string {
-  return value.replaceAll("_", " ");
+  return humanizeLabel(value);
 }
 
 function metricValue(key: string, value: number): string {
@@ -100,7 +101,7 @@ export function EvaluationDashboard() {
           {Object.entries(data.thresholds).map(([metric, threshold]) => (
             <div key={metric}>
               <dt>{metricLabel(metric)}</dt>
-              <dd>{threshold}</dd>
+              <dd>{displayScalar(threshold, metric)}</dd>
             </div>
           ))}
         </dl>

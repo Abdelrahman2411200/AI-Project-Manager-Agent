@@ -5,7 +5,9 @@ import { Link, useParams } from "react-router-dom";
 import { downloadReport, getReport, insightKeys } from "../api/insights";
 import { errorMessage } from "../api/errorUtils";
 import { ErrorState, FeedbackBanner, LoadingState, StateBadge } from "../components/Feedback";
+import { StructuredValue } from "../components/StructuredValue";
 import { ReportEvidenceIndex } from "../features/insights/ReportEvidenceIndex";
+import { cleanNarrativeText, evidenceReferenceLabel, humanizeLabel } from "../utils/display";
 
 interface CitedStatement {
   text: string;
@@ -31,8 +33,8 @@ function CitedItems({ title, items }: { title: string; items: CitedStatement[] }
       <ul className="cited-statement-list">
         {items.map((item, index) => (
           <li key={`${title}-${index}`}>
-            <p>{item.text}</p>
-            <span>{item.evidence_refs.map((reference) => <code key={reference}>{reference}</code>)}</span>
+            <p>{cleanNarrativeText(item.text)}</p>
+            <span>{item.evidence_refs.map((reference) => <code key={reference} title={reference}>{evidenceReferenceLabel(reference)}</code>)}</span>
           </li>
         ))}
       </ul>
@@ -55,8 +57,17 @@ export function ReportDetailPage() {
   const narrative = report.data.narrative ?? {};
   const progress = narrative.progress_statement as CitedStatement | undefined;
   const caveats = Array.isArray(narrative.caveats)
-    ? narrative.caveats.filter((item): item is string => typeof item === "string")
+    ? narrative.caveats
+        .filter((item): item is string => typeof item === "string")
+        .map(cleanNarrativeText)
+        .filter(Boolean)
     : [];
+  const narrativeTitle = typeof narrative.title === "string"
+    ? cleanNarrativeText(narrative.title)
+    : "";
+  const periodSummary = typeof narrative.period_summary === "string"
+    ? cleanNarrativeText(narrative.period_summary)
+    : "";
 
   return (
     <div className="page-stack report-detail-page">
@@ -68,7 +79,7 @@ export function ReportDetailPage() {
       <header className="page-header report-detail-header">
         <div>
           <span className="eyebrow">Immutable report · version {report.data.data.version_number}</span>
-          <h1>{typeof narrative.title === "string" ? narrative.title : `${report.data.data.project_name} factual report`}</h1>
+          <h1>{narrativeTitle || `${report.data.data.project_name} factual report`}</h1>
           <p>{report.data.period_start} to {report.data.period_end} · {report.data.data.health_label}</p>
         </div>
         <div className="header-actions">
@@ -117,7 +128,7 @@ export function ReportDetailPage() {
       ) : null}
 
       <article className="report-document">
-        {typeof narrative.period_summary === "string" ? <p className="report-lede">{narrative.period_summary}</p> : <p className="report-lede">This report uses the deterministic factual snapshot shown below.</p>}
+        {periodSummary ? <p className="report-lede">{periodSummary}</p> : <p className="report-lede">This report uses the deterministic factual snapshot shown below.</p>}
         {progress ? <CitedItems title="Progress" items={[progress]} /> : null}
         <CitedItems title="Completed work" items={citedList(narrative.completed_items)} />
         <CitedItems title="Blockers" items={citedList(narrative.blockers)} />
@@ -132,7 +143,7 @@ export function ReportDetailPage() {
         <h2>Factual snapshot</h2>
         <dl>
           {Object.entries(report.data.data.metrics).map(([key, value]) => (
-            <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value)}</dd></div>
+            <div key={key}><dt>{humanizeLabel(key)}</dt><dd><StructuredValue value={value} fieldName={key} /></dd></div>
           ))}
         </dl>
       </section>

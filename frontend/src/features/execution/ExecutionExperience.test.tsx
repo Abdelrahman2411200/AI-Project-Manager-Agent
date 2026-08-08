@@ -168,7 +168,7 @@ describe("active execution experience", () => {
       /^status-blocked-/,
     );
     expect((await screen.findAllByText("At risk")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("BLOCKED_CRITICAL_TASK").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Blocked critical task").length).toBeGreaterThan(0);
     expect(
       screen.getByText("Waiting for the approved service contract."),
     ).toBeInTheDocument();
@@ -212,8 +212,8 @@ describe("active execution experience", () => {
       await screen.findByRole("heading", { name: `${projectFixture.name} health` }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "At risk" })).toBeInTheDocument();
-    expect(screen.getAllByText("BLOCKED_CRITICAL_TASK").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Blocked critical task").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "TASK-001" }).length).toBeGreaterThan(0);
-    expect(screen.getByText("monitoring: monitoring-v1")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring: monitoring-v1")).toBeInTheDocument();
   });
 });

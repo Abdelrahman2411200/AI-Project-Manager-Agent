@@ -45,6 +45,17 @@ const evidence: Record<string, EvidenceFact> = {
       },
     },
   },
+  "EVENT-4a8857d7-12ab-4cde-8fab-1234567890ab": {
+    entity_type: "event",
+    entity_ref: "EVENT-4a8857d7-12ab-4cde-8fab-1234567890ab",
+    fact_key: "task_status_changed",
+    value: {
+      task_ref: "TASK-002",
+      from_status: "IN_PROGRESS",
+      to_status: "COMPLETED",
+      occurred_at: "2026-08-04T14:00:00Z",
+    },
+  },
 };
 
 describe("ReportEvidenceIndex", () => {
@@ -62,12 +73,15 @@ describe("ReportEvidenceIndex", () => {
 
     const evidenceSection = screen.getByRole("heading", { name: "Evidence index" }).closest("section");
     expect(evidenceSection).not.toBeNull();
-    expect(within(evidenceSection as HTMLElement).getByText("Remaining Work Schedule")).toBeVisible();
-    expect(within(evidenceSection as HTMLElement).getByText("Deadline Feasible")).toBeVisible();
+    expect(within(evidenceSection as HTMLElement).getByText("Remaining work schedule")).toBeVisible();
+    expect(within(evidenceSection as HTMLElement).getByText("Deadline feasible")).toBeVisible();
     expect(within(evidenceSection as HTMLElement).getByText("Yes")).toBeVisible();
     expect(within(evidenceSection as HTMLElement).getByText("None recorded")).toBeVisible();
     expect(within(evidenceSection as HTMLElement).getByRole("heading", { name: "TASK-002" })).toBeVisible();
+    expect(within(evidenceSection as HTMLElement).getByText("Event 4A8857D7")).toBeVisible();
+    expect(within(evidenceSection as HTMLElement).getByText("Task status changed")).toBeVisible();
     expect(container.textContent).not.toContain('{"');
     expect(container.textContent).not.toContain("opaque-database-id");
+    expect(container.textContent).not.toContain("4a8857d7-12ab-4cde-8fab-1234567890ab");
   });
 });

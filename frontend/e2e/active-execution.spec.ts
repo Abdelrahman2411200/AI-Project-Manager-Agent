@@ -262,14 +262,14 @@ test("owner executes ready work, propagates readiness, and records a critical bl
   await first.getByRole("button", { name: "Start task" }).focus();
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Confirm change" }).click();
-  await expect(first.getByText("in progress", { exact: true })).toBeVisible();
+  await expect(first.getByText("In progress", { exact: true })).toBeVisible();
   await first.getByRole("button", { name: "Complete task" }).click();
   await page.getByRole("button", { name: "Confirm change" }).click();
-  await expect(first.getByText("completed", { exact: true })).toBeVisible();
+  await expect(first.getByText("Completed", { exact: true })).toBeVisible();
   await expect(page.getByText("60%")).toBeVisible();
 
   const successor = taskCard(page, "Render request status");
-  await expect(successor.getByText("ready", { exact: true })).toBeVisible();
+  await expect(successor.getByText("Ready", { exact: true })).toBeVisible();
   await successor.getByRole("button", { name: "Start task" }).click();
   await page.getByRole("button", { name: "Confirm change" }).click();
   await successor.getByRole("button", { name: "Block" }).click();
@@ -279,7 +279,7 @@ test("owner executes ready work, propagates readiness, and records a critical bl
   await page.getByRole("button", { name: "Confirm blocker" }).click();
 
   await expect(page.getByText("At risk")).toBeVisible();
-  await expect(page.getByText("BLOCKED_CRITICAL_TASK")).toBeVisible();
+  await expect(page.getByText("Blocked critical task")).toBeVisible();
   await expect(
     successor.getByText("The external approval contract is unavailable."),
   ).toBeVisible();
@@ -293,7 +293,7 @@ test("owner executes ready work, propagates readiness, and records a critical bl
   ).toBeVisible();
   await page.getByRole("link", { name: "Health", exact: true }).click();
   await expect(page.getByRole("heading", { name: "At risk" })).toBeVisible();
-  await expect(page.getByText("BLOCKED_TASKS")).toBeVisible();
+  await expect(page.getByText("Blocked tasks")).toBeVisible();
   await expect(page.getByRole("link", { name: "TASK-002" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

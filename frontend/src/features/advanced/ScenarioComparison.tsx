@@ -1,4 +1,5 @@
 import type { ScenarioView } from "../../api/types";
+import { displayScalar } from "../../utils/display";
 
 const METRICS = [
   ["Total effort", "total_effort_hours", "hours"],
@@ -10,13 +11,6 @@ const METRICS = [
 function numberValue(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function display(value: unknown): string {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return value === null || value === undefined ? "Not available" : JSON.stringify(value);
 }
 
 function direction(baseline: unknown, scenario: unknown): string {
@@ -58,12 +52,12 @@ export function ScenarioComparison({ scenario }: { scenario: ScenarioView }) {
               <div className="scenario-bar-row">
                 <span>Baseline</span>
                 <i style={{ width: `${Math.max((before / maximum) * 100, 2)}%` }} />
-                <b>{display(baseline[key])} {unit}</b>
+                <b>{displayScalar(baseline[key], key)} {unit}</b>
               </div>
               <div className="scenario-bar-row scenario">
                 <span>Scenario</span>
                 <i style={{ width: `${Math.max((after / maximum) * 100, 2)}%` }} />
-                <b>{display(result[key])} {unit}</b>
+                <b>{displayScalar(result[key], key)} {unit}</b>
               </div>
             </div>
           );
@@ -89,8 +83,8 @@ export function ScenarioComparison({ scenario }: { scenario: ScenarioView }) {
             ].map(([label, key]) => (
               <tr key={key}>
                 <th scope="row">{label}</th>
-                <td>{display(baseline[key])}</td>
-                <td>{display(result[key])}</td>
+                <td>{displayScalar(baseline[key], key)}</td>
+                <td>{displayScalar(result[key], key)}</td>
                 <td>{direction(baseline[key], result[key])}</td>
               </tr>
             ))}

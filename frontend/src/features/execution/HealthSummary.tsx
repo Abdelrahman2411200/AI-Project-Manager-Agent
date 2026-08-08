@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import type { ProjectHealthView, ProjectProgressView } from "../../api/types";
+import { humanizeLabel } from "../../utils/display";
 
 function percent(value: string | null): string {
   return value === null ? "Not available" : `${Math.round(Number(value) * 100)}%`;
@@ -30,7 +31,7 @@ export function HealthSummary({
         <div>
           <span>Project health</span>
           <strong>{health.label}</strong>
-          <small>{health.rule_codes.join(" · ")}</small>
+          <small>{health.rule_codes.map(humanizeLabel).join(" · ")}</small>
         </div>
         <Link to={`/projects/${projectId}/health`}>View evidence</Link>
       </article>

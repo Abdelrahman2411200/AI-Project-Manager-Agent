@@ -5,8 +5,10 @@ import { useExecutionBoard } from "../api/execution";
 import { errorMessage } from "../api/errorUtils";
 import { getProject, projectKeys } from "../api/projects";
 import { ErrorState, LoadingState } from "../components/Feedback";
+import { StructuredValue } from "../components/StructuredValue";
 import { ExecutionNav } from "../features/execution/ExecutionNav";
 import { HealthSummary } from "../features/execution/HealthSummary";
+import { displayScalar, humanizeLabel } from "../utils/display";
 
 function EvidenceReferences({ references, projectId }: { references: string[]; projectId: string }) {
   if (!references.length) return <span>No entity reference required</span>;
@@ -67,10 +69,10 @@ export function ExecutionHealthPage() {
           <ol className="evidence-list">
             {health.evidence.map((item, index) => (
               <li key={`${item.rule_code}-${index}`}>
-                <div><strong>{item.rule_code}</strong><span className="rule-order">Rule evidence</span></div>
+                <div><strong>{humanizeLabel(item.rule_code)}</strong><span className="rule-order">Rule evidence</span></div>
                 <EvidenceReferences references={item.references} projectId={projectId} />
                 {Object.keys(item.values).length ? (
-                  <dl>{Object.entries(item.values).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{value}</dd></div>)}</dl>
+                  <dl>{Object.entries(item.values).map(([key, value]) => <div key={key}><dt>{humanizeLabel(key)}</dt><dd><StructuredValue value={value} fieldName={key} /></dd></div>)}</dl>
                 ) : <p>No numeric threshold was needed for this rule.</p>}
               </li>
             ))}
@@ -88,7 +90,7 @@ export function ExecutionHealthPage() {
           {health.blocking_path.length ? (
             <div className="blocking-path"><strong>Blocking path</strong><ol>{health.blocking_path.map((item) => <li key={item}><Link to={`/projects/${projectId}/board#task-${item}`}>{item}</Link></li>)}</ol></div>
           ) : <p>No remaining blocking path.</p>}
-          {health.schedule_warnings.map((warning) => <p className="blocker-note" key={warning.code}><strong>{warning.code}</strong> {warning.detail}</p>)}
+          {health.schedule_warnings.map((warning) => <p className="blocker-note" key={warning.code}><strong>{humanizeLabel(warning.code)}</strong> {warning.detail}</p>)}
         </section>
       </div>
 
@@ -99,9 +101,9 @@ export function ExecutionHealthPage() {
           <ul>
             {health.detections.map((detection) => (
               <li key={detection.code} className={`detection-${detection.severity}`}>
-                <div><strong>{detection.code}</strong><span>{detection.severity}</span></div>
+                <div><strong>{humanizeLabel(detection.code)}</strong><span>{humanizeLabel(detection.severity)}</span></div>
                 <EvidenceReferences references={detection.references} projectId={projectId} />
-                {Object.entries(detection.values).map(([key, value]) => <small key={key}>{key.replaceAll("_", " ")}: {value}</small>)}
+                {Object.entries(detection.values).map(([key, value]) => <small key={key}><strong>{humanizeLabel(key)}:</strong> {displayScalar(value, key)}</small>)}
               </li>
             ))}
           </ul>
@@ -109,7 +111,7 @@ export function ExecutionHealthPage() {
       </section>
       <footer className="calculation-footer">
         <strong>Calculation versions</strong>
-        {Object.entries(health.calculation_versions).map(([name, version]) => <span key={name}>{name}: {version}</span>)}
+        {Object.entries(health.calculation_versions).map(([name, version]) => <span key={name}>{humanizeLabel(name)}: {version}</span>)}
         <time dateTime={health.calculated_at}>Calculated {new Date(health.calculated_at).toLocaleString()}</time>
       </footer>
     </div>

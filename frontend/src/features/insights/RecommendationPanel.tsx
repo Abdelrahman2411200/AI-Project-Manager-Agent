@@ -8,14 +8,8 @@ import {
 import type { RecommendationView } from "../../api/types";
 import { errorMessage } from "../../api/errorUtils";
 import { FeedbackBanner, StateBadge } from "../../components/Feedback";
-
-function EvidenceValue({ value }: { value: unknown }) {
-  return (
-    <pre className="evidence-value">
-      {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-    </pre>
-  );
-}
+import { StructuredValue } from "../../components/StructuredValue";
+import { evidenceReferenceLabel, humanizeLabel } from "../../utils/display";
 
 export function RecommendationPanel({ projectId }: { projectId: string }) {
   const query = useRecommendations(projectId);
@@ -58,7 +52,7 @@ export function RecommendationPanel({ projectId }: { projectId: string }) {
             <li key={item.id} className={`recommendation-card urgency-${item.urgency}`}>
               <div className="recommendation-card-header">
                 <div>
-                  <span className="task-key">{item.detection_code}</span>
+                  <span className="task-key">{humanizeLabel(item.detection_code)}</span>
                   <h3>{item.suggested_action}</h3>
                 </div>
                 <div className="recommendation-badges">
@@ -80,10 +74,10 @@ export function RecommendationPanel({ projectId }: { projectId: string }) {
                   {item.evidence.map((fact) => (
                     <li key={fact.id}>
                       <div>
-                        <strong>{fact.entity_ref}</strong>
-                        <span>{fact.entity_type} · {fact.fact_key.replaceAll("_", " ")}</span>
+                        <strong title={fact.entity_ref}>{evidenceReferenceLabel(fact.entity_ref)}</strong>
+                        <span>{humanizeLabel(fact.entity_type)} · {humanizeLabel(fact.fact_key)}</span>
                       </div>
-                      <EvidenceValue value={fact.fact_value} />
+                      <StructuredValue value={fact.fact_value} />
                     </li>
                   ))}
                 </ul>

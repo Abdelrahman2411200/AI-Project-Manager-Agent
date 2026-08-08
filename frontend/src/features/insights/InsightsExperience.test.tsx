@@ -192,6 +192,11 @@ describe("grounded monitoring and reporting experience", () => {
     expect(await screen.findByRole("heading", { name: "Recommended actions" })).toBeInTheDocument();
     await user.click(screen.getByText("Inspect 1 evidence fact"));
     expect(screen.getByText(/<script>untrusted<\/script>/)).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeVisible();
+    expect(screen.getByText("Reason")).toBeVisible();
+    expect(screen.getByText("Blocked tasks")).toBeVisible();
+    expect(view.container.textContent).not.toContain('{"status"');
+    expect(view.container.textContent).not.toContain("[object Object]");
     expect(view.container.querySelector("script")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Accept guidance" }));
     const dialog = screen.getByRole("dialog", { name: "Accept this guidance?" });

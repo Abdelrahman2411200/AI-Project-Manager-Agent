@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { logout } from "../api/auth";
 import type { UserView } from "../api/types";
+import { ThemeToggle } from "../features/theme/ThemeToggle";
 
 function ProductMark() {
   return (
@@ -56,6 +57,7 @@ export function RootLayout({ user }: RootLayoutProps) {
         <header className="topbar">
           <div><span className="eyebrow">Owner workspace</span><strong>{user.email}</strong></div>
           <div className="account-actions">
+            <ThemeToggle />
             <div className="avatar" aria-label={`Signed in as ${user.email}`}>{initials(user.email)}</div>
             <button type="button" className="text-button" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()}>
               {logoutMutation.isPending ? "Signing out…" : "Sign out"}

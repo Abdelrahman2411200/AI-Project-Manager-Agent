@@ -193,6 +193,6 @@ test("owner completes project creation through exact-hash plan approval", async 
   await page.getByRole("button", { name: "Approve and activate" }).click();
 
   await expect(page.getByText("This plan is active")).toBeVisible();
-  await expect(page.getByText("active", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Active", { exact: true }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

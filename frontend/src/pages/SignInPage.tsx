@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { login } from "../api/auth";
 import { ApiError } from "../api/client";
+import { ThemeToggle } from "../features/theme/ThemeToggle";
 
 const schema = z.object({
   email: z.email("Enter a valid email address."),
@@ -66,6 +67,7 @@ export function SignInPage() {
       </section>
 
       <section className="auth-form-panel" aria-labelledby="sign-in-heading">
+        <div className="auth-theme-control"><ThemeToggle /></div>
         <div className="auth-form-wrap">
           <div className="auth-mobile-brand"><BrandMark /><span>AI Project Manager</span></div>
           <span className="eyebrow">Welcome back</span>
