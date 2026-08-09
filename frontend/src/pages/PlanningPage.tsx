@@ -59,7 +59,11 @@ export function PlanningPage() {
   });
   const planningAiConfigured = capabilities.data?.planning_ai_configured === true;
   const start = useMutation({
-    mutationFn: () => startPlanningRun(projectId),
+    mutationFn: () =>
+      startPlanningRun(
+        projectId,
+        capabilities.data?.planning_run_default_token_budget ?? 50_000,
+      ),
     onSuccess: (createdRun) => {
       queryClient.setQueryData(runKeys.detail(createdRun.id), createdRun);
       queryClient.setQueryData(runKeys.active(projectId), createdRun);

@@ -19,6 +19,7 @@ def get_system_capabilities(
         planning_ai_configured=settings.planning_ai_configured,
         planning_provider=settings.planning_provider,
         planning_model=settings.planning_model,
+        planning_run_default_token_budget=settings.planning_run_default_token_budget,
     )
 
 

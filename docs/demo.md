@@ -20,6 +20,10 @@ per UTC day so fixture loading and rehearsal do not consume production-sized
 limits. Override `USER_DAILY_RUN_LIMIT` and `USER_DAILY_TOKEN_BUDGET` when
 testing quota behavior.
 
+Interactive local planning advertises a 100,000-token run budget. Large milestones
+are generated in bounded requirement and acceptance batches so the run stays within
+Ollama's configured per-response output ceiling without weakening validation.
+
 ## Start and reset
 
 On Windows with Ollama installed in Ubuntu WSL, run from the repository root:
@@ -48,7 +52,9 @@ an isolated Compose project and database volume on port `18080`.
 Existing `AI_UNCONFIGURED` failures remain as audit records; start a new planning
 run after the provider check succeeds.
 
-Open `http://localhost:8080`.
+Open `http://localhost:<HTTP_PORT>` (`http://localhost:8080` by default). The demo
+Compose file derives its trusted browser origin from this port unless
+`DEMO_ORIGIN` is explicitly set.
 
 Credentials:
 

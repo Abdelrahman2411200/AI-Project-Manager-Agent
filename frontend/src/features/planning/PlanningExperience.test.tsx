@@ -21,6 +21,7 @@ const configuredCapabilities = {
   planning_ai_configured: true,
   planning_provider: "ollama",
   planning_model: "llama3.1:8b",
+  planning_run_default_token_budget: 100_000,
 };
 
 function renderRoute(path: string) {
@@ -78,6 +79,7 @@ describe("planning and clarification experience", () => {
 
   it("preserves a newly created project when planning admission fails", async () => {
     let projectCreations = 0;
+    let requestedTokenBudget: number | undefined;
     server.use(
       http.get("*/api/v1/auth/session", () => HttpResponse.json(sessionFixture)),
       http.get("*/api/v1/system/capabilities", () =>
@@ -88,8 +90,9 @@ describe("planning and clarification experience", () => {
         return HttpResponse.json(projectFixture, { status: 201 });
       }),
       http.get(`*/api/v1/projects/${ids.project}`, () => HttpResponse.json(projectFixture)),
-      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, () =>
-        HttpResponse.json(
+      http.post(`*/api/v1/projects/${ids.project}/planning-runs`, async ({ request }) => {
+        requestedTokenBudget = ((await request.json()) as { token_budget: number }).token_budget;
+        return HttpResponse.json(
           {
             type: "about:blank",
             title: "Request failed",
@@ -100,8 +103,8 @@ describe("planning and clarification experience", () => {
             errors: [],
           },
           { status: 429 },
-        ),
-      ),
+        );
+      }),
     );
     const user = userEvent.setup();
     renderRoute("/projects/new");
@@ -119,6 +122,7 @@ describe("planning and clarification experience", () => {
     expect(screen.getByRole("button", { name: "Start planning" })).toBeInTheDocument();
     expect(screen.queryByText(/Planning locally with/i)).not.toBeInTheDocument();
     expect(projectCreations).toBe(1);
+    expect(requestedTokenBudget).toBe(100_000);
   });
 
   it("reopens the active planning run instead of starting a duplicate", async () => {

@@ -13,6 +13,7 @@ def test_capabilities_report_provider_readiness_without_exposing_credentials() -
         "planning_ai_configured": True,
         "planning_provider": "openai",
         "planning_model": get_settings().openai_model,
+        "planning_run_default_token_budget": 50_000,
     }
     assert "test-provider-key" not in response.text
 

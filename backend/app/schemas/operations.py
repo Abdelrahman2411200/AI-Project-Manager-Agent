@@ -19,3 +19,4 @@ class SystemCapabilitiesView(BaseModel):
     planning_ai_configured: bool
     planning_provider: str
     planning_model: str | None
+    planning_run_default_token_budget: int

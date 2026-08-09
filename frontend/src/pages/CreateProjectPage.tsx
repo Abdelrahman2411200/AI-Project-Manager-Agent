@@ -74,7 +74,10 @@ export function CreateProjectPage() {
       const project = await createProject(payload);
       if (!start) return { project, run: null, planningStartError: null };
       try {
-        const run = await startPlanningRun(project.id);
+        const run = await startPlanningRun(
+          project.id,
+          capabilities.data?.planning_run_default_token_budget ?? 50_000,
+        );
         return { project, run, planningStartError: null };
       } catch (error) {
         return {

@@ -39,6 +39,13 @@ client.
 - `OLLAMA_TIMEOUT_SECONDS=600`
 - `OLLAMA_CONTEXT_TOKENS=8192`
 - `OLLAMA_MAX_OUTPUT_TOKENS=4096`
+- `PLANNING_RUN_DEFAULT_TOKEN_BUDGET=100000` for the local demo
+
+Task generation groups at most two requirement references per model call, and
+acceptance refinement groups at most four tasks per call. These bounds keep each
+schema-constrained response below the local 4,096-token output ceiling while the
+larger demo run budget covers the additional grounded batches. Hosted environments
+retain their separately configured run budget.
 - `OLLAMA_TEMPERATURE=0`
 - `OLLAMA_SEED=42`
 - `OLLAMA_SCHEMA_RETRIES=1`

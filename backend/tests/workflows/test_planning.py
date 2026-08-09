@@ -17,6 +17,7 @@ from app.ai.schemas.outputs import (
     TaskDraftBatch,
 )
 from app.core.config import get_settings
+from app.core.hashing import canonical_json
 from app.db.models.plan import Milestone, PlanVersion, Risk, Task, TaskDependency
 from app.db.models.project import Project
 from app.db.models.run import AgentRun, AgentRunStep
@@ -397,7 +398,77 @@ def test_task_generation_batches_each_milestone_and_assigns_unique_plan_refs() -
         f"{first_task['title']} — Owner review ready",
     ]
     assert result.repaired is True
-    assert [request.prompt_version for request in provider.requests] == ["v5", "v5"]
+    assert [request.prompt_version for request in provider.requests] == ["v6", "v6"]
+
+
+def test_task_generation_splits_large_requirement_sets_into_bounded_batches() -> None:
+    run_id, _ = _started_run("task-requirement-batch-owner@example.com")
+    requirement_refs = [f"REQ-{index:03d}" for index in range(1, 8)]
+    requirement_text = {
+        reference: f"Verified capability {index}"
+        for index, reference in enumerate(requirement_refs, start=1)
+    }
+    module = deepcopy(_outputs()[2]["items"][0])
+    module["requirement_refs"] = requirement_refs
+    milestone = deepcopy(_outputs()[3]["items"][0])
+    responses: list[dict[str, Any]] = []
+    expected_batches = [
+        requirement_refs[:2],
+        requirement_refs[2:4],
+        requirement_refs[4:6],
+        requirement_refs[6:],
+    ]
+    for index, batch in enumerate(expected_batches, start=1):
+        task = deepcopy(_outputs()[4]["items"][0])
+        task["temp_id"] = f"TASK-{900 + index}"
+        task["title"] = f"Implement {' and '.join(requirement_text[item] for item in batch)}"
+        task["description"] = task["title"]
+        task["requirement_refs"] = batch
+        response = {"items": [task]}
+        responses.extend([response, deepcopy(response)])
+    provider = FakeStructuredModelProvider(responses)
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        requirements = [
+            {
+                "fact_ref": reference,
+                "kind": "stated",
+                "text": requirement_text[reference],
+                "source": "user",
+                "status": "confirmed",
+            }
+            for reference in requirement_refs
+        ]
+        facts = replace(
+            facts,
+            requirements=requirements,
+            allowed_refs=facts.allowed_refs | frozenset(requirement_refs),
+            excluded_refs=frozenset(),
+        )
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).tasks(
+                run,
+                facts,
+                ModuleDraftBatch.model_validate({"items": [module]}),
+                MilestoneDraftBatch.model_validate({"items": [milestone]}),
+            )
+        )
+
+    assert {
+        reference for item in result.output.items for reference in item.requirement_refs
+    } == set(requirement_refs)
+    first_attempts = [
+        request for request in provider.requests if request.metadata.get("repair") == "false"
+    ]
+    assert len(first_attempts) == 4
+    for request, expected_batch in zip(first_attempts, expected_batches, strict=True):
+        expected_json = f'"required_requirement_refs":{canonical_json(expected_batch)}'
+        assert expected_json in request.input_text
 
 
 def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -> None:
@@ -408,7 +479,12 @@ def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -
     incomplete_task = deepcopy(_outputs()[4]["items"][0])
     incomplete_task["requirement_refs"] = []
     provider = FakeStructuredModelProvider(
-        [{"items": [incomplete_task]}, {"items": [deepcopy(incomplete_task)]}]
+        [
+            {"items": [deepcopy(incomplete_task)]},
+            {"items": [deepcopy(incomplete_task)]},
+            {"items": [deepcopy(incomplete_task)]},
+            {"items": [deepcopy(incomplete_task)]},
+        ]
     )
 
     with SessionLocal() as session:
@@ -450,12 +526,13 @@ def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -
         )
 
     assert result.repaired is True
-    assert len(provider.requests) == 2
+    assert len(provider.requests) == 4
     assert [item.temp_id for item in result.output.items] == [
         "TASK-001",
         "TASK-002",
         "TASK-003",
         "TASK-004",
+        "TASK-005",
     ]
     dedicated_refs = {
         item.requirement_refs[0] for item in result.output.items if len(item.requirement_refs) == 1
@@ -582,6 +659,44 @@ def test_acceptance_refinement_cannot_remove_or_rewrite_tasks() -> None:
     assert result.output.items[0].acceptance_criteria == refined_first["acceptance_criteria"]
     assert result.output.items[1] == original.items[1]
     assert len(provider.requests) == 1
+
+
+def test_acceptance_refinement_splits_large_milestones_into_bounded_batches() -> None:
+    run_id, _ = _started_run("acceptance-batch-owner@example.com")
+    tasks = []
+    for index in range(1, 10):
+        task = deepcopy(_outputs()[4]["items"][0])
+        task["temp_id"] = f"TASK-{index:03d}"
+        task["title"] = f"Implement verified planning capability {index}"
+        task["acceptance_criteria"] = [f"Capability {index} is verified"]
+        tasks.append(task)
+    original = TaskDraftBatch.model_validate({"items": tasks})
+    responses = [
+        {"items": [item.model_dump(mode="json") for item in original.items[index : index + 4]]}
+        for index in range(0, len(original.items), 4)
+    ]
+    provider = FakeStructuredModelProvider(responses)
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).acceptance(
+                run,
+                build_planning_facts(project),
+                original,
+            )
+        )
+
+    assert [item.temp_id for item in result.output.items] == [
+        f"TASK-{index:03d}" for index in range(1, 10)
+    ]
+    assert len(provider.requests) == 3
+    assert "TASK-005" not in provider.requests[0].input_text
+    assert "TASK-005" in provider.requests[1].input_text
+    assert "TASK-009" in provider.requests[2].input_text
 
 
 def test_optional_invalid_risk_is_discarded_after_bounded_repair() -> None:

@@ -68,6 +68,14 @@ Settings are environment variables validated by `backend/app/core/config.py`.
 Use `.env.example` for development, `.env.demo.example` for the synthetic demo,
 and `.env.production.example` only as a template.
 
+For the local demo, `HTTP_PORT` is also the default trusted browser origin. Leave
+`DEMO_ORIGIN` unset unless the browser uses a different scheme or host. The Windows
+Ollama helper always synchronizes `DEMO_ORIGIN` with its configured `HTTP_PORT` so
+CSRF-protected planning and reporting writes cannot drift from the published URL.
+The demo advertises a 100,000-token per-run planning budget to the frontend; other
+environments retain their configured default. Large requirement sets are divided
+into bounded task and acceptance batches before local-model generation.
+
 The frontend serves `index.html` with `Cache-Control: no-cache`, caches
 content-hashed assets for one year, and returns HTTP 404 for missing assets.
 Already-open tabs recover once from Vite preload errors after a deployment; a
@@ -157,7 +165,7 @@ incorrect confirmation literal.
 | Symptom | Check | Resolution |
 |---|---|---|
 | API not ready | `docker compose ... logs migrate api` | Fix migration/config; do not bypass the gate |
-| Login is 403 | request `Origin` and `CORS_ORIGINS` | Use one exact scheme/host/port |
+| A browser write is 403 | request `Origin`, `HTTP_PORT`, and `CORS_ORIGINS` | Restart with `--env-file .env.demo`; the local helper synchronizes the exact scheme/host/port |
 | Login loops in production | TLS and `COOKIE_SECURE` | Terminate HTTPS before the bound frontend |
 | Jobs remain queued | worker logs, DB connectivity, lease age | Restore worker; expired leases are reclaimable |
 | Ollama planning is unavailable | WSL keepalive, `systemctl status ollama`, installed model, worker `OLLAMA_BASE_URL` | Run `start-local-ollama.ps1`, then start a new audited run |
