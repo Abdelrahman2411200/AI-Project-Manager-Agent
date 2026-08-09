@@ -3225,7 +3225,11 @@ main {
   .react-flow__node,
   .react-flow__edge,
   .timeline-bar,
-  .scenario-bar-row i {
+  .scenario-bar-row i,
+  .live-indicator > span,
+  .activity-dot,
+  .run-step-spinner {
+    animation: none !important;
     transition: none !important;
   }
 }
@@ -3679,16 +3683,23 @@ main {
 
 .progress-meter {
   padding: 24px 30px;
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-subtle);
 }
 
 .progress-copy {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
   margin-bottom: 9px;
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.progress-elapsed {
+  justify-self: center;
 }
 
 .progress-meter progress {
@@ -3710,19 +3721,64 @@ main {
   background: linear-gradient(90deg, var(--color-cobalt-600), var(--color-violet-600));
 }
 
+.progress-meter progress::-moz-progress-bar {
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-cobalt-600), var(--color-violet-600));
+}
+
+.run-workflow-heading,
+.run-information-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 30px 14px;
+}
+
+.run-workflow-heading h3 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-cobalt-600);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-indicator > span,
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.live-indicator > span,
+.activity-dot.running {
+  animation: planning-pulse 1.7s ease-in-out infinite;
+}
+
 .run-step-list {
   display: grid;
   margin: 0;
-  padding: 8px 30px;
+  padding: 0 30px 16px;
   list-style: none;
 }
 
 .run-step {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: start;
   gap: 14px;
-  min-height: 72px;
+  min-height: 76px;
+  padding: 20px 0;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -3730,12 +3786,21 @@ main {
   border-bottom: 0;
 }
 
+.run-step.expanded {
+  margin: 6px -14px;
+  padding: 20px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
 .step-marker {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  border: 1px solid #d4dbea;
+  border: 1px solid var(--color-border-strong);
   border-radius: 50%;
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
@@ -3743,47 +3808,187 @@ main {
   font-weight: 900;
 }
 
+.step-marker svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.25;
+}
+
 .run-step.completed .step-marker {
-  border-color: #a8dfce;
-  color: white;
+  border-color: var(--color-success);
+  color: var(--color-surface);
   background: var(--color-success);
 }
 
 .run-step.running .step-marker {
   border-color: var(--color-cobalt-600);
-  color: white;
-  background: var(--color-cobalt-600);
+  color: var(--color-cobalt-600);
+  background: var(--color-primary-soft);
   box-shadow: 0 0 0 5px rgb(53 99 233 / 10%);
 }
 
 .run-step.failed .step-marker {
-  border-color: #b42342;
-  color: white;
-  background: #b42342;
+  border-color: var(--color-danger);
+  color: var(--color-surface);
+  background: var(--color-danger);
 }
 
-.run-step div strong,
-.run-step div span {
+.run-step.queued .step-marker {
+  border-color: var(--color-cobalt-600);
+  color: var(--color-cobalt-600);
+  background: var(--color-primary-soft);
+}
+
+.run-step.waiting .step-marker {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+}
+
+.run-step.cancelled .step-marker,
+.run-step.skipped .step-marker {
+  color: var(--color-muted);
+  background: var(--color-surface-subtle);
+}
+
+.run-step.pending .run-step-content {
+  opacity: 0.72;
+}
+
+.run-step-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--color-cobalt-600) 25%, transparent);
+  border-top-color: var(--color-cobalt-600);
+  border-radius: 50%;
+  animation: planning-spin 0.9s linear infinite;
+}
+
+.run-step-content {
+  min-width: 0;
+}
+
+.run-step-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.run-step-heading strong,
+.run-step-heading span {
   display: block;
 }
 
-.run-step div strong {
+.run-step-heading strong {
   font-size: 14px;
 }
 
-.run-step div span,
-.run-step small {
+.run-step-state {
   margin-top: 4px;
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 700;
 }
 
+.running-pill {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--color-cobalt-600);
+  background: var(--color-primary-soft);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.run-step-activity {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-input);
+}
+
+.activity-summary {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 16px;
+}
+
+.activity-dot {
+  margin-top: 5px;
+  color: var(--color-muted);
+}
+
+.activity-dot.running,
+.activity-dot.queued {
+  color: var(--color-cobalt-600);
+}
+
+.activity-dot.waiting {
+  color: var(--color-warning);
+}
+
+.activity-dot.failed,
+.activity-dot.cancelled {
+  color: var(--color-danger);
+}
+
+.activity-summary strong {
+  display: block;
+  font-size: 12px;
+}
+
+.activity-summary p {
+  margin: 5px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.activity-feed {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.activity-feed li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.activity-feed li:last-child {
+  border-bottom: 0;
+}
+
+.activity-feed small {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
 .run-step-validation {
   display: grid;
   gap: 8px;
-  margin: 12px 0 4px;
-  padding: 0;
+  margin: 0;
+  padding: 0 16px 16px;
   list-style: none;
 }
 
@@ -3808,6 +4013,21 @@ main {
   color: var(--color-danger);
   font-size: 11px;
   white-space: normal;
+}
+
+.run-information-heading {
+  padding-top: 20px;
+  padding-bottom: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+@keyframes planning-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes planning-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
 }
 
 .workspace-summary-grid {
@@ -3934,7 +4154,7 @@ main {
 
 .run-metadata {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   margin: 0;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-subtle);
@@ -3971,6 +4191,12 @@ main {
   margin: 6px 0 0;
   font-size: 12px;
   font-weight: 800;
+}
+
+.run-metadata dd code {
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: inherit;
 }
 
 .clarification-intro {
@@ -5226,6 +5452,36 @@ main {
     padding: 40px 24px;
   }
 
+  .run-summary,
+  .progress-meter {
+    padding: 22px;
+  }
+
+  .run-summary .button {
+    width: 100%;
+  }
+
+  .progress-copy {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .progress-elapsed {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .run-workflow-heading,
+  .run-information-heading {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .run-step-list {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
   .run-metadata,
   .review-sidebar,
   .scope-columns,
@@ -5421,5 +5677,20 @@ main {
 
   .run-step {
     align-items: start;
+  }
+
+  .run-workflow-heading,
+  .run-step-heading,
+  .activity-feed li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .run-workflow-heading {
+    display: flex;
+  }
+
+  .activity-feed small {
+    flex-basis: auto;
   }
 }
