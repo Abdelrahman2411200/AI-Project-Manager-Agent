@@ -160,6 +160,25 @@ def test_demo_origin_defaults_to_and_is_synchronized_with_the_published_port() -
     ) in windows_helper
 
 
+def test_demo_parallel_worker_capacity_is_explicit_and_configurable() -> None:
+    demo = _text("compose.demo.yaml")
+    example = _text(".env.demo.example")
+    windows_helper = _text("infra/release/start-local-ollama.ps1")
+
+    assert "replicas: ${DEMO_WORKER_REPLICAS:-4}" in demo
+    assert "OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-1800}" in demo
+    assert "DEMO_WORKER_REPLICAS=4" in example
+    assert "OLLAMA_TIMEOUT_SECONDS=1800" in example
+    assert "[int]$WorkerReplicas = 4" in windows_helper
+    assert (
+        'Set-DotEnvValue -Path $environmentPath -Name "DEMO_WORKER_REPLICAS" '
+        "-Value $WorkerReplicas.ToString()"
+    ) in windows_helper
+    assert (
+        'Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "1800"'
+    ) in windows_helper
+
+
 def test_release_documents_prove_version_isolation_and_advanced_fixture_evidence() -> None:
     demo = _text("docs/demo.md")
     checklist = _text("docs/release/university-checklist.md")

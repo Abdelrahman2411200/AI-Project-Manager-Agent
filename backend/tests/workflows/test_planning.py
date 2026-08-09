@@ -241,6 +241,35 @@ def test_clarification_generation_discards_questions_answered_by_confirmed_facts
     assert [item.temp_id for item in result.output.items] == ["Q-003"]
 
 
+def test_model_call_does_not_hold_a_database_transaction_while_awaiting_provider() -> None:
+    run_id, _ = _started_run("provider-transaction-owner@example.com")
+
+    with SessionLocal() as session:
+        transaction_states: list[bool] = []
+
+        class TransactionObservingProvider(FakeStructuredModelProvider):
+            async def generate(self, request: Any) -> Any:
+                transaction_states.append(session.in_transaction())
+                return await super().generate(request)
+
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        provider = TransactionObservingProvider([{"items": []}])
+
+        generated = asyncio.run(
+            PlanningSemanticNodes(session, provider, get_settings()).detect_gaps(
+                run,
+                build_planning_facts(project),
+            )
+        )
+
+        assert generated.output.items == []
+        assert transaction_states == [False]
+        assert session.in_transaction() is False
+
+
 def test_analysis_normalizes_invented_fact_identifiers_to_confirmed_input() -> None:
     run_id, _ = _started_run("analysis-ref-normalization-owner@example.com")
     analysis = deepcopy(_outputs()[1])
@@ -478,6 +507,7 @@ def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -
     milestone = deepcopy(_outputs()[3]["items"][0])
     incomplete_task = deepcopy(_outputs()[4]["items"][0])
     incomplete_task["requirement_refs"] = []
+    incomplete_task["assumption_refs"] = ["ASS-001"]
     provider = FakeStructuredModelProvider(
         [
             {"items": [deepcopy(incomplete_task)]},
@@ -538,6 +568,7 @@ def test_task_generation_adds_one_grounded_task_per_requirement_after_repair() -
         item.requirement_refs[0] for item in result.output.items if len(item.requirement_refs) == 1
     }
     assert dedicated_refs == {"REQ-001", "REQ-002", "REQ-003"}
+    assert all(not item.assumption_refs for item in result.output.items)
     assert all(
         item.milestone_ref == "MS-001" and 4 <= item.effort_likely_hours <= 24
         for item in result.output.items

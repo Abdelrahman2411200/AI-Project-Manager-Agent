@@ -528,6 +528,10 @@ class PlanningSemanticNodes:
             version=template.version,
             expected_hash=template.template_hash,
         )
+        # Persist prompt provenance before yielding to a potentially slow model.
+        # Keeping this transaction open would retain row/FK locks for the whole
+        # provider call and can block admission of otherwise independent runs.
+        self.session.commit()
         instructions, input_text = template.render(context)
         request_id = str(uuid4())
         try:
@@ -600,6 +604,10 @@ class PlanningSemanticNodes:
             duration_ms=result.duration_ms,
             outcome="completed",
         )
+        # Usage belongs to the individual provider call, not to the surrounding
+        # semantic node. Checkpoint it now so a validation-repair call does not
+        # hold AgentRun and prompt locks while waiting on the model again.
+        self.session.commit()
         if run.tokens_used > run.token_budget:
             raise NodeFailure(
                 "MODEL_TOKEN_BUDGET_EXHAUSTED",
@@ -808,8 +816,8 @@ def _normalize_task_requirement_refs[OutputT: BaseModel](
     original_context: dict[str, Any],
     validation_context: ValidationContext,
 ) -> tuple[OutputT, bool]:
-    """Remove task citations whose content is unrelated to the cited requirement."""
-    if output_type is not TaskDraftBatch or not validation_context.required_refs:
+    """Ground task requirement and assumption citations in supplied planning facts."""
+    if output_type is not TaskDraftBatch:
         return candidate, False
     requirement_text = {
         item.get("fact_ref"): item.get("text")
@@ -818,24 +826,29 @@ def _normalize_task_requirement_refs[OutputT: BaseModel](
         and item.get("fact_ref") in validation_context.required_refs
         and isinstance(item.get("text"), str)
     }
-    if not requirement_text:
-        return candidate, False
-
     raw = candidate.model_dump(mode="json")
     changed = False
+    allowed_refs = validation_context.allowed_refs - validation_context.excluded_refs
     for item in raw.get("items", []):
-        task_text = " ".join(
-            str(item.get(field, "")) for field in ("title", "description", "deliverable")
-        )
-        grounded_refs = [
-            reference
-            for reference in item.get("requirement_refs", [])
-            if reference in requirement_text
-            and _task_matches_requirement(task_text, cast(str, requirement_text[reference]))
+        grounded_assumptions = [
+            reference for reference in item.get("assumption_refs", []) if reference in allowed_refs
         ]
-        if grounded_refs != item.get("requirement_refs", []):
-            item["requirement_refs"] = grounded_refs
+        if grounded_assumptions != item.get("assumption_refs", []):
+            item["assumption_refs"] = grounded_assumptions
             changed = True
+        if requirement_text:
+            task_text = " ".join(
+                str(item.get(field, "")) for field in ("title", "description", "deliverable")
+            )
+            grounded_requirements = [
+                reference
+                for reference in item.get("requirement_refs", [])
+                if reference in requirement_text
+                and _task_matches_requirement(task_text, cast(str, requirement_text[reference]))
+            ]
+            if grounded_requirements != item.get("requirement_refs", []):
+                item["requirement_refs"] = grounded_requirements
+                changed = True
     return output_type.model_validate(raw), changed
 
 

@@ -1,10 +1,11 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import event, select
 
 from app.db.models.identity import Session
 from app.db.session import SessionLocal, engine
-from app.services.budgets import BudgetExceededError
+from app.services.budgets import BudgetExceededError, _admission_lock_key
 from tests.api.test_projects import (
     create_user_and_client,
     project_payload,
@@ -144,3 +145,16 @@ def test_budget_error_exposes_only_machine_safe_fields() -> None:
     assert error.code == "daily_run_limit_exceeded"
     assert error.retry_after == 60
     assert str(error) == "limit reached"
+
+
+def test_admission_lock_key_is_stable_and_scoped_by_owner_and_utc_day() -> None:
+    first_owner = UUID("2bbab3f8-2c79-4b88-9894-3742f97bcb50")
+    second_owner = UUID("db23942c-2baa-43e6-978a-8a0c1fcbab17")
+    first_day = date(2026, 8, 9)
+
+    first_key = _admission_lock_key(first_owner, first_day)
+
+    assert first_key == _admission_lock_key(first_owner, first_day)
+    assert first_key != _admission_lock_key(second_owner, first_day)
+    assert first_key != _admission_lock_key(first_owner, first_day + timedelta(days=1))
+    assert -(2**63) <= first_key < 2**63
