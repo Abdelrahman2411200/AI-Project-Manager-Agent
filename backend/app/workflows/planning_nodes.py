@@ -39,6 +39,9 @@ from app.db.models.run import AgentRun
 from app.services.planning_context import PlanningFacts
 from app.workflows.engine import NodeFailure
 
+TASK_REQUIREMENT_BATCH_SIZE = 2
+ACCEPTANCE_TASK_BATCH_SIZE = 4
+
 
 @dataclass(frozen=True, slots=True)
 class Generated[OutputT: BaseModel]:
@@ -211,48 +214,58 @@ class PlanningSemanticNodes:
             item.temp_id: frozenset(item.requirement_refs) for item in modules.items
         }
         for milestone in sorted(milestones.items, key=lambda item: item.sequence):
-            required_refs = frozenset(
-                reference
-                for module_ref in milestone.module_refs
-                for reference in module_requirements.get(module_ref, frozenset())
+            required_refs = tuple(
+                sorted(
+                    {
+                        reference
+                        for module_ref in milestone.module_refs
+                        for reference in module_requirements.get(module_ref, frozenset())
+                    }
+                )
             )
-            generated: Generated[TaskDraftBatch] = await self._generate(
-                run,
-                "tasks.v5",
-                {
-                    "milestones": {"items": [milestone.model_dump(mode="json")]},
-                    "requirements": [
-                        item for item in facts.requirements if item["fact_ref"] in required_refs
-                    ],
-                    "required_requirement_refs": sorted(required_refs),
-                    "decisions": facts.decisions,
-                    "workstreams": sorted(milestone.module_refs),
-                    "allocated_temp_id_start": f"TASK-{next_task_number:03d}",
-                    "sizing_rules": {
-                        "leaf_likely_hours_min": 4,
-                        "leaf_likely_hours_max": 24,
-                        "split_larger_deliverables": True,
+            requirement_batches = [
+                required_refs[index : index + TASK_REQUIREMENT_BATCH_SIZE]
+                for index in range(0, len(required_refs), TASK_REQUIREMENT_BATCH_SIZE)
+            ] or [tuple()]
+            for requirement_batch in requirement_batches:
+                batch_refs = frozenset(requirement_batch)
+                generated: Generated[TaskDraftBatch] = await self._generate(
+                    run,
+                    "tasks.v6",
+                    {
+                        "milestones": {"items": [milestone.model_dump(mode="json")]},
+                        "requirements": [
+                            item for item in facts.requirements if item["fact_ref"] in batch_refs
+                        ],
+                        "required_requirement_refs": list(requirement_batch),
+                        "decisions": facts.decisions,
+                        "workstreams": sorted(milestone.module_refs),
+                        "allocated_temp_id_start": f"TASK-{next_task_number:03d}",
+                        "sizing_rules": {
+                            "leaf_likely_hours_min": 4,
+                            "leaf_likely_hours_max": 24,
+                            "split_larger_deliverables": True,
+                        },
                     },
-                },
-                ValidationContext(
-                    allowed_refs=facts.allowed_refs | {milestone.temp_id},
-                    required_refs=required_refs,
-                    excluded_refs=facts.excluded_refs,
-                ),
-            )
-            id_map = {
-                item.temp_id: f"TASK-{next_task_number + index:03d}"
-                for index, item in enumerate(generated.output.items)
-            }
-            for item in generated.output.items:
-                dumped = item.model_dump(mode="json")
-                dumped["temp_id"] = id_map[item.temp_id]
-                if item.parent_ref is not None:
-                    dumped["parent_ref"] = id_map[item.parent_ref]
-                items.append(dumped)
-            next_task_number += len(generated.output.items)
-            usage = _add_usage(usage, generated.usage)
-            repaired = repaired or generated.repaired
+                    ValidationContext(
+                        allowed_refs=facts.allowed_refs | {milestone.temp_id},
+                        required_refs=batch_refs,
+                        excluded_refs=facts.excluded_refs,
+                    ),
+                )
+                id_map = {
+                    item.temp_id: f"TASK-{next_task_number + index:03d}"
+                    for index, item in enumerate(generated.output.items)
+                }
+                for item in generated.output.items:
+                    dumped = item.model_dump(mode="json")
+                    dumped["temp_id"] = id_map[item.temp_id]
+                    if item.parent_ref is not None:
+                        dumped["parent_ref"] = id_map[item.parent_ref]
+                    items.append(dumped)
+                next_task_number += len(generated.output.items)
+                usage = _add_usage(usage, generated.usage)
+                repaired = repaired or generated.repaired
         items, titles_changed = _deduplicate_task_titles(items, milestones)
         return Generated(
             TaskDraftBatch.model_validate({"items": items}),
@@ -273,31 +286,33 @@ class PlanningSemanticNodes:
         usage = ModelUsage()
         repaired = False
         for milestone_ref, milestone_tasks in groups.items():
-            task_refs = frozenset(item.temp_id for item in milestone_tasks)
-            generated: Generated[TaskDraftBatch] = await self._generate(
-                run,
-                "acceptance.v5",
-                {"tasks": {"items": [item.model_dump(mode="json") for item in milestone_tasks]}},
-                ValidationContext(
-                    allowed_refs=facts.allowed_refs | task_refs | {milestone_ref},
-                    excluded_refs=facts.excluded_refs,
-                ),
-            )
-            generated_by_id = {item.temp_id: item for item in generated.output.items}
-            for task in milestone_tasks:
-                candidate = generated_by_id.get(task.temp_id)
-                enriched.append(
-                    task
-                    if candidate is None
-                    else task.model_copy(
-                        update={
-                            "acceptance_criteria": candidate.acceptance_criteria,
-                            "definition_of_done": candidate.definition_of_done,
-                        }
-                    )
+            for index in range(0, len(milestone_tasks), ACCEPTANCE_TASK_BATCH_SIZE):
+                task_batch = milestone_tasks[index : index + ACCEPTANCE_TASK_BATCH_SIZE]
+                task_refs = frozenset(item.temp_id for item in task_batch)
+                generated: Generated[TaskDraftBatch] = await self._generate(
+                    run,
+                    "acceptance.v5",
+                    {"tasks": {"items": [item.model_dump(mode="json") for item in task_batch]}},
+                    ValidationContext(
+                        allowed_refs=facts.allowed_refs | task_refs | {milestone_ref},
+                        excluded_refs=facts.excluded_refs,
+                    ),
                 )
-            usage = _add_usage(usage, generated.usage)
-            repaired = repaired or generated.repaired
+                generated_by_id = {item.temp_id: item for item in generated.output.items}
+                for task in task_batch:
+                    candidate = generated_by_id.get(task.temp_id)
+                    enriched.append(
+                        task
+                        if candidate is None
+                        else task.model_copy(
+                            update={
+                                "acceptance_criteria": candidate.acceptance_criteria,
+                                "definition_of_done": candidate.definition_of_done,
+                            }
+                        )
+                    )
+                usage = _add_usage(usage, generated.usage)
+                repaired = repaired or generated.repaired
         return Generated(TaskDraftBatch(items=enriched), usage, repaired)
 
     async def dependencies(

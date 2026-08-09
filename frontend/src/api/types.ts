@@ -14,6 +14,7 @@ export interface SystemCapabilitiesView {
   planning_ai_configured: boolean;
   planning_provider: string;
   planning_model: string | null;
+  planning_run_default_token_budget?: number;
 }
 
 export interface RequirementView {

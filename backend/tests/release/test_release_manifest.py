@@ -136,12 +136,28 @@ def test_release_blockers_and_destructive_guards_are_explicit() -> None:
     demo = _text("compose.demo.yaml")
     assert "USER_DAILY_RUN_LIMIT: ${USER_DAILY_RUN_LIMIT:-100}" in demo
     assert "USER_DAILY_TOKEN_BUDGET: ${USER_DAILY_TOKEN_BUDGET:-2000000}" in demo
+    assert (
+        "PLANNING_RUN_DEFAULT_TOKEN_BUDGET: ${PLANNING_RUN_DEFAULT_TOKEN_BUDGET:-100000}"
+    ) in demo
     verifier = _text("infra/release/verify-demo.sh")
     assert "Cache-Control:.*no-cache" in verifier
     assert "release-verifier-missing-chunk.js" in verifier
     assert "ai-project-manager-release-verification" in verifier
     assert "DEMO_VERIFY_HTTP_PORT:-18080" in verifier
     assert 'export DEMO_ORIGIN="$demo_origin"' in verifier
+
+
+def test_demo_origin_defaults_to_and_is_synchronized_with_the_published_port() -> None:
+    demo = _text("compose.demo.yaml")
+    example = _text(".env.demo.example")
+    windows_helper = _text("infra/release/start-local-ollama.ps1")
+
+    assert "${DEMO_ORIGIN:-http://localhost:${HTTP_PORT:-8080}}" in demo
+    assert "\nDEMO_ORIGIN=" not in example
+    assert (
+        'Set-DotEnvValue -Path $environmentPath -Name "DEMO_ORIGIN" '
+        '-Value "http://localhost:$httpPort"'
+    ) in windows_helper
 
 
 def test_release_documents_prove_version_isolation_and_advanced_fixture_evidence() -> None:

@@ -87,11 +87,19 @@ Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MODEL" -Value $Model
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "600"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_CONTEXT_TOKENS" -Value "8192"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MAX_OUTPUT_TOKENS" -Value "4096"
+Set-DotEnvValue -Path $environmentPath -Name "PLANNING_RUN_DEFAULT_TOKEN_BUDGET" -Value "100000"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_SCHEMA_RETRIES" -Value "1"
 Set-DotEnvValue -Path $environmentPath -Name "OPENAI_API_KEY" -Value ""
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_INPUT_PRICE_PER_MILLION" -Value "0"
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_CACHED_INPUT_PRICE_PER_MILLION" -Value "0"
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_OUTPUT_PRICE_PER_MILLION" -Value "0"
+
+$httpPort = "8080"
+$portLine = Get-Content -LiteralPath $environmentPath | Where-Object { $_ -match "^HTTP_PORT=" } | Select-Object -First 1
+if ($portLine) {
+    $httpPort = $portLine.Substring("HTTP_PORT=".Length)
+}
+Set-DotEnvValue -Path $environmentPath -Name "DEMO_ORIGIN" -Value "http://localhost:$httpPort"
 
 & docker.exe info *> $null
 if ($LASTEXITCODE -ne 0) {
@@ -131,10 +139,5 @@ if ($LASTEXITCODE -ne 0) {
     throw "The worker could not complete a structured Ollama probe."
 }
 
-$httpPort = "8080"
-$portLine = Get-Content -LiteralPath $environmentPath | Where-Object { $_ -match "^HTTP_PORT=" } | Select-Object -First 1
-if ($portLine) {
-    $httpPort = $portLine.Substring("HTTP_PORT=".Length)
-}
 Write-Host "Local AI Project Manager is ready at http://localhost:$httpPort" -ForegroundColor Green
 Write-Host "Provider: Ollama | Model: $Model | Context: 8192 tokens" -ForegroundColor Green

@@ -265,7 +265,7 @@ _PROMPTS = (
         "tasks",
         "Decompose every supplied milestone into sized, verifiable tasks.",
         TaskDraftBatch,
-        8_000,
+        2_000,
         100_000,
         "Create specific tasks that cover every supplied milestone. Every milestone temp_id must "
         "appear as milestone_ref on at least one task. Copy every identifier in "
@@ -274,10 +274,14 @@ _PROMPTS = (
         "implement an entire module is not sufficient. Use unique sequential TASK-### identifiers "
         "and 4-24 likely hours for leaf work. Never emit a leaf task above 24 likely hours; split "
         "larger deliverables into multiple distinct, verifiable tasks whose estimates preserve "
-        "the milestone's approximate effort.",
+        "the milestone's approximate effort. Return no more than four tasks for this bounded "
+        "requirement batch. Keep each description and deliverable to one concise sentence, use "
+        "one to three short acceptance criteria and definition-of-done entries, and include no "
+        "more than four skill tags per task. Do not add filler tasks only to consume estimated "
+        "milestone effort.",
         TASK_BATCH_EXAMPLE,
         ADVERSARIAL_CASE,
-        version="v5",
+        version="v6",
     ),
     _prompt(
         "acceptance",

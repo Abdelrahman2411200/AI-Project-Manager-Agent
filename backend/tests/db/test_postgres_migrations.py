@@ -106,7 +106,7 @@ def test_postgres_migrations_create_current_constraints() -> None:
                     "clarification.v3",
                     "modules.v3",
                     "milestones.v4",
-                    "tasks.v5",
+                    "tasks.v6",
                     "acceptance.v5",
                     "dependencies.v3",
                     "risks.v3",
