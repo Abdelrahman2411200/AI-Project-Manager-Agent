@@ -23,6 +23,10 @@ testing quota behavior.
 Interactive local planning advertises a 100,000-token run budget. Large milestones
 are generated in bounded requirement and acceptance batches so the run stays within
 Ollama's configured per-response output ceiling without weakening validation.
+The demo starts four database-backed worker replicas by default, so four planning
+runs can be claimed without waiting behind one long workflow. Set
+`DEMO_WORKER_REPLICAS` or pass `-WorkerReplicas` to the Windows helper to change
+that finite capacity. Additional simultaneous runs remain durably queued.
 
 ## Start and reset
 
@@ -33,7 +37,7 @@ On Windows with Ollama installed in Ubuntu WSL, run from the repository root:
 ```
 
 The helper keeps Ubuntu alive, verifies `llama3.1:8b`, writes only non-secret local
-provider settings to ignored `.env.demo`, starts the stack, and performs a strict
+provider settings to ignored `.env.demo`, starts the stack with four workers, and performs a strict
 structured-output probe from the worker container. The first cold model load can
 take about one minute on the reference RTX 3060 Laptop GPU.
 

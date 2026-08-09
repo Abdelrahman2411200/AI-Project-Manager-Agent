@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import case, func, select
@@ -56,11 +57,14 @@ class BudgetService:
         self.owner_id = owner_id
 
     def assert_can_start(self, requested_tokens: int) -> OwnerQuota:
-        user = self.session.scalar(select(User).where(User.id == self.owner_id).with_for_update())
-        if user is None:
+        now = datetime.now(UTC)
+        day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        self._serialize_owner_admission(day_start.date())
+        owner_exists = self.session.scalar(select(User.id).where(User.id == self.owner_id))
+        if owner_exists is None:
             raise LookupError("Owner no longer exists.")
-        quota = self.quota()
-        retry_after = max(1, int((quota.resets_at - datetime.now(UTC)).total_seconds()))
+        quota = self.quota(now=now)
+        retry_after = max(1, int((quota.resets_at - now).total_seconds()))
         if quota.runs_remaining <= 0:
             raise BudgetExceededError(
                 "daily_run_limit_exceeded",
@@ -75,8 +79,8 @@ class BudgetService:
             )
         return quota
 
-    def quota(self) -> OwnerQuota:
-        now = datetime.now(UTC)
+    def quota(self, *, now: datetime | None = None) -> OwnerQuota:
+        now = now or datetime.now(UTC)
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         resets_at = day_start + timedelta(days=1)
         reserved_tokens = case(
@@ -102,3 +106,21 @@ class BudgetService:
             reserved_or_used=reserved_or_used,
             resets_at=resets_at,
         )
+
+    def _serialize_owner_admission(self, quota_day: date) -> None:
+        """Serialize only competing admissions, without locking the user FK row."""
+
+        bind = self.session.get_bind()
+        if bind.dialect.name == "postgresql":
+            self.session.execute(
+                select(func.pg_advisory_xact_lock(_admission_lock_key(self.owner_id, quota_day)))
+            )
+            return
+        # SQLite serializes writers itself. Other supported development engines
+        # retain the previous row-lock behavior where FOR UPDATE is available.
+        self.session.scalar(select(User.id).where(User.id == self.owner_id).with_for_update())
+
+
+def _admission_lock_key(owner_id: UUID, quota_day: date) -> int:
+    payload = f"planning-admission:{owner_id}:{quota_day.isoformat()}".encode("ascii")
+    return int.from_bytes(hashlib.blake2b(payload, digest_size=8).digest(), "big", signed=True)

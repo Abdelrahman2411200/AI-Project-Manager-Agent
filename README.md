@@ -174,7 +174,7 @@ For Windows development with Ollama installed in the Ubuntu WSL distribution, st
 & .\infra\release\start-local-ollama.ps1
 ```
 
-The helper keeps WSL running, verifies that `llama3.1:8b` is installed, synchronizes the ignored demo origin with `HTTP_PORT`, configures the local 100,000-token planning-run budget, starts Docker Compose, and exercises the same structured provider path used by the worker. Open the URL printed by the script (normally `http://localhost:8080`, or the existing `HTTP_PORT` in `.env.demo`). No hosted API key is required.
+The helper keeps WSL running, verifies that `llama3.1:8b` is installed, synchronizes the ignored demo origin with `HTTP_PORT`, configures the local 100,000-token planning-run budget, starts four durable planning workers, and exercises the same structured provider path used by the worker. Use `-WorkerReplicas <count>` to match the number of planning runs you want claimed concurrently. Open the URL printed by the script (normally `http://localhost:8080`, or the existing `HTTP_PORT` in `.env.demo`). No hosted API key is required.
 
 To run services manually, copy the example environment file first:
 

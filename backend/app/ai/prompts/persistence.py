@@ -57,6 +57,19 @@ def mark_prompt_used(
     expected_hash: str,
 ) -> PromptVersion:
     record = session.scalar(
+        select(PromptVersion).where(PromptVersion.key == key, PromptVersion.version == version)
+    )
+    if record is None:
+        raise LookupError(f"Prompt version {key}.{version} is not registered.")
+    if record.template_hash != expected_hash:
+        raise ValueError(f"Prompt version {key}.{version} has an unexpected content hash.")
+    if record.first_used_at is not None:
+        return record
+
+    # Only the first-use transition needs serialization. Used prompt versions
+    # are immutable, so locking every model call would unnecessarily serialize
+    # otherwise independent planning workers on the same catalog row.
+    record = session.scalar(
         select(PromptVersion)
         .where(PromptVersion.key == key, PromptVersion.version == version)
         .with_for_update()

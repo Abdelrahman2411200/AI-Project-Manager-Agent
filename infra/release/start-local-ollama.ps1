@@ -3,6 +3,8 @@ param(
     [string]$Distro = "Ubuntu",
     [string]$Model = "llama3.1:8b",
     [string]$EnvironmentFile = ".env.demo",
+    [ValidateRange(1, 16)]
+    [int]$WorkerReplicas = 4,
     [switch]$SkipBuild
 )
 
@@ -84,10 +86,11 @@ if (-not (Test-Path -LiteralPath $environmentPath)) {
 Set-DotEnvValue -Path $environmentPath -Name "AI_PROVIDER" -Value "ollama"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_BASE_URL" -Value "http://host.docker.internal:11434"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MODEL" -Value $Model
-Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "600"
+Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_TIMEOUT_SECONDS" -Value "1800"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_CONTEXT_TOKENS" -Value "8192"
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MAX_OUTPUT_TOKENS" -Value "4096"
 Set-DotEnvValue -Path $environmentPath -Name "PLANNING_RUN_DEFAULT_TOKEN_BUDGET" -Value "100000"
+Set-DotEnvValue -Path $environmentPath -Name "DEMO_WORKER_REPLICAS" -Value $WorkerReplicas.ToString()
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_SCHEMA_RETRIES" -Value "1"
 Set-DotEnvValue -Path $environmentPath -Name "OPENAI_API_KEY" -Value ""
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_INPUT_PRICE_PER_MILLION" -Value "0"
@@ -140,4 +143,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Local AI Project Manager is ready at http://localhost:$httpPort" -ForegroundColor Green
-Write-Host "Provider: Ollama | Model: $Model | Context: 8192 tokens" -ForegroundColor Green
+Write-Host "Provider: Ollama | Model: $Model | Context: 8192 tokens | Workers: $WorkerReplicas" -ForegroundColor Green

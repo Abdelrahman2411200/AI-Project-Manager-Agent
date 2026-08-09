@@ -75,6 +75,13 @@ CSRF-protected planning and reporting writes cannot drift from the published URL
 The demo advertises a 100,000-token per-run planning budget to the frontend; other
 environments retain their configured default. Large requirement sets are divided
 into bounded task and acceptance batches before local-model generation.
+`DEMO_WORKER_REPLICAS` defaults to four, allowing four workflows to be claimed at
+once. This is finite capacity: runs above the configured count queue durably, and
+one small GPU may still serialize Ollama requests behind the running workflows.
+Planning admission uses a short owner-and-UTC-day PostgreSQL advisory lock, and
+workers commit prompt provenance before model generation. No database transaction
+is held while waiting for Ollama, so one slow generation cannot block another
+project from entering the worker pool.
 
 The frontend serves `index.html` with `Cache-Control: no-cache`, caches
 content-hashed assets for one year, and returns HTTP 404 for missing assets.
@@ -167,7 +174,7 @@ incorrect confirmation literal.
 | API not ready | `docker compose ... logs migrate api` | Fix migration/config; do not bypass the gate |
 | A browser write is 403 | request `Origin`, `HTTP_PORT`, and `CORS_ORIGINS` | Restart with `--env-file .env.demo`; the local helper synchronizes the exact scheme/host/port |
 | Login loops in production | TLS and `COOKIE_SECURE` | Terminate HTTPS before the bound frontend |
-| Jobs remain queued | worker logs, DB connectivity, lease age | Restore worker; expired leases are reclaimable |
+| Jobs remain queued | `docker compose ... ps worker`, worker logs, configured replicas, lease age | Restore workers or raise `DEMO_WORKER_REPLICAS`; expired leases are reclaimable |
 | Ollama planning is unavailable | WSL keepalive, `systemctl status ollama`, installed model, worker `OLLAMA_BASE_URL` | Run `start-local-ollama.ps1`, then start a new audited run |
 | Planning fails safely | run steps and validation codes | Correct input/provider issue and retry idempotently |
 | PDF fails | Chromium availability, timeout, `/tmp`, size | Restore the release image/runtime limits |

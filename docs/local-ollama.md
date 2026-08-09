@@ -36,10 +36,11 @@ client.
 
 - `AI_PROVIDER=ollama`
 - `OLLAMA_MODEL=llama3.1:8b`
-- `OLLAMA_TIMEOUT_SECONDS=600`
+- `OLLAMA_TIMEOUT_SECONDS=1800`
 - `OLLAMA_CONTEXT_TOKENS=8192`
 - `OLLAMA_MAX_OUTPUT_TOKENS=4096`
 - `PLANNING_RUN_DEFAULT_TOKEN_BUDGET=100000` for the local demo
+- `DEMO_WORKER_REPLICAS=4` for four concurrently claimed workflows
 
 Task generation groups at most two requirement references per model call, and
 acceptance refinement groups at most four tasks per call. These bounds keep each
@@ -50,8 +51,10 @@ retain their separately configured run budget.
 - `OLLAMA_SEED=42`
 - `OLLAMA_SCHEMA_RETRIES=1`
 
-The 600-second request window accommodates structured generations when the 8B
-model is partially CPU-offloaded. Workflow checkpoints, bounded node retry, and
+The 1,800-second request window accommodates structured generations and provider-side
+waiting when several workers share one local Ollama instance. Ollama can still serialize
+model requests when GPU memory is limited; extra workers remove the application queue,
+not the physical compute limit. Workflow checkpoints, bounded node retry, and
 idempotent jobs prevent a transient provider interruption from exposing a partial
 plan.
 
@@ -124,11 +127,12 @@ proof for a new configuration.
 From the repository root:
 
 ```powershell
-& .\infra\release\start-local-ollama.ps1
+& .\infra\release\start-local-ollama.ps1 -WorkerReplicas 4
 ```
 
 The helper verifies WSL, Ollama, and `llama3.1:8b`; keeps Ubuntu alive; writes the
-ignored demo environment; builds the backend and frontend; starts the stack; and
+ignored demo environment; builds the backend and frontend; starts the stack with
+the requested number of durable workers; and
 performs a structured probe from the worker container.
 
 If the probe fails, verify these layers in order:
