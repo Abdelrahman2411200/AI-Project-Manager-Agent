@@ -818,6 +818,115 @@ def test_complete_workflow_persists_one_validated_draft_and_trace() -> None:
         assert len(provider.requests) == 8
 
 
+def test_fast_local_workflow_finishes_with_two_model_calls_for_complete_intake() -> None:
+    run_id, project_id = _started_run("fast-local-owner@example.com")
+    provider = FakeStructuredModelProvider(_outputs()[1:3])
+    settings = get_settings().model_copy(
+        update={"ai_provider": "ollama", "ollama_fast_planning": True}
+    )
+
+    with SessionLocal() as session:
+        run = asyncio.run(
+            PlanningWorkflow(
+                session,
+                provider,
+                settings,
+                sleeper=_no_sleep,
+            ).execute(run_id)
+        )
+        assert run.status == "completed"
+        assert run.proposed_plan_version_id is not None
+        assert len(provider.requests) == 2
+        assert (
+            session.scalar(
+                select(func.count(PlanVersion.id)).where(PlanVersion.project_id == project_id)
+            )
+            == 1
+        )
+        assert (
+            session.scalar(
+                select(func.count(Task.id)).where(Task.version_id == run.proposed_plan_version_id)
+            )
+            == 1
+        )
+        assert (
+            session.scalar(
+                select(func.count(TaskDependency.id)).where(
+                    TaskDependency.version_id == run.proposed_plan_version_id
+                )
+            )
+            == 0
+        )
+        assert (
+            session.scalar(
+                select(func.count(Risk.id)).where(Risk.version_id == run.proposed_plan_version_id)
+            )
+            == 0
+        )
+
+
+def test_fast_local_module_shaping_consolidates_fan_out_without_losing_coverage() -> None:
+    run_id, _ = _started_run("fast-local-module-owner@example.com")
+    requirements = [
+        {
+            "fact_ref": f"REQ-{index:03d}",
+            "kind": "stated",
+            "text": f"Confirmed capability {index}",
+            "source": "user",
+            "status": "confirmed",
+        }
+        for index in range(1, 15)
+    ]
+    model_modules = []
+    for index, requirement in enumerate(requirements, start=1):
+        model_modules.append(
+            {
+                **deepcopy(_outputs()[2]["items"][0]),
+                "temp_id": f"MOD-{index:03d}",
+                "name": f"Capability area {index}",
+                "description": (
+                    f"Deliver the confirmed capability area {index} as a reviewable module."
+                ),
+                "objective": f"Complete and verify confirmed capability area {index}.",
+                "deliverables": [f"Verified capability {index}"],
+                "requirement_refs": [requirement["fact_ref"]],
+            }
+        )
+    provider = FakeStructuredModelProvider([{"items": model_modules}])
+    settings = get_settings().model_copy(
+        update={"ai_provider": "ollama", "ollama_fast_planning": True}
+    )
+
+    with SessionLocal() as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        project = session.get(Project, run.project_id)
+        assert project is not None
+        facts = build_planning_facts(project)
+        facts = replace(
+            facts,
+            requirements=requirements,
+            allowed_refs=frozenset(
+                [*(item["fact_ref"] for item in requirements), "CONSTRAINT-001"]
+            ),
+            excluded_refs=frozenset(),
+        )
+        result = asyncio.run(
+            PlanningSemanticNodes(session, provider, settings).modules(
+                run,
+                facts,
+                ProjectAnalysisOutput.model_validate(_outputs()[1]),
+            )
+        )
+
+    assert len(provider.requests) == 1
+    assert len(result.output.items) == 4
+    assert result.repaired is True
+    assert {
+        reference for module in result.output.items for reference in module.requirement_refs
+    } == {item["fact_ref"] for item in requirements}
+
+
 def test_evaluation_tier_planning_latency_meets_the_nfr_009_bounds() -> None:
     run_ids: list[UUID] = []
     progress_latencies: list[float] = []

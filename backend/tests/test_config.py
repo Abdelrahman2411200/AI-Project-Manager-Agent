@@ -18,6 +18,7 @@ def test_development_defaults_are_safe_for_local_use() -> None:
     assert settings.ai_provider == "ollama"
     assert settings.ollama_model == "llama3.1:8b"
     assert settings.ollama_timeout_seconds == 600
+    assert settings.ollama_fast_planning is True
     assert settings.ollama_base_url_string == "http://127.0.0.1:11434"
     assert settings.planning_ai_configured is True
     assert settings.planning_model == "llama3.1:8b"

@@ -73,8 +73,11 @@ For the local demo, `HTTP_PORT` is also the default trusted browser origin. Leav
 Ollama helper always synchronizes `DEMO_ORIGIN` with its configured `HTTP_PORT` so
 CSRF-protected planning and reporting writes cannot drift from the published URL.
 The demo advertises a 100,000-token per-run planning budget to the frontend; other
-environments retain their configured default. Large requirement sets are divided
-into bounded task and acceptance batches before local-model generation.
+environments retain their configured default. `OLLAMA_FAST_PLANNING=true` limits local
+planning to analysis and module shaping when the structured intake is complete, adding
+clarification generation only for incomplete intake. Downstream plan
+structure is deterministic and requirement-grounded, so large projects do not multiply
+task and acceptance model calls or fail after exhausting the run budget.
 `DEMO_WORKER_REPLICAS` defaults to four, allowing four workflows to be claimed at
 once. This is finite capacity: runs above the configured count queue durably, and
 one small GPU may still serialize Ollama requests behind the running workflows.

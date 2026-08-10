@@ -41,6 +41,7 @@ from app.workflows.engine import NodeFailure
 
 TASK_REQUIREMENT_BATCH_SIZE = 2
 ACCEPTANCE_TASK_BATCH_SIZE = 4
+FAST_LOCAL_MODULE_TARGET = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,9 +62,16 @@ class PlanningSemanticNodes:
         self.provider = provider
         self.settings = settings
 
+    @property
+    def _fast_local_planning(self) -> bool:
+        """Use the bounded local path for CPU-hosted Ollama planning runs."""
+        return self.settings.planning_provider == "ollama" and self.settings.ollama_fast_planning
+
     async def detect_gaps(
         self, run: AgentRun, facts: PlanningFacts
     ) -> Generated[ClarificationQuestionBatch]:
+        if self._fast_local_planning and _local_intake_is_complete(facts):
+            return Generated(ClarificationQuestionBatch(items=[]), ModelUsage(), repaired=False)
         generated: Generated[ClarificationQuestionBatch] = await self._generate(
             run,
             "clarification.v3",
@@ -142,8 +150,12 @@ class PlanningSemanticNodes:
             changed = changed or item.temp_id != stable_id
             dumped["temp_id"] = stable_id
             normalized_items.append(dumped)
+        normalized = ModuleDraftBatch.model_validate({"items": normalized_items})
+        if self._fast_local_planning:
+            normalized, consolidated = _consolidate_local_modules(normalized)
+            changed = changed or consolidated
         return Generated(
-            ModuleDraftBatch.model_validate({"items": normalized_items}),
+            normalized,
             generated.usage,
             repaired=generated.repaired or changed,
         )
@@ -154,6 +166,12 @@ class PlanningSemanticNodes:
         facts: PlanningFacts,
         modules: ModuleDraftBatch,
     ) -> Generated[MilestoneDraftBatch]:
+        if self._fast_local_planning:
+            return Generated(
+                _build_local_milestones(facts, modules),
+                ModelUsage(),
+                repaired=False,
+            )
         items: list[dict[str, Any]] = []
         usage = ModelUsage()
         repaired = False
@@ -206,6 +224,12 @@ class PlanningSemanticNodes:
         modules: ModuleDraftBatch,
         milestones: MilestoneDraftBatch,
     ) -> Generated[TaskDraftBatch]:
+        if self._fast_local_planning:
+            return Generated(
+                _build_local_tasks(facts, modules, milestones),
+                ModelUsage(),
+                repaired=False,
+            )
         items: list[dict[str, Any]] = []
         usage = ModelUsage()
         repaired = False
@@ -279,6 +303,10 @@ class PlanningSemanticNodes:
         facts: PlanningFacts,
         tasks: TaskDraftBatch,
     ) -> Generated[TaskDraftBatch]:
+        if self._fast_local_planning:
+            # Local tasks are born with testable acceptance evidence. Rewriting the
+            # complete task schema here was the slowest and least reliable model pass.
+            return Generated(tasks, ModelUsage(), repaired=False)
         groups: dict[str, list[TaskDraft]] = {}
         for task in tasks.items:
             groups.setdefault(task.milestone_ref, []).append(task)
@@ -318,6 +346,10 @@ class PlanningSemanticNodes:
     async def dependencies(
         self, run: AgentRun, tasks: TaskDraftBatch
     ) -> Generated[DependencySuggestionBatch]:
+        if self._fast_local_planning:
+            # An absent edge is safer than inventing causality. Deterministic graph
+            # validation and scheduling remain authoritative downstream.
+            return Generated(DependencySuggestionBatch(items=[]), ModelUsage(), repaired=False)
         if len(tasks.items) < 2:
             return Generated(DependencySuggestionBatch(items=[]), ModelUsage(), repaired=False)
         task_refs = frozenset(item.temp_id for item in tasks.items)
@@ -349,6 +381,10 @@ class PlanningSemanticNodes:
         dependencies: DependencySuggestionBatch,
         schedule: dict[str, Any],
     ) -> Generated[RiskDraftBatch]:
+        if self._fast_local_planning:
+            # Deterministic schedule and quality gates emit grounded warnings. Avoid
+            # an additional large-context local-model pass and never fabricate risk facts.
+            return Generated(RiskDraftBatch(items=[]), ModelUsage(), repaired=False)
         plan_refs = frozenset(
             [
                 *(item.temp_id for item in modules.items),
@@ -893,6 +929,199 @@ def _deduplicate_task_titles(
         seen.add(normalized)
         normalized_items.append(dumped)
     return normalized_items, changed
+
+
+def _consolidate_local_modules(
+    batch: ModuleDraftBatch,
+) -> tuple[ModuleDraftBatch, bool]:
+    """Keep local-model fan-out near four modules without losing requirement coverage."""
+    if len(batch.items) <= FAST_LOCAL_MODULE_TARGET:
+        return batch, False
+
+    groups: list[list[Any]] = [[item] for item in batch.items[:FAST_LOCAL_MODULE_TARGET]]
+    group_refs = [set(item.requirement_refs) for item in batch.items[:FAST_LOCAL_MODULE_TARGET]]
+    for item in batch.items[FAST_LOCAL_MODULE_TARGET:]:
+        refs = set(item.requirement_refs)
+        candidates = [
+            index for index, existing in enumerate(group_refs) if len(existing | refs) <= 20
+        ]
+        if candidates:
+            target = min(candidates, key=lambda index: (len(group_refs[index]), index))
+            groups[target].append(item)
+            group_refs[target].update(refs)
+        else:
+            groups.append([item])
+            group_refs.append(refs)
+
+    items: list[dict[str, Any]] = []
+    for index, group in enumerate(groups, start=1):
+        lead = group[0]
+        names = _unique_strings(item.name for item in group)
+        deliverables = _unique_strings(value for item in group for value in item.deliverables)
+        workstreams = _unique_strings(value for item in group for value in item.workstreams)
+        description = lead.description
+        if len(group) > 1:
+            description = (
+                f"{lead.description} This module also coordinates the related delivery areas: "
+                f"{', '.join(names[1:])}."
+            )
+        items.append(
+            {
+                "temp_id": f"MOD-{index:03d}",
+                "name": lead.name,
+                "description": _bounded_text(description, 2000),
+                "objective": lead.objective,
+                "deliverables": deliverables[:8],
+                "workstreams": workstreams[:5],
+                "requirement_refs": sorted(group_refs[index - 1]),
+                "mvp_required": any(item.mvp_required for item in group),
+            }
+        )
+    return ModuleDraftBatch.model_validate({"items": items}), True
+
+
+def _local_intake_is_complete(facts: PlanningFacts) -> bool:
+    """Skip a costly gap pass only when the structured form supplies delivery essentials."""
+    intake = facts.intake
+    confirmed_requirements = [
+        item
+        for item in facts.requirements
+        if item["fact_ref"] not in facts.excluded_refs
+        and item.get("status") == "confirmed"
+        and str(item.get("text", "")).strip()
+    ]
+    return bool(
+        str(intake.get("goal", "")).strip()
+        and str(intake.get("desired_outcome", "")).strip()
+        and intake.get("start_date") is not None
+        and intake.get("deadline") is not None
+        and intake.get("capacity_hours_per_week")
+        and intake.get("team_size")
+        and confirmed_requirements
+    )
+
+
+def _build_local_milestones(
+    facts: PlanningFacts,
+    modules: ModuleDraftBatch,
+) -> MilestoneDraftBatch:
+    """Create one reviewable milestone per shaped module with zero model fan-out."""
+    items: list[dict[str, Any]] = []
+    deadline = facts.intake.get("deadline")
+    for index, module in enumerate(modules.items, start=1):
+        deliverable = module.deliverables[0]
+        items.append(
+            {
+                "temp_id": f"MS-{index:03d}",
+                "module_refs": [module.temp_id],
+                "name": _bounded_text(f"{module.name} delivery", 120),
+                "description": _bounded_text(
+                    f"Deliver, verify, and prepare the {module.name} module for owner review. "
+                    f"{module.description}",
+                    2000,
+                ),
+                "objective": module.objective,
+                "deliverable": deliverable,
+                "sequence": index,
+                "target_date": deadline,
+                "planned_effort_hours": max(8, 8 * len(module.requirement_refs)),
+                "acceptance_criteria": [
+                    _bounded_text(
+                        f"{deliverable} is complete, verified, and ready for owner review",
+                        120,
+                    )
+                ],
+                "dependency_refs": [],
+            }
+        )
+    return MilestoneDraftBatch.model_validate({"items": items})
+
+
+def _build_local_tasks(
+    facts: PlanningFacts,
+    modules: ModuleDraftBatch,
+    milestones: MilestoneDraftBatch,
+) -> TaskDraftBatch:
+    """Create one grounded, testable task for every confirmed requirement."""
+    requirement_text = {
+        item["fact_ref"]: str(item["text"]).strip()
+        for item in facts.requirements
+        if item["fact_ref"] not in facts.excluded_refs
+    }
+    modules_by_id = {item.temp_id: item for item in modules.items}
+    items: list[dict[str, Any]] = []
+    seen_refs: set[str] = set()
+    task_number = 1
+    for milestone in sorted(milestones.items, key=lambda item: item.sequence):
+        for module_ref in milestone.module_refs:
+            module = modules_by_id[module_ref]
+            for reference in module.requirement_refs:
+                if reference in seen_refs or reference not in requirement_text:
+                    continue
+                seen_refs.add(reference)
+                text = requirement_text[reference]
+                items.append(
+                    {
+                        "temp_id": f"TASK-{task_number:03d}",
+                        "milestone_ref": milestone.temp_id,
+                        "parent_ref": None,
+                        "title": _bounded_text(f"Deliver {text}", 120),
+                        "description": _bounded_text(
+                            f"Implement and verify the confirmed project requirement: {text}",
+                            2000,
+                        ),
+                        "deliverable": _bounded_text(f"Verified implementation of {text}", 500),
+                        "acceptance_criteria": [
+                            _bounded_text(
+                                f"{reference}: the requested outcome is demonstrated "
+                                "and passes review",
+                                120,
+                            )
+                        ],
+                        "definition_of_done": [
+                            _bounded_text(
+                                "Implementation, tests, and review evidence are complete "
+                                f"for {reference}",
+                                120,
+                            )
+                        ],
+                        "effort_min_hours": 4,
+                        "effort_likely_hours": 8,
+                        "effort_max_hours": 12,
+                        "complexity": "medium",
+                        "workstreams": module.workstreams[:3],
+                        "skill_tags": [],
+                        "mvp_necessity": 100 if module.mvp_required else 60,
+                        "user_value": 80,
+                        "deadline_urgency": 50,
+                        "risk_reduction": 50,
+                        "user_preference": 100,
+                        "source": "ai",
+                        "requirement_refs": [reference],
+                        "assumption_refs": [],
+                        "locked": False,
+                    }
+                )
+                task_number += 1
+    normalized, _ = _deduplicate_task_titles(items, milestones)
+    return TaskDraftBatch.model_validate({"items": normalized})
+
+
+def _unique_strings(values: Any) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        normalized = " ".join(str(value).split())
+        key = normalized.casefold()
+        if normalized and key not in seen:
+            seen.add(key)
+            result.append(normalized)
+    return result
+
+
+def _bounded_text(value: str, maximum: int) -> str:
+    normalized = " ".join(value.split())
+    return normalized if len(normalized) <= maximum else normalized[:maximum].rstrip()
 
 
 def _discard_invalid_optional_items[OutputT: BaseModel](
