@@ -39,24 +39,29 @@ client.
 - `OLLAMA_TIMEOUT_SECONDS=1800`
 - `OLLAMA_CONTEXT_TOKENS=8192`
 - `OLLAMA_MAX_OUTPUT_TOKENS=4096`
+- `OLLAMA_FAST_PLANNING=true`
 - `PLANNING_RUN_DEFAULT_TOKEN_BUDGET=100000` for the local demo
 - `DEMO_WORKER_REPLICAS=4` for four concurrently claimed workflows
 
-Task generation groups at most two requirement references per model call, and
-acceptance refinement groups at most four tasks per call. These bounds keep each
-schema-constrained response below the local 4,096-token output ceiling while the
-larger demo run budget covers the additional grounded batches. Hosted environments
-retain their separately configured run budget.
+Fast local planning uses the model for project analysis and module shaping. It uses a
+clarification model call only when the structured intake is missing delivery essentials.
+It consolidates excessive module fan-out near four modules without dropping requirement
+references, then deterministically creates the milestones, requirement-level tasks,
+acceptance evidence, and validation inputs. This keeps a complete uninterrupted local
+run to two model calls and removes the redundant full-task acceptance rewrite
+that could exhaust the output or run-token limit. Set `OLLAMA_FAST_PLANNING=false` only
+when deliberately evaluating the slower model-authored downstream stages. Hosted OpenAI
+planning retains its separately configured multi-call workflow and run budget.
 - `OLLAMA_TEMPERATURE=0`
 - `OLLAMA_SEED=42`
 - `OLLAMA_SCHEMA_RETRIES=1`
 
-The 1,800-second request window accommodates structured generations and provider-side
-waiting when several workers share one local Ollama instance. Ollama can still serialize
-model requests when GPU memory is limited; extra workers remove the application queue,
-not the physical compute limit. Workflow checkpoints, bounded node retry, and
-idempotent jobs prevent a transient provider interruption from exposing a partial
-plan.
+The 1,800-second request window accommodates an unusually slow structured generation
+and provider-side waiting when several workers share one local Ollama instance. Ollama
+can still serialize model requests when GPU memory is limited; extra workers remove the
+application queue, not the physical compute limit. Workflow checkpoints, bounded node
+retry, and idempotent jobs prevent a transient provider interruption from exposing a
+partial plan.
 
 ## Structured-output boundary
 
@@ -103,18 +108,15 @@ the local `llama3.1:8b` API. The completed run must show:
 - a passed quality gate;
 - one persisted draft that remains approval-gated and inactive.
 
-Latest black-box verification on 2026-08-01:
+Latest black-box verification on 2026-08-10:
 
-- run `d1208595-650c-4202-9bd2-e9a8698951ec` completed in 1,288 seconds;
-- all 24 provider calls completed with `llama3.1:8b`, using 46,341 local tokens;
-- all 17 workflow checkpoints completed with no failed step and no clarification
-  persisted for already-confirmed facts;
-- plan `9db7f7d6-ead9-43fc-b701-58308493dd72` contains six stable modules, six
-  milestones, and twelve distinct, sized tasks;
-- every one of the eight in-scope requirements has a separate grounded task, and
-  the production semantic checker found zero mismatched task citations;
-- the deterministic quality gate passed with one advisory that the model did not
-  identify a grounded risk; no generic risk was invented to hide that result;
+- run `fdd51b57-049d-4ce5-a2dd-a67dcf3b69fc` completed in 50.31 seconds;
+- both provider calls completed with `llama3.1:8b`, using 3,520 local tokens;
+- all 17 workflow checkpoints completed on their first attempt with no failed or
+  truncated step;
+- plan `a91df850-2b3f-40f1-9dd3-f3f1da14026a` contains two stable modules, two
+  milestones, and four distinct tasks for four confirmed requirements;
+- the deterministic graph, schedule, priority, and quality gates passed;
 - the resulting plan remains an inactive draft with no approval record and no
   active plan version.
 

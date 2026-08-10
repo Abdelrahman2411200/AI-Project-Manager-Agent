@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     ollama_seed: int = Field(default=42, ge=0, le=2_147_483_647)
     ollama_keep_alive: str = Field(default="5m", min_length=1, max_length=24)
     ollama_schema_retries: int = Field(default=1, ge=0, le=2)
+    ollama_fast_planning: bool = True
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="gpt-5.6-terra", min_length=1, max_length=120)
     openai_timeout_seconds: float = Field(default=90.0, ge=1.0, le=300.0)
