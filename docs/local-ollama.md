@@ -126,7 +126,12 @@ proof for a new configuration.
 
 ## Start on Windows
 
-From the repository root:
+For normal use, double-click `AI Project Manager.exe` in the repository root.
+It reuses cached images when available, waits for the public application readiness
+endpoint, and opens the browser. Use **Stop project** in the launcher to stop the
+services while preserving PostgreSQL data.
+
+For terminal-driven startup, run from the repository root:
 
 ```powershell
 & .\infra\release\start-local-ollama.ps1 -WorkerReplicas 4

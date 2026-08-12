@@ -34,6 +34,9 @@ test-results/
 .DS_Store
 Thumbs.db
 
+# Windows launcher build metadata
+launcher/AIProjectManager.ico
+
 # Runtime
 *.log
 tmp/

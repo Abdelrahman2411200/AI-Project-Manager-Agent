@@ -5,7 +5,10 @@ param(
     [string]$EnvironmentFile = ".env.demo",
     [ValidateRange(1, 16)]
     [int]$WorkerReplicas = 4,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$PreferCachedImages,
+    [switch]$SkipProviderProbe,
+    [switch]$OpenBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -39,9 +42,37 @@ function Set-DotEnvValue {
     Set-Content -LiteralPath $Path -Value $lines -Encoding utf8
 }
 
+function Test-DockerReady {
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "SilentlyContinue"
+        & docker.exe info *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
+function Test-DockerImage {
+    param([string]$Image)
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "SilentlyContinue"
+        & docker.exe image inspect $Image *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
 if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
     throw "WSL is required. Install WSL and the Ubuntu distribution first."
 }
+
+Write-Host "[1/6] Checking local Ollama..."
 if (-not (Get-Command docker.exe -ErrorAction SilentlyContinue)) {
     throw "Docker Desktop is required and docker.exe is not on PATH."
 }
@@ -92,6 +123,7 @@ Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_MAX_OUTPUT_TOKENS" -Value "
 Set-DotEnvValue -Path $environmentPath -Name "PLANNING_RUN_DEFAULT_TOKEN_BUDGET" -Value "100000"
 Set-DotEnvValue -Path $environmentPath -Name "DEMO_WORKER_REPLICAS" -Value $WorkerReplicas.ToString()
 Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_SCHEMA_RETRIES" -Value "1"
+Set-DotEnvValue -Path $environmentPath -Name "OLLAMA_FAST_PLANNING" -Value "true"
 Set-DotEnvValue -Path $environmentPath -Name "OPENAI_API_KEY" -Value ""
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_INPUT_PRICE_PER_MILLION" -Value "0"
 Set-DotEnvValue -Path $environmentPath -Name "MODEL_CACHED_INPUT_PRICE_PER_MILLION" -Value "0"
@@ -104,8 +136,8 @@ if ($portLine) {
 }
 Set-DotEnvValue -Path $environmentPath -Name "DEMO_ORIGIN" -Value "http://localhost:$httpPort"
 
-& docker.exe info *> $null
-if ($LASTEXITCODE -ne 0) {
+Write-Host "[2/6] Checking Docker Desktop..."
+if (-not (Test-DockerReady)) {
     $desktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     if (-not (Test-Path -LiteralPath $desktop)) {
         throw "Docker Desktop is not running and its executable was not found."
@@ -114,8 +146,7 @@ if ($LASTEXITCODE -ne 0) {
     $dockerReady = $false
     for ($attempt = 0; $attempt -lt 90; $attempt++) {
         Start-Sleep -Seconds 2
-        & docker.exe info *> $null
-        if ($LASTEXITCODE -eq 0) {
+        if (Test-DockerReady) {
             $dockerReady = $true
             break
         }
@@ -125,22 +156,68 @@ if ($LASTEXITCODE -ne 0) {
     }
 }
 
-if (-not $SkipBuild) {
+$buildRequired = -not $SkipBuild
+if ($PreferCachedImages -and -not $SkipBuild) {
+    $appVersion = "0.13.0"
+    $versionLine = Get-Content -LiteralPath $environmentPath | Where-Object { $_ -match "^APP_VERSION=" } | Select-Object -First 1
+    if ($versionLine) {
+        $appVersion = $versionLine.Substring("APP_VERSION=".Length)
+    }
+    $backendImageExists = Test-DockerImage -Image "ai-project-manager-backend:$appVersion"
+    $frontendImageExists = Test-DockerImage -Image "ai-project-manager-university-demo-frontend:latest"
+    $buildRequired = -not ($backendImageExists -and $frontendImageExists)
+}
+
+if ($buildRequired) {
+    Write-Host "[3/6] Building application images (first launch may take several minutes)..."
     & docker.exe compose --env-file $environmentPath -f $composePath build api frontend
     if ($LASTEXITCODE -ne 0) {
         throw "The local application images did not build successfully."
     }
 }
+else {
+    Write-Host "[3/6] Using cached application images."
+}
+
+Write-Host "[4/6] Starting database, API, workers, and frontend..."
 & docker.exe compose --env-file $environmentPath -f $composePath up -d --no-build
 if ($LASTEXITCODE -ne 0) {
     throw "The local application stack did not start successfully."
 }
 
-& docker.exe compose --env-file $environmentPath -f $composePath exec -T worker `
-    /app/.venv/bin/python -m app.ai.probe
-if ($LASTEXITCODE -ne 0) {
-    throw "The worker could not complete a structured Ollama probe."
+if (-not $SkipProviderProbe) {
+    Write-Host "[5/6] Verifying structured AI output..."
+    & docker.exe compose --env-file $environmentPath -f $composePath exec -T worker `
+        /app/.venv/bin/python -m app.ai.probe
+    if ($LASTEXITCODE -ne 0) {
+        throw "The worker could not complete a structured Ollama probe."
+    }
+}
+else {
+    Write-Host "[5/6] Ollama endpoint and model are ready."
 }
 
-Write-Host "Local AI Project Manager is ready at http://localhost:$httpPort" -ForegroundColor Green
+Write-Host "[6/6] Waiting for the application health check..."
+$applicationUrl = "http://localhost:$httpPort"
+$applicationReady = $false
+for ($attempt = 0; $attempt -lt 90; $attempt++) {
+    try {
+        $health = Invoke-RestMethod -Uri "$applicationUrl/api/v1/health/ready" -TimeoutSec 5
+        if ($health.status -eq "ready") {
+            $applicationReady = $true
+            break
+        }
+    }
+    catch {
+        Start-Sleep -Seconds 2
+    }
+}
+if (-not $applicationReady) {
+    throw "The application did not become ready at $applicationUrl."
+}
+
+Write-Host "Local AI Project Manager is ready at $applicationUrl" -ForegroundColor Green
 Write-Host "Provider: Ollama | Model: $Model | Context: 8192 tokens | Workers: $WorkerReplicas" -ForegroundColor Green
+if ($OpenBrowser) {
+    Start-Process $applicationUrl
+}
