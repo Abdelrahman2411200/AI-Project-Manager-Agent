@@ -168,6 +168,16 @@ The source specification and Stitch exports are retained as project artifacts.
 
 Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js 24, npm 11, and optionally Docker Desktop.
 
+### One-click Windows launcher
+
+After Docker Desktop, WSL Ubuntu, Ollama, and the configured model have been installed once, double-click **`AI Project Manager.exe`** in the repository root. The launcher starts every required service, waits for a real readiness check, and opens the application in the default browser. Its **Stop project** button stops the containers without deleting PostgreSQL data or cached images.
+
+The executable is a native Windows launcher that stays beside this repository; application services continue to run in Docker so the deployment architecture and durable worker behavior remain identical to the documented demo. Rebuild the launcher after editing its source with:
+
+```powershell
+& .\launcher\build-launcher.ps1
+```
+
 For Windows development with Ollama installed in the Ubuntu WSL distribution, start the complete local demo from the repository root:
 
 ```powershell
